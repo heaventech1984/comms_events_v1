@@ -1,3 +1,4 @@
+import { tidyPlaceName } from "../place";
 import { scrapeUrlAllowed } from "./allowlist";
 import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "./categorise";
 import { FETCH_BODY_MAX, URL_EVENT_CAP } from "./harvest";
@@ -100,6 +101,7 @@ function decorate(events: ScrapedEvent[], pageUrl: string): ScrapedEvent[] {
     return {
       ...event,
       category: inferred.category,
+      placeName: tidyPlaceName(event.placeName),
       notes,
       fetchedFrom: event.fetchedFrom ?? pageUrl,
       // Strong only skips human type review; weak/none stay pending for admin eyes.

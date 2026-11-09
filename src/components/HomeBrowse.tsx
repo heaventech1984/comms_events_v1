@@ -4,18 +4,11 @@ import { parseTypesParam, type CalendarFormat } from "@/lib/calendar";
 import { CATEGORIES, type Category } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { formatTime, londonParts } from "@/lib/time";
+import { dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
+import { tidyPlaceName } from "@/lib/place";
+import { formatTime } from "@/lib/time";
 
 const LIST_CAP = 50;
-
-const monthShort = new Intl.DateTimeFormat("en-GB", {
-  month: "short",
-  timeZone: "Europe/London"
-});
-const weekdayShort = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short",
-  timeZone: "Europe/London"
-});
 
 function browseHref(types: Category[], format: CalendarFormat): string {
   const sp = new URLSearchParams();
@@ -129,35 +122,49 @@ export async function HomeBrowse({
           <Link href="/calendar">see the month</Link>.
         </p>
       ) : (
-        <ul className="event-row-list">
-          {events.map((event) => {
-            const parts = londonParts(event.startsAt);
-            return (
-              <li key={event.id}>
-                <Link className="event-row card" href={`/events/${event.id}`} title={event.title}>
-                  <span className="event-date-block" aria-hidden="true">
-                    <span className="event-date-month">{monthShort.format(event.startsAt)}</span>
-                    <span className="event-date-day">{parts.day}</span>
-                    <span className="event-date-weekday">{weekdayShort.format(event.startsAt)}</span>
-                  </span>
-                  <span className="event-row-body">
-                    <span className="event-title">{event.title}</span>
-                    <span className="muted">
-                      {formatTime(event.startsAt)}
-                      {" · "}
-                      {event.online ? "Online" : event.placeName || "In person"}
-                    </span>
-                  </span>
-                  {starred.has(event.id) ? (
-                    <span className="event-row-star" title="Starred" aria-label="Starred">
-                      ★
-                    </span>
-                  ) : null}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="event-day-groups">
+          {(() => {
+            const groups: { key: string; label: string; events: typeof events }[] = [];
+            for (const event of events) {
+              const day = dayKeyOf(event.startsAt);
+              const key = formatDayKey(day);
+              const last = groups[groups.length - 1];
+              if (!last || last.key !== key) {
+                groups.push({ key, label: formatDayLabel(day), events: [event] });
+              } else {
+                last.events.push(event);
+              }
+            }
+            return groups.map((group) => (
+              <section key={group.key} className="event-day-group">
+                <h2 className="event-day-heading">{group.label}</h2>
+                <ul className="event-row-list">
+                  {group.events.map((event) => (
+                    <li key={event.id}>
+                      <Link className="event-row card" href={`/events/${event.id}`} title={event.title}>
+                        <span className="event-row-body">
+                          <span className="event-title">{event.title}</span>
+                          <span className="muted">
+                            {formatTime(event.startsAt)}
+                            {" · "}
+                            {event.online
+                              ? "Online"
+                              : tidyPlaceName(event.placeName) || "In person"}
+                          </span>
+                        </span>
+                        {starred.has(event.id) ? (
+                          <span className="event-row-star" title="Starred" aria-label="Starred">
+                            ★
+                          </span>
+                        ) : null}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ));
+          })()}
+        </div>
       )}
 
       {hitCap ? (

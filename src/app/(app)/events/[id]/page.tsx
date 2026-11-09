@@ -10,7 +10,8 @@ import { prisma } from "@/lib/db";
 import { initialsFromName } from "@/lib/initials";
 import { getSettings } from "@/lib/settings";
 import { attendanceChipClass, attendanceLabel } from "@/lib/attendance-label";
-import { formatDateTime } from "@/lib/time";
+import { tidyPlaceName } from "@/lib/place";
+import { formatDateTimeRange } from "@/lib/time";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -56,6 +57,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         })
       : null;
   const showFeedback = past && myBooking?.attendance === "ATTENDED" && !existingFeedback;
+  const placeLabel = tidyPlaceName(event.placeName);
 
   return (
     <main className="stack">
@@ -71,8 +73,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           <h1>{event.title}</h1>
           <p className="lede">
             <span className="swatch" style={{ background: settings.colours[event.category as keyof typeof settings.colours] }} />{" "}
-            {event.category} · {event.online ? "Online" : "In person"} · {formatDateTime(event.startsAt)}–
-            {formatDateTime(event.endsAt)}
+            {event.category} · {event.online ? "Online" : "In person"} ·{" "}
+            {formatDateTimeRange(event.startsAt, event.endsAt)}
           </p>
         </div>
       </div>
@@ -80,9 +82,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <p>
           <strong>Organisation.</strong> {event.organisationName}
         </p>
-        {event.placeName ? (
+        {placeLabel ? (
           <p>
-            <strong>Place.</strong> {event.placeName}
+            <strong>Place.</strong> {placeLabel}
           </p>
         ) : null}
         {event.externalUrl ? (

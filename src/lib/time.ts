@@ -26,6 +26,24 @@ export function formatTime(date: Date): string {
   }).format(date);
 }
 
+/** One date, then clocks — avoids “Mon 9 Nov … 10:00–Mon 9 Nov … 11:00”. */
+export function formatDateTimeRange(startsAt: Date, endsAt: Date | null | undefined): string {
+  const start = formatDateTime(startsAt);
+  if (!endsAt) return start;
+  const a = londonParts(startsAt);
+  const b = londonParts(endsAt);
+  if (a.year === b.year && a.month === b.month && a.day === b.day) {
+    return `${start}–${formatTime(endsAt)}`;
+  }
+  return `${start}–${formatDateTime(endsAt)}`;
+}
+
+/** Clock only (optional end). Use under a day heading that already shows the date. */
+export function formatTimeRange(startsAt: Date, endsAt: Date | null | undefined): string {
+  if (!endsAt) return formatTime(startsAt);
+  return `${formatTime(startsAt)}–${formatTime(endsAt)}`;
+}
+
 export function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: ZONE,

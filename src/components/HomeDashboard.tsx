@@ -2,20 +2,12 @@ import Link from "next/link";
 import { EventFeedbackBox } from "@/components/EventFeedbackBox";
 import { GatherMark } from "@/components/GatherMark";
 import { KindChooser } from "@/components/KindChooser";
-import { addDaysKey, dayKeyOf } from "@/lib/calendar";
+import { addDaysKey, dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
 import { eventsNeedingFeedback } from "@/lib/feedback";
 import { prisma } from "@/lib/db";
+import { tidyPlaceName } from "@/lib/place";
 import { loadRecommendations } from "@/lib/recommend";
-import { formatDateTime, formatTime, londonDate, londonParts } from "@/lib/time";
-
-const monthShort = new Intl.DateTimeFormat("en-GB", {
-  month: "short",
-  timeZone: "Europe/London"
-});
-const weekdayShort = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short",
-  timeZone: "Europe/London"
-});
+import { formatDateTime, formatTime, londonDate } from "@/lib/time";
 
 /** Signed-in Home — Apple-like calm: brand first, then one job per band. */
 export async function HomeDashboard({ userId }: { userId: string }) {
@@ -141,28 +133,45 @@ export async function HomeDashboard({ userId }: { userId: string }) {
             <Link href="/calendar">Browse the week</Link>
           </div>
         ) : (
-          <ul className="home-event-list">
-            {upcoming.map((event) => (
-              <li key={event.id}>
-                <Link className="home-event-row" href={`/events/${event.id}`}>
-                  <span className="home-event-date" aria-hidden="true">
-                    <span className="home-event-month">{monthShort.format(event.startsAt)}</span>
-                    <span className="home-event-day">{londonParts(event.startsAt).day}</span>
-                    <span className="home-event-weekday">{weekdayShort.format(event.startsAt)}</span>
-                  </span>
-                  <span className="home-event-body">
-                    <span className="home-event-title">{event.title}</span>
-                    <span className="home-event-meta">
-                      {formatTime(event.startsAt)}
-                      {" · "}
-                      {event.online ? "Online" : event.placeName || "In person"}
-                      {event.kind === "starred" ? " · ★" : ""}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className="event-day-groups">
+            {(() => {
+              const groups: { key: string; label: string; events: typeof upcoming }[] = [];
+              for (const event of upcoming) {
+                const day = dayKeyOf(event.startsAt);
+                const key = formatDayKey(day);
+                const last = groups[groups.length - 1];
+                if (!last || last.key !== key) {
+                  groups.push({ key, label: formatDayLabel(day), events: [event] });
+                } else {
+                  last.events.push(event);
+                }
+              }
+              return groups.map((group) => (
+                <section key={group.key} className="event-day-group">
+                  <h3 className="event-day-heading">{group.label}</h3>
+                  <ul className="home-event-list">
+                    {group.events.map((event) => (
+                      <li key={event.id}>
+                        <Link className="home-event-row" href={`/events/${event.id}`}>
+                          <span className="home-event-body">
+                            <span className="home-event-title">{event.title}</span>
+                            <span className="home-event-meta">
+                              {formatTime(event.startsAt)}
+                              {" · "}
+                              {event.online
+                                ? "Online"
+                                : tidyPlaceName(event.placeName) || "In person"}
+                              {event.kind === "starred" ? " · ★" : ""}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ));
+            })()}
+          </div>
         )}
       </section>
 
@@ -180,11 +189,6 @@ export async function HomeDashboard({ userId }: { userId: string }) {
             {picks.map((event) => (
               <li key={event.id}>
                 <Link className="home-event-row" href={`/events/${event.id}`}>
-                  <span className="home-event-date" aria-hidden="true">
-                    <span className="home-event-month">{monthShort.format(event.startsAt)}</span>
-                    <span className="home-event-day">{londonParts(event.startsAt).day}</span>
-                    <span className="home-event-weekday">{weekdayShort.format(event.startsAt)}</span>
-                  </span>
                   <span className="home-event-body">
                     <span className="home-event-title">{event.title}</span>
                     <span className="home-event-meta">{event.reason}</span>

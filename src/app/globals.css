@@ -1382,6 +1382,20 @@ table.data .members-check-col input[type="checkbox"] {
   font-size: 1.35rem;
   margin: 0 0 var(--space-3);
 }
+.event-day-groups {
+  display: grid;
+  gap: var(--space-4);
+}
+.event-day-group {
+  margin: 0;
+}
+.event-day-heading {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+  color: var(--ink);
+}
 .pending-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 18.5rem), 1fr));

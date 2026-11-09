@@ -4,11 +4,11 @@ import { PendingTileActions } from "@/components/PendingTileActions";
 import { requireUser } from "@/lib/auth";
 import { categoryAccentStyle } from "@/lib/category-art";
 import { dayKeyOf, formatDayKey } from "@/lib/calendar";
-import { eventLinkLabel, pendingWhen } from "@/lib/pending-copy";
+import { eventLinkLabel } from "@/lib/pending-copy";
 import { loadOpenPendingEvents } from "@/lib/pending-time";
 import { isUpdatedScrapedRow } from "@/lib/scraper/apply";
 import { getSettings } from "@/lib/settings";
-import { formatDate } from "@/lib/time";
+import { formatDate, formatTimeRange } from "@/lib/time";
 
 export default async function PendingPage() {
   await requireUser(["admin", "cell leader"]);
@@ -60,8 +60,9 @@ export default async function PendingPage() {
                     <h3>{event.title}</h3>
                     <p className="pending-meta muted">
                       <span>{event.organisationName}</span>
+                      {/* Day is already in the section heading — show clocks only. */}
                       <time dateTime={event.startsAt.toISOString()}>
-                        {pendingWhen(event.startsAt, event.endsAt)}
+                        {formatTimeRange(event.startsAt, event.endsAt)}
                       </time>
                     </p>
                     {event.externalUrl ? (

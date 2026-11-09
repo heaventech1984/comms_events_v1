@@ -17,10 +17,11 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## 2026-11-09 — For you + after-event feedback
+## 2026-11-09 — Less repeated place / date / time
 
-- Home **For you**: suggests upcoming events from what this person booked and what they marked as attended. Neighbouring types (e.g. Networking ~ Professional) and close title spellings count. No cloud AI.
-- After **I went**: a three-choice “How was it?” box (Loved it / It was fine / Not for me) plus an optional private note. Feeds the next suggestions. Audit stores the rating, not the comment.
+- Tidies scraped places (`Birmingham, Birmingham, gb` → one city).
+- Day groups show the date once; tiles show clocks only.
+- Event header ranges show the date once on the same day (`10:00–11:30`).
 
 ## 2026-11-09 — Scraper quality vNext (geo + category review)
 

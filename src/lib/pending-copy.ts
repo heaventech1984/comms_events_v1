@@ -1,4 +1,4 @@
-import { formatDateTime, formatTime } from "./time";
+import { formatDateTimeRange } from "./time";
 
 /**
  * Discard confirm copy — Discard changes event status only.
@@ -49,9 +49,7 @@ export function eventLinkLabel(url: string): string {
   }
 }
 
-/** Start as full London date-time; end as clock only when present. */
+/** Start as full London date-time; end as clock only when same day. */
 export function pendingWhen(startsAt: Date, endsAt: Date | null | undefined): string {
-  const start = formatDateTime(startsAt);
-  if (!endsAt) return start;
-  return `${start}–${formatTime(endsAt)}`;
+  return formatDateTimeRange(startsAt, endsAt);
 }
