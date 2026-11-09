@@ -38,6 +38,7 @@ test.describe("member paths", () => {
     await link.click();
     await dismissAttendancePrompt(page);
     await expect(page).toHaveURL(/\/events\//);
+    await expect(page.getByTestId("book-cell-members")).toHaveCount(0);
 
     const attend = page.getByRole("button", { name: /^attend$/i });
     if (await attend.isVisible()) {

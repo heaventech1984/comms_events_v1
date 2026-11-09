@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Members expert list* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Book people in your cell* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,12 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-09 — Book people in your cell (F04)
+
+- Cell leaders see a **Book people in your cell** panel on the event page: a named list with Book, not a cramped dropdown.
+- Honest empty copy when the cell is missing, empty, full, or already going. Search appears for larger cells.
+- Policy `canDelegateBooking` + helper tests; leader e2e books a cell member onto a future event.
 
 ## 2026-11-09 — Members expert list (admin + cell leader)
 

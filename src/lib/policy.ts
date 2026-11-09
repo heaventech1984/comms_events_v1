@@ -12,6 +12,11 @@ export type Decision = { ok: true } | { ok: false; status: 403; reason: string }
 const allow: Decision = { ok: true };
 const deny = (reason: string): Decision => ({ ok: false, status: 403, reason });
 
+/** Show the F04 “book people in your cell” panel. Booking itself still goes through canBookFor. */
+export function canDelegateBooking(actor: Actor): boolean {
+  return actor.role === "cell leader";
+}
+
 /** Members book themselves; cell leaders book members of their own cell; admins book anyone. */
 export function canBookFor(actor: Actor, target: { id: string; cellId: string | null }): Decision {
   if (actor.role === "admin") return allow;

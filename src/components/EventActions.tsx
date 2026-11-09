@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBanner } from "./StatusBanner";
@@ -13,9 +13,6 @@ export function EventActions({
   full,
   starred,
   canCancel,
-  members,
-  bookedMemberIds,
-  canDelegate,
   canEdit,
   myAttendance,
   myBookingId,
@@ -27,9 +24,6 @@ export function EventActions({
   full: boolean;
   starred: boolean;
   canCancel: boolean;
-  members: { id: string; name: string }[];
-  bookedMemberIds?: string[];
-  canDelegate: boolean;
   canEdit: boolean;
   myAttendance?: string | null;
   myBookingId?: string | null;
@@ -41,31 +35,19 @@ export function EventActions({
   const [kind, setKind] = useState<"info" | "error">("info");
   const [star, setStar] = useState(starred);
   const [busy, setBusy] = useState(false);
-  const [flash, setFlash] = useState(false);
   const [dialog, confirm] = useConfirm();
-
-  const availableMembers = useMemo(() => {
-    const taken = new Set(bookedMemberIds ?? []);
-    return members.filter((m) => !taken.has(m.id));
-  }, [members, bookedMemberIds]);
 
   function show(text: string, nextKind: "info" | "error") {
     setKind(nextKind);
     setMessage(text);
   }
 
-  async function attend(userId?: string) {
+  async function attend() {
     setBusy(true);
-    const result = await requestJson("/api/bookings", { method: "POST", body: { eventId, userId } });
+    const result = await requestJson("/api/bookings", { method: "POST", body: { eventId } });
     setBusy(false);
     if (!result.ok) return show(result.error, "error");
-    if (userId) {
-      setFlash(true);
-      window.setTimeout(() => setFlash(false), 600);
-      show("Booked.", "info");
-    } else {
-      show("You’re down as planning to go.", "info");
-    }
+    show("You’re down as planning to go.", "info");
     router.refresh();
   }
 
@@ -158,39 +140,6 @@ export function EventActions({
           </Link>
         ) : null}
       </div>
-      {canDelegate ? (
-        <form
-          className="row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const id = new FormData(e.currentTarget).get("userId");
-            if (id) attend(String(id));
-          }}
-        >
-          <label>
-            Book a cell member
-            <select name="userId" required disabled={availableMembers.length === 0}>
-              {availableMembers.length === 0 ? (
-                <option value="">Everyone in your cell is booked</option>
-              ) : (
-                availableMembers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-          <button
-            className={`secondary${flash ? " book-flash" : ""}`}
-            type="submit"
-            disabled={busy || availableMembers.length === 0}
-            data-testid="book-member"
-          >
-            Book member
-          </button>
-        </form>
-      ) : null}
       {dialog}
     </div>
   );

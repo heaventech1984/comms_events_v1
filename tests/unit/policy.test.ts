@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canBookFor,
   canCancelBooking,
+  canDelegateBooking,
   canExportAttendees,
   canManageMembers,
   canSeeAttendee,
@@ -29,6 +30,15 @@ describe("canBookFor", () => {
 
   it("lets an admin book anyone", () => {
     expect(canBookFor(admin, other).ok).toBe(true);
+  });
+});
+
+describe("canDelegateBooking", () => {
+  it("shows the book-cell panel to cell leaders only", () => {
+    expect(canDelegateBooking(leader)).toBe(true);
+    expect(canDelegateBooking(leaderNoCell)).toBe(true);
+    expect(canDelegateBooking(admin)).toBe(false);
+    expect(canDelegateBooking(member)).toBe(false);
   });
 });
 

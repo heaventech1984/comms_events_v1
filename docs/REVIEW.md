@@ -2,6 +2,13 @@
 
 Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October are a closed community demo, not an NHS production system. The 28 October section is the later read.
 
+## 9 November 2026 — Book people in your cell (F04)
+
+| Sev | Item | Status |
+| --- | --- | --- |
+| High | Cell leaders could not find “book a member of my cell” on the event | **Shipped** — own panel under Attend; list + Book; honest empty states |
+| — | Account create / edit / delete stays admin-only | **Held** |
+
 ## 9 November 2026 — Members expert list
 
 | Sev | Item | Status |

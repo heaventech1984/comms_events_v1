@@ -1084,6 +1084,31 @@ textarea.scraper-priority-urls {
 .event-going-count {
   margin: 0;
 }
+.book-cell-panel h2 { margin: 0; }
+.book-cell-panel .lede { margin: var(--space-1) 0 0; }
+.book-cell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.book-cell-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.book-cell-row:last-child { border-bottom: 0; }
+.book-cell-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.book-cell-row button { flex: 0 0 auto; }
 .event-hero .lede { margin-bottom: 0; }
 .pending-tile-top {
   display: flex;

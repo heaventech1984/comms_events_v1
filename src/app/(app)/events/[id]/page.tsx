@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CategoryThumb } from "@/components/CategoryThumb";
+import { BookCellMembers } from "@/components/BookCellMembers";
 import { EventActions, RemoveAttendeeButton } from "@/components/EventActions";
 import { EventFeedbackBox } from "@/components/EventFeedbackBox";
 import { EventMap } from "@/components/EventMap";
 import { requireUser, canReview } from "@/lib/auth";
+import { canDelegateBooking } from "@/lib/policy";
 import { categoryAccentStyle } from "@/lib/category-art";
 import { prisma } from "@/lib/db";
 import { initialsFromName } from "@/lib/initials";
@@ -32,8 +34,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const starred = !!(await prisma.star.findUnique({
     where: { userId_eventId: { userId: user.id, eventId: event.id } }
   }));
+  const showBookCell = canDelegateBooking(user);
   const cellMembers =
-    user.role === "cell leader" && user.cellId
+    showBookCell && user.cellId
       ? await prisma.user.findMany({
           where: { cellId: user.cellId, active: true },
           orderBy: { name: "asc" }
@@ -97,9 +100,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           full={full && !myBooking}
           starred={starred}
           canCancel={canCancel}
-          members={cellMembers.map((m) => ({ id: m.id, name: m.name }))}
-          bookedMemberIds={event.bookings.map((b) => b.userId)}
-          canDelegate={user.role === "cell leader"}
           canEdit={canReview(user)}
           myAttendance={myBooking?.attendance}
           myBookingId={myBooking?.id}
@@ -141,6 +141,16 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           </p>
         ) : null}
       </section>
+      {showBookCell ? (
+        <BookCellMembers
+          eventId={event.id}
+          actorId={user.id}
+          members={cellMembers.map((m) => ({ id: m.id, name: m.name }))}
+          bookedMemberIds={event.bookings.map((b) => b.userId)}
+          hasCell={Boolean(user.cellId)}
+          full={full}
+        />
+      ) : null}
       {event.lat != null && event.lng != null ? (
         <section className="card map-card">
           <h2 className="map-heading">Map</h2>

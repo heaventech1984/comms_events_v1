@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { expectNavLacks, login } from "./helpers";
+import { dismissAttendancePrompt, expectNavLacks, login } from "./helpers";
 
 test.describe("cell leader paths", () => {
   test("members list can search and sort A→Z / Z→A", async ({ page }) => {
@@ -44,5 +44,32 @@ test.describe("cell leader paths", () => {
       await page.getByRole("link", { name: "Add event", exact: true }).click();
       await expect(page).toHaveURL(/\/events\/new/);
     }
+  });
+
+  test("can book a cell member onto an event", async ({ page }) => {
+    await login(page, "leader");
+    await page.goto("/calendar?view=list");
+    await dismissAttendancePrompt(page);
+
+    const links = page.locator('a[href^="/events/"]').filter({ hasNotText: /add/i });
+    await expect(links.first()).toBeVisible();
+    const n = Math.min(await links.count(), 8);
+    let booked = false;
+    for (let i = 0; i < n; i += 1) {
+      await page.goto("/calendar?view=list");
+      await dismissAttendancePrompt(page);
+      await links.nth(i).click();
+      await expect(page.getByTestId("book-cell-members")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /book people in your cell/i })).toBeVisible();
+      const row = page.getByTestId("book-cell-row").first();
+      if (!(await row.isVisible().catch(() => false))) continue;
+      const name = (await row.locator("span").innerText()).trim();
+      await row.getByTestId("book-member").click();
+      await expect(page.getByText(/^Booked\.?$/i).first()).toBeVisible();
+      await expect(page.getByRole("table")).toContainText(name);
+      booked = true;
+      break;
+    }
+    expect(booked).toBe(true);
   });
 });
