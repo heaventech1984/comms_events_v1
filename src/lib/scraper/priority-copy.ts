@@ -18,6 +18,7 @@ export function runFinishedMessage(input: {
   leftPending?: number;
   skippedHumanEdited?: number;
   droppedDisabledCategory?: number;
+  droppedGeo?: number;
   sources?: RunSource[];
   dropped?: { url: string }[];
 }): string {
@@ -33,6 +34,12 @@ export function runFinishedMessage(input: {
   if (typeDrops > 0) {
     parts.push(
       `${typeDrops} harvested event(s) were dropped because their type toggle is off (turn Meetup on to keep Meetup feeds).`
+    );
+  }
+  const geoDrops = input.droppedGeo ?? 0;
+  if (geoDrops > 0) {
+    parts.push(
+      `${geoDrops} harvested event(s) were dropped because they did not look Birmingham / West Midlands (or online).`
     );
   }
   const sources = input.sources ?? [];

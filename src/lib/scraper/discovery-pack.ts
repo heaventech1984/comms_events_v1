@@ -33,7 +33,8 @@ function ebCity(city: string, path: string, category: Category, label: string): 
 }
 
 export const DISCOVERY_PACK: DiscoveryCandidate[] = [
-  // —— Christian (first — first-wins dedupe) ——
+  // —— Christian primary calendars (first — first-wins dedupe) ——
+  // Cathedral what’s-on exposes schema.org Event JSON-LD (iCal endpoints return 403 to bots).
   { url: STARTER_PRIORITY_URL, category: "Christian", label: "Cathedral what’s-on" },
   {
     url: "https://www.achurchnearyou.com/church/7326/service-and-events/events-all/",
@@ -73,6 +74,8 @@ export const DISCOVERY_PACK: DiscoveryCandidate[] = [
   meetup("alpha course", "Christian"),
   meetup("praise", "Christian"),
   meetup("fellowship", "Christian"),
+  // Carrs Lane / Guild / UoB / BCU / Aston HTML probed Nov 2026 — no Event JSON-LD or ICS yet.
+  // Keep allowlisted; re-add when they expose calendars. Cathedral what’s-on is the working church primary.
 
   // —— Networking ——
   {
@@ -141,9 +144,7 @@ export const DISCOVERY_PACK: DiscoveryCandidate[] = [
   { url: `${AE}/kidderminster/all`, category: "Meetup", label: "Allevents Kidderminster" },
   { url: `${AE}/warwick/all`, category: "Meetup", label: "Allevents Warwick" },
   { url: `${AE}/stratford-upon-avon/all`, category: "Meetup", label: "Allevents Stratford" },
-  { url: `${AE}/stoke-on-trent/all`, category: "Meetup", label: "Allevents Stoke" },
-  { url: `${AE}/leicester/all`, category: "Meetup", label: "Allevents Leicester" },
-  { url: `${AE}/nottingham/all`, category: "Meetup", label: "Allevents Nottingham" },
+  // Far Midlands cities (Stoke / Leicester / Nottingham) dropped — geo quality over volume.
   { url: `${EB}/performing-and-visual-arts--events/`, category: "Meetup", label: "EB performing arts" },
   { url: `${EB}/health--events/`, category: "Meetup", label: "EB health" },
   { url: `${EB}/sports-and-fitness--events/`, category: "Meetup", label: "EB sports" },

@@ -59,6 +59,11 @@ async function main() {
       `\nNote: ${result.droppedDisabledCategory} event(s) dropped because a type toggle is off.`
     );
   }
+  if (result.droppedGeo > 0) {
+    console.log(
+      `\nNote: ${result.droppedGeo} event(s) dropped by Birmingham / West Midlands geo filter.`
+    );
+  }
 
   const events = await loadReportEvents();
   const report = buildCoverageReport(events);

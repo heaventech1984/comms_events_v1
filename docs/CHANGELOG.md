@@ -17,6 +17,12 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-09 — Scraper quality vNext (geo + category review)
+
+- Birmingham / West Midlands **geo filter** after live harvest ([`geo.ts`](../src/lib/scraper/geo.ts)); far Allevents cities dropped from the pack.
+- Category **strong / weak / none** — aggregator page-only guesses flag `needsTypeReview` for human confirm ([`categorise.ts`](../src/lib/scraper/categorise.ts)).
+- Church primary: Cathedral what’s-on (JSON-LD). Direct iCal feeds 403 to bots; uni HTML still lacks Event schema — notes in [`scraper-quality-vnext.md`](scraper-quality-vnext.md).
+
 ## 2026-11-08 — Frozen Birmingham discovery pack (stretch)
 
 - Locked multi-source scrape for the five types (Eventbrite slices + nearby cities, Meetup faith/keyword finds, Allevents Brum/WM/Midlands, Ticketmaster, cathedral, Luma, Visit Birmingham). Method: [`docs/scraper-discovery.md`](scraper-discovery.md).

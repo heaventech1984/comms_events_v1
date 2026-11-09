@@ -18,6 +18,8 @@ Cover Birmingham and nearby West Midlands / Midlands listings for the five Gathe
 6. **Dedupe** — first live `sourceKey` wins; fixtures still overwrite.
 7. **Caps** — 1 MiB body · 300 events/URL · **2500**/run · **100** Priority URLs · default pause **1500ms** (`SCRAPE_PAUSE_MS`).
 8. **Coverage** — this week (Mon–Sun) + whole calendar month day×type on admin Scraper page and `npm run scrape`.
+9. **Geo filter (vNext)** — keep Birmingham / West Midlands (or online); drop far named cities. See [`geo.ts`](../src/lib/scraper/geo.ts).
+10. **Category strength (vNext)** — strong (host/keywords) vs weak (aggregator page only → human review). See [`scraper-quality-vnext.md`](scraper-quality-vnext.md).
 
 ## Install / refresh on a box
 

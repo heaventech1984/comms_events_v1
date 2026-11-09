@@ -7,7 +7,8 @@ import {
   STARTER_PRIORITY_URL
 } from "@/lib/scraper/allowlist";
 import { droppedPriorityUrlMessage, runFinishedMessage } from "@/lib/scraper/priority-copy";
-import { inferCategory, TYPE_REVIEW_NOTE } from "@/lib/scraper/categorise";
+import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "@/lib/scraper/categorise";
+import { filterLocalEvents, geoKeepEvent } from "@/lib/scraper/geo";
 import { fixtureEvents } from "@/lib/scraper/fixtures";
 import { buildCoverageReport, formatCoverageReport } from "@/lib/scraper/coverage-report";
 import { RUN_EVENT_CAP, selectHarvestEvents } from "@/lib/scraper/harvest";
@@ -178,31 +179,97 @@ describe("inferCategory", () => {
   it("uses the host when known and leaves a review note when not", () => {
     expect(inferCategory({ host: "birminghamcathedral.com", title: "Talk", organisationName: "X" })).toEqual({
       category: "Christian",
-      inferred: true
+      inferred: true,
+      strength: "strong"
     });
     const unknown = inferCategory({ host: "calendar.google.com", title: "Community gathering", organisationName: "Anon" });
     expect(unknown.inferred).toBe(false);
+    expect(unknown.strength).toBe("none");
     expect(TYPE_REVIEW_NOTE.length).toBeGreaterThan(10);
     expect(inferCategory({ title: "University careers fair", organisationName: "UoB" }).category).toBe("Student");
+    expect(inferCategory({ title: "Christain night", organisationName: "X" }).category).toBe("Christian");
+    expect(inferCategory({ title: "Campus freshers fair", organisationName: "Guild" }).category).toBe("Student");
   });
 
   it("uses Eventbrite / Meetup Priority URL slices for the five types", () => {
+    const pro = inferCategory({
+      host: "www.eventbrite.co.uk",
+      title: "Generic listing",
+      organisationName: "Org",
+      pageUrl: "https://www.eventbrite.co.uk/d/united-kingdom--birmingham/professional--events/"
+    });
+    expect(pro.category).toBe("Professional");
+    expect(pro.strength).toBe("weak"); // page hint only — needs human review
+    const faith = inferCategory({
+      host: "www.meetup.com",
+      title: "Sunday prayer night",
+      organisationName: "City Church",
+      pageUrl: "https://www.meetup.com/find/?keywords=christian&location=gb--Birmingham"
+    });
+    expect(faith.category).toBe("Christian");
+    expect(faith.strength).toBe("strong"); // keyword confirms page hint
+    expect(TYPE_WEAK_NOTE).toMatch(/confirm/i);
+  });
+});
+
+describe("geo filter", () => {
+  it("keeps Birmingham places and online, drops far cities", () => {
     expect(
-      inferCategory({
-        host: "www.eventbrite.co.uk",
-        title: "Generic listing",
-        organisationName: "Org",
-        pageUrl: "https://www.eventbrite.co.uk/d/united-kingdom--birmingham/professional--events/"
-      }).category
-    ).toBe("Professional");
+      geoKeepEvent({
+        online: false,
+        placeName: "Digbeth, Birmingham",
+        title: "Open mic",
+        organisationName: "Local",
+        fetchedFrom: "https://allevents.in/birmingham-uk/all"
+      }).keep
+    ).toBe(true);
     expect(
-      inferCategory({
-        host: "www.meetup.com",
-        title: "Generic listing",
+      geoKeepEvent({
+        online: true,
+        placeName: null,
+        title: "Zoom call",
         organisationName: "Org",
-        pageUrl: "https://www.meetup.com/find/?keywords=christian&location=gb--Birmingham"
-      }).category
-    ).toBe("Christian");
+        fetchedFrom: "https://www.meetup.com/find/"
+      }).keep
+    ).toBe(true);
+    expect(
+      geoKeepEvent({
+        online: false,
+        placeName: "Nottingham city centre",
+        title: "Gig",
+        organisationName: "Venue",
+        fetchedFrom: "https://allevents.in/nottingham/all"
+      }).keep
+    ).toBe(false);
+    expect(
+      geoKeepEvent({
+        online: false,
+        placeName: null,
+        lat: 52.48,
+        lng: -1.9,
+        title: "Talk",
+        organisationName: "Org",
+        fetchedFrom: "https://www.eventbrite.co.uk/e/x"
+      }).keep
+    ).toBe(true);
+    const filtered = filterLocalEvents([
+      sampleEvent({
+        sourceKey: "live:a",
+        category: "Meetup",
+        placeName: "London Bridge",
+        title: "Far",
+        fetchedFrom: "https://allevents.in/london/all"
+      }),
+      sampleEvent({
+        sourceKey: "live:b",
+        category: "Christian",
+        placeName: "St Philip’s Cathedral, Birmingham",
+        title: "Eucharist",
+        fetchedFrom: "https://www.birminghamcathedral.com/whats-on/"
+      })
+    ]);
+    expect(filtered.droppedGeo).toBe(1);
+    expect(filtered.kept).toHaveLength(1);
   });
 });
 
@@ -386,7 +453,8 @@ describe("live adapter", () => {
     expect(harvest.events[0].category).toBe("Meetup");
     expect(harvest.events[0].title).toMatch(/DevOps Society/i);
     expect(harvest.events[0].externalUrl).toContain("meetup.com/devops-society");
-    expect(harvest.events[0].needsTypeReview).toBe(false);
+    // Meetup host alone is weak — admin should confirm type before Publish.
+    expect(harvest.events[0].needsTypeReview).toBe(true);
   });
 
   it("records Response too large and keeps zero events", async () => {

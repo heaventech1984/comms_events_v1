@@ -57,6 +57,7 @@ export async function runScraper(opts: {
 
     const live = await fetchLiveEvents(urls);
     sources = live.sources;
+    const droppedGeo = live.droppedGeo;
     const harvest = selectHarvestEvents(live.events, fixtureEvents(), enabled);
     const events = harvest.events;
     const droppedDisabledCategory = harvest.droppedDisabledCategory;
@@ -141,7 +142,7 @@ export async function runScraper(opts: {
       entityId: runId,
       summary: `${opts.trigger} scraper created ${counts.createdCount}, updated ${counts.updatedCount}, skipped ${counts.skippedHumanEdited} human-edited`
     });
-    return { id: runId, ...counts, sources, droppedDisabledCategory, status: "OK" as const };
+    return { id: runId, ...counts, sources, droppedDisabledCategory, droppedGeo, status: "OK" as const };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Scraper failed";
     if (runId) {

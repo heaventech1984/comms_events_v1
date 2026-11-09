@@ -1,6 +1,7 @@
 import { scrapeUrlAllowed } from "./allowlist";
-import { inferCategory, TYPE_REVIEW_NOTE } from "./categorise";
+import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "./categorise";
 import { FETCH_BODY_MAX, URL_EVENT_CAP } from "./harvest";
+import { filterLocalEvents } from "./geo";
 import { parseIcsEvents } from "./ics";
 import { eventsFromJsonLd, extractJsonLdScripts } from "./jsonld";
 import { discoverCalendarLinks, eventsFromMicrodata } from "./microdata";
@@ -21,6 +22,8 @@ export type SourceResult = {
 export type LiveHarvest = {
   events: ScrapedEvent[];
   sources: SourceResult[];
+  /** Rows removed by Birmingham / West Midlands geo filter. */
+  droppedGeo: number;
 };
 
 export type FetchLike = (input: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<{
@@ -90,16 +93,17 @@ function decorate(events: ScrapedEvent[], pageUrl: string): ScrapedEvent[] {
       pageUrl
     });
     const sourceLine = `Source feed: ${pageUrl}`;
-    const baseNotes = inferred.inferred
-      ? event.notes
-      : [TYPE_REVIEW_NOTE, event.notes].filter(Boolean).join("\n\n");
+    const reviewNote =
+      inferred.strength === "none" ? TYPE_REVIEW_NOTE : inferred.strength === "weak" ? TYPE_WEAK_NOTE : null;
+    const baseNotes = reviewNote ? [reviewNote, event.notes].filter(Boolean).join("\n\n") : event.notes;
     const notes = [baseNotes, sourceLine].filter(Boolean).join("\n\n");
     return {
       ...event,
       category: inferred.category,
       notes,
       fetchedFrom: event.fetchedFrom ?? pageUrl,
-      needsTypeReview: !inferred.inferred
+      // Strong only skips human type review; weak/none stay pending for admin eyes.
+      needsTypeReview: inferred.strength !== "strong"
     };
   });
 }
@@ -138,7 +142,7 @@ export async function fetchLiveEvents(
   opts: { fetchFn?: FetchLike; pauseMs?: number } = {}
 ): Promise<LiveHarvest> {
   if (urls.length === 0 || process.env.SCRAPE_LIVE === "0") {
-    return { events: [], sources: [] };
+    return { events: [], sources: [], droppedGeo: 0 };
   }
   const fetchFn = opts.fetchFn ?? (globalThis.fetch as FetchLike);
   const pause = opts.pauseMs ?? GAP_MS;
@@ -234,5 +238,6 @@ export async function fetchLiveEvents(
     if (pause) await sleep(pause);
   }
 
-  return { events, sources };
+  const local = filterLocalEvents(events);
+  return { events: local.kept, sources, droppedGeo: local.droppedGeo };
 }
