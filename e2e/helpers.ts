@@ -11,7 +11,8 @@ export const accounts = {
 export async function dismissAttendancePrompt(page: Page) {
   const askLater = page.getByRole("button", { name: /ask me next time/i });
   if (await askLater.isVisible({ timeout: 1500 }).catch(() => false)) {
-    await askLater.click();
+    // Candybar / landscape: panel scrolls; force avoids “outside viewport” flakiness.
+    await askLater.click({ force: true });
   }
 }
 

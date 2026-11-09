@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Gather — Birmingham Community Events",
   description: "A closed calendar for Birmingham community events.",
   applicationName: "Gather",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Gather",

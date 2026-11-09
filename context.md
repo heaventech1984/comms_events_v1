@@ -355,6 +355,8 @@ From the 15 October 2026 export of [Requirements](https://docs.google.com/docume
 
 Archive only. Do not copy a colour, a button, or a navigation pattern from this section into the app. The look and the phone tabs are section 20.6. The boards below are the October sketches, kept so a later reader can see what was proposed.
 
+Canonical file list: [`docs/design-mockups/README.md`](docs/design-mockups/README.md).
+
 Mockup boards (repo copies):
 
 | Board | File |

@@ -30,6 +30,7 @@ model User {
   createdEvents Event[]  @relation("EventCreatedBy")
   reviewedEvents Event[] @relation("EventReviewedBy")
   feedbacks    EventFeedback[]
+  gatherFeedback FeedbackSubmission[] @relation("GatherFeedbackSubmitter")
   auditLogs    AuditLog[]
 
   @@index([cellNumber])
@@ -179,4 +180,37 @@ model LoginThrottle {
 model ScrapeLock {
   id        String   @id
   heldUntil DateTime
+}
+
+/** Monotonic ids for /feedback (I-xxx, FD-xxx, D-xxx on approve). */
+model AppCounter {
+  key   String @id
+  value Int    @default(0)
+}
+
+/** Leader/admin product issues and desirables (not event ratings). */
+model FeedbackSubmission {
+  id            String   @id @default(cuid())
+  publicId      String   @unique
+  kind          String
+  status        String
+  severity      String?
+  area          String
+  summary       String
+  body          String
+  pageUrl       String?
+  imageMime     String?
+  imagePath     String?
+  submitterId   String
+  cellId        String?
+  assignedDId   String?
+  rejectReason  String?
+  triagedById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  submitter     User     @relation("GatherFeedbackSubmitter", fields: [submitterId], references: [id], onDelete: Cascade)
+
+  @@index([kind, status])
+  @@index([submitterId])
+  @@index([cellId])
 }

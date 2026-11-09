@@ -182,11 +182,30 @@ git status
 2. Copy the full red message.  
 3. Paste into Cursor: **explain in plain words; do not force; wait for me.**
 
-**If it fails.** Anyone says `push --force` to `main` → say no. See situation 10.
+**If it fails.** Anyone says `push --force` to `main` → say no. See situation 11.
 
 ---
 
-## 10. Never
+## 10. I have an idea, not a fix yet
+
+**You want…** to remember a wish for later without building it now.
+
+**Picture.** Stick a note on the fridge board. Do not cook the dish yet.
+
+**Do this**
+
+1. If a pull request already exists for that idea → leave a comment ([review-and-comment.md](review-and-comment.md)).  
+2. If it is broken today → treat it as a bug (Prompt B / [from-scratch.md](from-scratch.md) chapter E).  
+3. Otherwise add **one** new row at the bottom of Open in [`docs/desirables.md`](../../desirables.md). Assign the next **D-** id from the top of that file; bump **Next D**. Pull first. Then save and share when you say those words.
+4. When the wish **ships** → copy the row to [`docs/built_features.md`](../../built_features.md) with a CHANGELOG **Proof** link, then remove it from Open. See [maintenance README — Updating desirables](README.md#updating-desirables-wish-list).
+
+Or paste **Prompt D** from [intro-prompt.md](intro-prompt.md).
+
+**If it fails.** Helper starts coding the wish → say **stop — park only.**
+
+---
+
+## 11. Never
 
 **You want…** to keep the official book safe.
 

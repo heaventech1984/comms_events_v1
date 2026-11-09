@@ -98,7 +98,13 @@ function LoginFields({
         </label>
         <label>
           Password
-          <input name="password" type="password" autoComplete="current-password" required />
+          <input
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            enterKeyHint="go"
+            required
+          />
         </label>
         <p className="muted login-hint">
           Your cell leader gave you these. If several people share a cell number, your password

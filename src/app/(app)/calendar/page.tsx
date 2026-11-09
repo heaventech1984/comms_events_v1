@@ -5,10 +5,11 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { CATEGORIES } from "@/lib/constants";
 import { dayKeyOf, parseCalendarParams, rangeFor, type CalendarParams } from "@/lib/calendar";
-import { EventsMap } from "@/components/EventsMap";
+import { CalendarMapSection } from "@/components/calendar/CalendarMapSection";
 import { FilterBar } from "@/components/calendar/FilterBar";
 import { RangeNav } from "@/components/calendar/RangeNav";
 import { MonthGrid } from "@/components/calendar/MonthGrid";
+import { MonthDayAgenda } from "@/components/calendar/MonthDayAgenda";
 import { WeekTimeGrid } from "@/components/calendar/WeekTimeGrid";
 import { DatedList } from "@/components/calendar/DatedList";
 
@@ -92,15 +93,25 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         <RangeNav state={state} today={today} />
 
         {state.view === "month" ? (
-          <MonthGrid
-            state={state}
-            days={range.days}
-            today={today}
-            events={events}
-            colours={settings.colours}
-            canAdd={canReview(user)}
-            starredIds={starredIds}
-          />
+          <div className="calendar-month-layout">
+            <MonthGrid
+              state={state}
+              days={range.days}
+              today={today}
+              events={events}
+              colours={settings.colours}
+              canAdd={canReview(user)}
+              starredIds={starredIds}
+            />
+            <MonthDayAgenda
+              day={state.anchor}
+              today={today}
+              events={gridEvents}
+              colours={settings.colours}
+              canAdd={canReview(user)}
+              starredIds={starredIds}
+            />
+          </div>
         ) : state.view === "list" ? (
           <DatedList
             days={range.days}
@@ -123,10 +134,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         )}
       </section>
 
-      <section className="card map-card">
-        <h2 className="map-heading">Map</h2>
-        <EventsMap pins={pins} />
-      </section>
+      <CalendarMapSection pins={pins} />
     </main>
   );
 }

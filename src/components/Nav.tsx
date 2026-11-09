@@ -10,6 +10,7 @@ const MENU_ITEMS: { href: string; label: string; title?: string; roles: Role[] }
   { href: "/pending", label: "Pending", title: "Pending review", roles: ["admin", "cell leader"] },
   { href: "/members", label: "Members", roles: ["admin", "cell leader"] },
   { href: "/insights", label: "Insights", roles: ["admin", "cell leader"] },
+  { href: "/feedback", label: "Feedback", roles: ["admin", "cell leader"] },
   { href: "/reports", label: "Reports", roles: ["admin", "cell leader"] },
   { href: "/import", label: "Import", roles: ["admin"] },
   { href: "/scraper", label: "Scraper", title: "Scraper settings", roles: ["admin"] },

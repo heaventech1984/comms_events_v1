@@ -58,11 +58,12 @@ Applied: 17 October 2026, `experiment` branch. Live smoke on https://commsevents
 | What it does | Who | Agreed by | Why |
 | --- | --- | --- | --- |
 | Members, import (example table + CSV template; page and API admin-only), scraper settings, organisation rules, audit log. Return on member add/edit does not save. | Admin | Requirements; tester 17 Oct evening | Closed system. A leader who types `/import` sees a sentence, not the form. |
+| **Feedback** (`/feedback`): issues first, desirables second; `I-` / `FD-` ids; admin approves desirables and copies a row for git. Optional screenshot. Members: future release. | Admin, cell leader | Awaiting sign-off | Intake without editing the repo from production. |
 | Audit covers publish/discard, booking, export, import, password reset, activate/deactivate, Insights export/share, attendee-visibility change, dropped Priority URLs. | Admin | Architecture sketches | Who did what. |
 
 ## Out of this phase
 
-Public sign-up, email/SMS from Gather, member password reset, live website scrape, §16 phone UI, Prisma migrations, production backups. Address lookup is Nominatim only (Birmingham).
+Public sign-up, email/SMS from Gather, member password reset, live website scrape, §16 teal redesign, Prisma migrations, production backups. Address lookup is Nominatim only (Birmingham). Phone month agenda + PWA manifest are in this phase (blush / berry; no offline booking cache).
 
 ## Engineering verification
 

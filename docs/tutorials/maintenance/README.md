@@ -24,6 +24,56 @@ Picture: this folder is a **recipe shelf**. Fill the address card first. Then co
 6. **[from-scratch.md](from-scratch.md)** — tools → copy → run → fix → save → share → Oracle chapter H → FAQ  
 7. **[review-and-comment.md](review-and-comment.md)** — read a change, leave comments, approve or ask for fixes  
 8. **[git-in-pictures.md](git-in-pictures.md)** — Git for everyday situations  
+9. **[`docs/desirables.md`](../../desirables.md)** — open wishes (`D-` ids) · **[`docs/built_features.md`](../../built_features.md)** — built wishes · **[how to update the list](#updating-desirables-wish-list)** · [`docs/visuals.md`](../../visuals.md)
+
+## Updating desirables (wish list)
+
+Picture: **Open** is the fridge; **built_features** is the “we made it” album. **CHANGELOG** is the engineer’s dated notebook.
+
+### Park a new wish
+
+1. On `experiment`, pull latest: `git pull --ff-only origin experiment` ([§3 Start my day](git-in-pictures.md#3-start-my-day)).
+2. Open [`docs/desirables.md`](../../desirables.md). Note **Next D** at the top.
+3. Append **one row** at the bottom of **Open** — do not reorder old rows.
+4. Assign the next `D-` id, set **Status** (`idea` unless noted), fill Date, Area, Wish, Why, optional Visual, Heard from.
+5. Bump **Next D** in the header. Commit and push when you say so.
+6. Or paste **Prompt D** from [intro-prompt.md](intro-prompt.md) and say **park only — do not build**.
+
+**Not a wish?** Broken today → [from-scratch §E](from-scratch.md#e-fix-a-bug-daily-loop). Pull request already open → [comment on the PR](review-and-comment.md). Policy agreed → [`DECISIONS.md`](../../../DECISIONS.md).
+
+### When a wish is built
+
+1. Pull latest on `experiment`.
+2. CHANGELOG should already describe the ship.
+3. Copy the row from **Open** (keep **D-** id) into [`docs/built_features.md`](../../built_features.md); add **Date done** and **Proof** (link to CHANGELOG section).
+4. Remove the row from **Open**.
+5. Commit both markdown files, e.g. `D-016: move to built_features`.
+
+### Triage
+
+| Situation | Where |
+| --- | --- |
+| Idea for later | `desirables.md` (`D-` id) |
+| Broken today | Bug fix / PR (no `D-` unless the wish *is* the fix) |
+| Change already in a PR | PR comment |
+| Product agreed | `DECISIONS.md` |
+| Already shipped | `built_features.md` + CHANGELOG |
+
+## Tracking work (D- and T- ids)
+
+**Level A (default):** list tasks in the pull request body, e.g. `Wish: D-016. Tasks: T-001 spike, T-002 tests.` Bump **Next T** in `desirables.md` when you mint new task ids.
+
+| Place | Format |
+| --- | --- |
+| Branch | `d-016-short-slug` |
+| PR title | `D-016 · One-line wish` |
+| Commit | `D-016: what changed` |
+
+Search: GitHub issue/PR search or `git log --grep=D-016`.
+
+Example PR title (docs only): `D-016 · Park semantic For you wish`.
+
+Optional later: a `docs/desirables/tasks.md` table if many tasks share one wish — not required for v1.
 
 ## Jump to a Git situation
 
@@ -36,7 +86,8 @@ Picture: this folder is a **recipe shelf**. Fill the address card first. Then co
 7. [Wrong file, not saved yet](git-in-pictures.md#7-i-typed-in-the-wrong-file-not-saved-yet)  
 8. [Saved a page I do not want](git-in-pictures.md#8-i-saved-a-page-i-do-not-want-not-posted-yet)  
 9. [Two people wrote the same line](git-in-pictures.md#9-git-says-we-both-wrote-on-the-same-line)  
-10. [Never rip the official book](git-in-pictures.md#10-never)
+10. [I have an idea, not a fix yet](git-in-pictures.md#10-i-have-an-idea-not-a-fix-yet)  
+11. [Never rip the official book](git-in-pictures.md#11-never)
 
 ## Jump to review
 

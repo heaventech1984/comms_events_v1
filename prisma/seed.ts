@@ -24,6 +24,9 @@ async function main() {
   const already = await prisma.user.findFirst({ where: { cellNumber: "07000000001" } });
   if (already) {
     console.log("Seed skipped: demo users already present.");
+    if (process.env.SEED_UI_STRESS === "1") {
+      await seedUiStress(prisma);
+    }
     return;
   }
 
@@ -273,6 +276,105 @@ async function main() {
   for (const row of credentials) {
     console.log(`  ${row.role.padEnd(12)}  ${row.cellNumber}  ${row.password}  (${row.name})`);
   }
+
+  if (process.env.SEED_UI_STRESS === "1") {
+    await seedUiStress(prisma);
+  }
+}
+
+/** Worst-case UI fixtures for mobile / break-ui checks. Idempotent on sourceKey. */
+async function seedUiStress(db: PrismaClient) {
+  const admin = await db.user.findFirst({ where: { cellNumber: "07000000001" } });
+  if (!admin) {
+    console.log("SEED_UI_STRESS skipped: no admin user.");
+    return;
+  }
+
+  const longTitle =
+    "West Midlands inter-faith networking breakfast with unusually long title that must wrap on a candybar phone without blowing the layout";
+  const longOrg = "Birmingham Metropolitan Borough Community Partnerships & Neighbourhood Outreach CIC";
+
+  const existing = await db.event.findFirst({ where: { sourceKey: "seed-ui-stress-busy-day-00" } });
+  if (existing) {
+    console.log("SEED_UI_STRESS: stress events already present.");
+    return;
+  }
+
+  // Twelve events on one busy day (day +4) — month agenda + home rows.
+  for (let i = 0; i < 12; i += 1) {
+    await db.event.create({
+      data: {
+        sourceKey: `seed-ui-stress-busy-day-${String(i).padStart(2, "0")}`,
+        title: i === 0 ? longTitle : `Stress slot ${i + 1}: ${["Christian", "Meetup", "Networking", "Professional", "Student"][i % 5]} gathering`,
+        organisationName: i === 0 ? longOrg : `Stress Org ${i + 1}`,
+        category: ["Christian", "Meetup", "Networking", "Professional", "Student"][i % 5],
+        startsAt: at(4, 8 + Math.floor(i / 2), i % 2 === 0 ? 0 : 30),
+        endsAt: at(4, 9 + Math.floor(i / 2), i % 2 === 0 ? 0 : 30),
+        online: i % 3 === 0,
+        placeName: i % 3 === 0 ? null : "Digbeth, Birmingham, Birmingham, West Midlands, gb",
+        lat: i % 3 === 0 ? null : 52.475 + i * 0.001,
+        lng: i % 3 === 0 ? null : -1.885 - i * 0.001,
+        status: "PUBLISHED",
+        capacity: 40,
+        createdById: admin.id
+      }
+    });
+  }
+
+  // One-event day and a pending tile with a brutal title.
+  await db.event.create({
+    data: {
+      sourceKey: "seed-ui-stress-single-day",
+      title: "Single quiet evening",
+      organisationName: "Quiet Hall",
+      category: "Meetup",
+      startsAt: at(9, 19, 0),
+      endsAt: at(9, 20, 30),
+      online: false,
+      placeName: "Moseley",
+      lat: 52.446,
+      lng: -1.888,
+      status: "PUBLISHED",
+      createdById: admin.id
+    }
+  });
+
+  await db.event.create({
+    data: {
+      sourceKey: "seed-ui-stress-pending-long",
+      title: longTitle,
+      organisationName: longOrg,
+      category: "Professional",
+      startsAt: at(6, 12, 0),
+      endsAt: at(6, 14, 0),
+      online: false,
+      placeName: "Colmore Row",
+      lat: 52.481,
+      lng: -1.9,
+      externalUrl:
+        "https://www.example.com/events/west-midlands-inter-faith-networking-breakfast-with-unusually-long-slug-for-pending-tile-ellipsis-check/",
+      status: "PENDING",
+      createdById: admin.id
+    }
+  });
+
+  // Long member name for the members table (only if missing).
+  const stressMember = await db.user.findFirst({ where: { cellNumber: "07000000099" } });
+  if (!stressMember) {
+    const cell = await db.cell.findFirst({ where: { name: "Sparkbrook" } });
+    await db.user.create({
+      data: {
+        name: "Aleksandra Wiśniewska-Kowalczyk-Longname",
+        cellNumber: "07000000099",
+        passwordHash: await bcrypt.hash("StressPass1", 12),
+        role: "member",
+        cellId: cell?.id ?? null,
+        active: true
+      }
+    });
+  }
+
+  console.log("SEED_UI_STRESS: added busy-day, single-day, pending, and long-name member fixtures.");
 }
 
 main()

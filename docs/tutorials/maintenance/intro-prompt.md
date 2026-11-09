@@ -13,10 +13,12 @@ Then pick one box. Paste it into Cursor **Chat**, mode **Agent**. The helper sho
 | **Prompt A** | First day on this laptop |
 | **Prompt B** | Laptop folder already works; daily care |
 | **Prompt C** | Update the **live shop window** (Oracle) — An / Guillaume only |
+| **Prompt D** | Park an idea for later (do not build it now) |
 
 - Full recipe (read yourself): [from-scratch.md](from-scratch.md) (chapter **H** = Oracle)  
 - Git situations: [git-in-pictures.md](git-in-pictures.md)  
 - Comments on a change: [review-and-comment.md](review-and-comment.md)  
+- Park a wish: [`docs/desirables.md`](../../desirables.md) · **Prompt D** below  
 - Live server detail: [`docs/deploy-ubuntu.md`](../../deploy-ubuntu.md) · quick card: [`docs/incident-card.md`](../../incident-card.md)
 
 ---
@@ -107,6 +109,45 @@ Start by:
 ```
 
 **Done when.** Cursor checks shelf + key, shows the Oracle list, and waits on one action.
+
+---
+
+## Prompt D — park a wish (copy this)
+
+Use this when you have an idea to explore later, not a bug to fix today, and not a pull request already open for that idea.
+
+Picture: stick a note on the **fridge noticeboard**. Do not cook the dish yet.
+
+```
+I want to park an idea for later, not build it now.
+
+Read:
+- docs/desirables.md
+- docs/built_features.md (when a wish ships — not for park-only)
+- docs/tutorials/maintenance/intro-prompt.md (Prompt D actions)
+- docs/tutorials/maintenance/review-and-comment.md
+- docs/tutorials/maintenance/git-in-pictures.md
+- AGENTS.md (Ask first and Never)
+
+Teach me like a patient kitchen teacher. No jargon. If you must use a tech word, define it in the same sentence, then one notebook or fridge-board picture.
+
+Rules:
+- Do not implement the idea. Do not edit app code.
+- One action at a time. Number it. Wait for me to say done or paste an error.
+- Choose one door only: comment on an existing pull request, or add one new row at the bottom of the Open section in docs/desirables.md (assign the next D-id; bump Next D at the top).
+- If it is broken today, stop and say to use Prompt B instead.
+- Pull WORK_LINE first (see docs/tutorials/maintenance/project.md).
+- Do not commit, push, or open a pull request unless I say those words.
+- Never print or ask for passwords, .env, or real member data.
+- Do not invent a second repo or a fork. Local copy means clone of the same central notebook.
+
+Start by:
+1. Asking for the idea in one sentence, and whether a pull request is already open for it.
+2. Printing the Prompt D actions list.
+3. Doing only the next undone action.
+```
+
+**Done when.** Cursor asks for the idea, shows the Prompt D list, and waits on one action.
 
 ---
 
@@ -451,6 +492,89 @@ Optional health check: open `/api/health` on that same site — expect something
 **You do.** Nothing on Railway. Confirm you did not change Railway settings.
 
 **Done when.** Only Oracle was updated.
+
+---
+
+## Prompt D actions (in order)
+
+Park a wish. Do not build it. Use this after you paste **Prompt D**.
+
+### 1. Name the idea
+
+**What.** One sentence for the wish. Ask if a pull request is already open for it.
+
+**Picture.** Write the sticky note title before you pin it.
+
+**You do.** Say the idea in everyday English. Say yes or no about a pull request.
+
+**Done when.** You and the helper agree on one sentence.
+
+### 2. Pick one door
+
+**What.** Choose only one path.
+
+| Door | When |
+| --- | --- |
+| Comment on the feature | A pull request already exists |
+| Park for later | Nice-to-have; no change in flight → [`docs/desirables.md`](../../desirables.md) (`D-` id) |
+| Shipped wish | Move row Open → [`docs/built_features.md`](../../built_features.md) + CHANGELOG Proof — not Prompt D alone |
+| Fix now | It is broken today → stop; use **Prompt B** |
+
+**Done when.** You named one door. If it is a bug, stop this list.
+
+### 3. Get other people’s pages first
+
+**What.** **Pull** means fetch new pages from the shelf before you write.
+
+**You do.**
+
+```bash
+git checkout WORK_LINE
+git pull --ff-only origin WORK_LINE
+```
+
+(Replace `WORK_LINE` from [project.md](project.md).)
+
+**Done when.** `git status` is clean and up to date.
+
+**If it fails.** Cannot fast-forward → stop. Paste the message into Cursor. Do not invent a rebase.
+
+### 4. Park: add one Open row
+
+**What.** Append **one** new row at the **bottom** of the Open table in [`docs/desirables.md`](../../desirables.md). Assign the next **D-** id from the file header; bump **Next D**. Do not reorder. Do not edit app code.
+
+**Picture.** One new sticky at the bottom of the fridge board.
+
+**You do.** Helper shows the new row. You check it. Wait before save/share.
+
+**Done when.** The new row is in the file with a **D-** id and you have looked at it.
+
+### 5. Or comment: draft one short note
+
+**What.** If the door was “comment,” draft one clear pull-request note. Do not invent a second backlog.
+
+**You do.** Paste the note yourself on the pull request at `PROJECT_URL`, or say go if you asked the helper to help with the web flow. See [review-and-comment.md](review-and-comment.md).
+
+**Done when.** Your note is on the pull request, or you chose park instead.
+
+### 6. Save and share (only when you say the words)
+
+**What.** **Commit** writes the page in your notebook. **Push** posts it to the shelf. Git shows **who** wrote the line.
+
+**You do.** After you say **commit**, then **push**:
+
+```bash
+git status
+git add docs/desirables.md
+git commit -m "D-0xx: park <wish in one short sentence>"
+git push -u origin HEAD
+```
+
+Stage only `docs/desirables.md` for a park. Never add `.env`.
+
+**Done when.** The web project shows your new commit on `WORK_LINE`.
+
+**If it fails.** Push rejected → action 3, then push again. Never force-push `main`.
 
 ---
 

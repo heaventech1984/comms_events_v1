@@ -65,7 +65,7 @@ npm run typecheck
 
 CI (`.github/workflows/ci.yml`) on push to `experiment` or `main`: typecheck, tests against SQLite, then `next build`.
 
-What the app does, with who agreed it: [`docs/FUNCTIONAL.md`](docs/FUNCTIONAL.md). Weak points and the live smoke list: [`docs/REVIEW.md`](docs/REVIEW.md). What each demo build shipped: [`docs/CHANGELOG.md`](docs/CHANGELOG.md). Agent briefing (commands, always/ask/never): [`AGENTS.md`](AGENTS.md). Emil Kowalski UI/motion skills (how to invoke): [`docs/EMIL-SKILLS.md`](docs/EMIL-SKILLS.md). Ubuntu cutover: [`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md). Incident card: [`docs/incident-card.md`](docs/incident-card.md).
+What the app does, with who agreed it: [`docs/FUNCTIONAL.md`](docs/FUNCTIONAL.md). Weak points and the live smoke list: [`docs/REVIEW.md`](docs/REVIEW.md). What each demo build shipped: [`docs/CHANGELOG.md`](docs/CHANGELOG.md). Wish list (open / built): [`docs/desirables.md`](docs/desirables.md) · [`docs/built_features.md`](docs/built_features.md) — [how to update](docs/tutorials/maintenance/README.md#updating-desirables-wish-list) · [`docs/visuals.md`](docs/visuals.md). Agent briefing (commands, always/ask/never): [`AGENTS.md`](AGENTS.md). Emil Kowalski UI/motion skills (how to invoke): [`docs/EMIL-SKILLS.md`](docs/EMIL-SKILLS.md). Ubuntu cutover: [`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md). Incident card: [`docs/incident-card.md`](docs/incident-card.md).
 
 To start again:
 

@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *`71e3a67`* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *`6158e98`* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -17,11 +17,30 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-09 — Feedback page (issues + desirables)
+
+- `/feedback` for admin and cell leader: **Issues** first (`I-xxx`), **Desirables** second (`FD-xxx` queue). Optional one image (JPEG/PNG, 500KB). Admin approves desirables → assigns `D-xxx`, copies markdown row for [`desirables.md`](desirables.md). Members gated until v2. API: `/api/gather-feedback`. Policy tests in `tests/unit/feedback-hub-policy.test.ts`.
+
+## 2026-11-09 — Desirables board (D- / T- ids)
+
+- Open wishes: [`desirables.md`](desirables.md) (`D-001`–`D-015` seeded). Built index: [`built_features.md`](built_features.md) (`D-R01`–`D-R09` retro). Pictures: [`visuals.md`](visuals.md), [`design-mockups/README.md`](design-mockups/README.md), [`desirables/visuals/`](desirables/visuals/). How-to: [maintenance README](tutorials/maintenance/README.md#updating-desirables-wish-list).
+
 ## 2026-11-09 — Pending polish + member feedback hub
 
 - Pending: Event Link opens the listing in a **new tab**; the tile body still opens edit. Hover/focus preview on fine pointers. Multi-select + **Approve selected** / **Discard selected** (`POST /api/events/batch`).
 - Date-only scrapes show **Time not listed** instead of `00:00–01:00` (schema-date wired into JSON-LD / microdata / ICS).
 - Insights **Member feedback**: cell-scoped ratings table + filters + CSV export dataset. Free-text notes stay private.
+
+## 2026-11-09 — Mobile UX max-out (web + PWA shell)
+
+- Month view: day tap stays on `view=month&d=…`; full-title **day agenda** under the grid; category dots on narrow screens; tablet/desktop split layout.
+- Phone map starts collapsed; week scroll `touch-action` hardened; dialogs scroll on short candybar / landscape so “Ask me next time” stays reachable; safe-area / 16px input / hover gates audited.
+- Web app manifest (standalone, no service worker for bookings). Playwright matrix: candybar, landscape, tablet, WebKit, Firefox + [`docs/MOBILE-MATRIX.md`](MOBILE-MATRIX.md). `SEED_UI_STRESS=1` fixtures for long titles / busy day.
+
+## 2026-11-09 — For you + after-event feedback
+
+- Home **For you**: suggests upcoming events from what this person booked and what they marked as attended. Neighbouring types (e.g. Networking ~ Professional) and close title spellings count. No cloud AI.
+- After **I went**: a three-choice “How was it?” box (Loved it / It was fine / Not for me) plus an optional private note. Feeds the next suggestions. Audit stores the rating, not the comment.
 
 ## 2026-11-09 — Scraper extras-only box + readable scrape results
 

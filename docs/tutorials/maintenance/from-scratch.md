@@ -268,6 +268,7 @@ Write the exact SSH commands to update Oracle to origin/experiment and restart g
 | Where is the team address? | [project.md](project.md) — fill once; `ai-xps` is only a sample. |
 | My account vs central home? | You log in as yourself. The repo lives under the central `ORG`. You get invited there. |
 | How do I comment on work? | [review-and-comment.md](review-and-comment.md) on the pull request at `PROJECT_URL` (shows your name). |
+| How do I park an idea? | Add one Open row in [`docs/desirables.md`](../../desirables.md) (`D-` id), or comment on an open pull request. When it ships, move to [`docs/built_features.md`](../../built_features.md). How-to: [maintenance README § Updating desirables](README.md#updating-desirables-wish-list). Paste **Prompt D** from [intro-prompt.md](intro-prompt.md). Do not build it in that turn. |
 | Cursor vs VS Code? | Cursor is VS Code plus the chat helper. Same folder. |
 | No access to `PROJECT_URL`? | Ask the owner to invite **your** GitHub username to the central repo. |
 | Why `WORK_LINE` / `experiment`? | Daily work lives there. `main` stays quiet until a human asks. |

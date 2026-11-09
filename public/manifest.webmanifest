@@ -1,0 +1,24 @@
+{
+  "name": "Gather — Birmingham Community Events",
+  "short_name": "Gather",
+  "description": "A closed calendar for Birmingham community events.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf2f0",
+  "theme_color": "#fdf2f0",
+  "lang": "en-GB",
+  "icons": [
+    {
+      "src": "/brand/gather-mark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/gather-mark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

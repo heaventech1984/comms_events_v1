@@ -59,7 +59,7 @@ test.describe("admin paths", () => {
     await expect(empty.or(urls).first()).toBeVisible();
     await expect(urls).toBeVisible();
     await expect(page.getByText(/meetup\.com/i).first()).toBeVisible();
-    await expect(page.getByText(/Birmingham find/i).first()).toBeVisible();
+    await expect(page.getByText(/discovery pack/i).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: /organisations/i })).toBeVisible();
 
     await page.goto("/members");

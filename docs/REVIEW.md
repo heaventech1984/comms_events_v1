@@ -2,6 +2,10 @@
 
 Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October are a closed community demo, not an NHS production system. The 28 October section is the later read.
 
+## 9 November 2026 — Feedback hub (`/feedback`)
+
+| — | Leader submit issue + member gate; admin approve desirable + copy row | **Shipped** — e2e `feedback.spec.ts` |
+
 ## 9 November 2026 — Pending polish + member feedback hub
 
 | Sev | Item | Status |
@@ -10,6 +14,22 @@ Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October a
 | — | Allevents-style `00:00–01:00` clocks → Time not listed | **Shipped** — display + parser wire-up |
 | — | Leaders/admins see member feedback (ratings) with filters + export | **Shipped** — Insights section; comments still private |
 | Med | Re-scrape to refresh already-stored midnight junk ends | **Open** — display layer fixes old rows; new scrapes store honest ends |
+
+## 9 November 2026 — Mobile UX max-out (web + PWA shell)
+
+| Area | Score | Notes |
+| --- | --- | --- |
+| UX / mobile | **8.5 / 10** | Was ~6.5. Month day-agenda (§16 flow, blush/berry), tablet split, collapsible phone map, manifest, Playwright form-factor matrix. Manual hardware gate still optional for 9/10 — see [`MOBILE-MATRIX.md`](MOBILE-MATRIX.md). |
+
+| Sev | Item | Status |
+| --- | --- | --- |
+| — | Month agenda under grid; day tap keeps `view=month` | **Shipped** |
+| — | Tablet / desktop month + agenda columns | **Shipped** |
+| — | PWA manifest (no offline Attend cache) | **Shipped** |
+| — | E2E candybar / landscape / tablet / WebKit / Firefox | **Shipped** — matrix + full suite on desktop/phone/webkit |
+| — | `SEED_UI_STRESS` long titles / busy day | **Shipped** |
+| Med | Real-device sign-off (iPhone + Android + tablet) | **Open** — checklist in MOBILE-MATRIX |
+| — | §16 teal palette / Forgot / Notify Me | **Out of scope** (unchanged) |
 
 ## 9 November 2026 — For you + after-event feedback
 
@@ -113,7 +133,8 @@ Read of the working tree on 17 October 2026, after Guillaume’s 16 October note
 | Med | Guillaume 20 Oct: prefer **delete** members (remove) over deactivate-only | **Superseded** — see 28 Oct section. The form now deletes. This row is the 17 Oct backlog. |
 | Med | Empty tables have no message | **Backlog** |
 | Low | Attend vs “booked” copy mix | **Backlog** |
-| — | §16 mobile redesign | **Backlog** (track A) |
+| — | §16 mobile redesign (teal) | **Out of scope** — flow shipped 9 Nov (month agenda); teal palette not adopted |
+| — | Phone month agenda + PWA matrix | **Shipped** 9 Nov — see MOBILE-MATRIX |
 
 ## Testing
 
@@ -145,6 +166,6 @@ Attendance prompt “Ask me next time” is session-snoozed (`sessionStorage`), 
 3. Nonce-based CSP.
 4. Confirm live ICS against a real cathedral/uni feed on Railway.
 5. Indexes. Broader live harvest (Eventbrite/Meetup APIs) still out.
-6. §16 phone UI.
+6. Manual hardware gate on real iPhone / Android / tablet ([`MOBILE-MATRIX.md`](MOBILE-MATRIX.md)). §16 teal redesign stays out.
 
 OpenStreetMap’s public tiles are fine for the demo. A regional rollout should use a tile provider with a usage agreement.
