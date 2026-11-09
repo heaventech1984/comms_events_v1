@@ -2,7 +2,6 @@ import { LIMITS, isHttpUrl } from "../security";
 import { parseSchemaInstant, resolveSchemaEnd } from "./schema-date";
 import { cleanText, clip, joinNotes, looksOnline, stripHtml } from "./text";
 import type { ScrapedEvent } from "./types";
-import { friendlyHostLabel } from "../pending-copy";
 
 type JsonLdNode = Record<string, unknown>;
 
@@ -110,15 +109,14 @@ function placeFrom(location: unknown): {
   };
 }
 
-function organiserFrom(rec: JsonLdNode, host: string): string {
+function organiserFrom(rec: JsonLdNode, fallback: string): string {
   for (const key of ["organizer", "performer", "sponsor"]) {
     for (const item of asArray(rec[key])) {
       const name = textOf(item);
       if (name) return clip(name, LIMITS.titleLength);
     }
   }
-  // Prefer "AllEvents" over raw "allevents.in" when the feed omitted an organiser.
-  return clip(friendlyHostLabel(host), LIMITS.titleLength);
+  return clip(fallback, LIMITS.titleLength);
 }
 
 function offerNotes(rec: JsonLdNode): string | null {
@@ -173,27 +171,19 @@ export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEv
   const events: ScrapedEvent[] = [];
   for (const rec of found) {
     const title = clip(cleanText(String(rec.name ?? rec.headline ?? "Untitled event")), LIMITS.titleLength);
-    const start = parseSchemaInstant(
-      rec.startDate != null
-        ? String(rec.startDate)
-        : rec.startTime != null
-          ? String(rec.startTime)
-          : rec.doorTime != null
-            ? String(rec.doorTime)
-            : null
-    );
-    if (!start) continue;
-    const endsAt = resolveSchemaEnd(
-      start,
-      rec.endDate != null ? String(rec.endDate) : rec.endTime != null ? String(rec.endTime) : null
-    );
+    const startRaw = rec.startDate ?? rec.startTime ?? rec.doorTime;
+    const endRaw = rec.endDate ?? rec.endTime;
+    const startParsed = parseSchemaInstant(startRaw == null ? null : String(startRaw));
+    if (!startParsed) continue;
+    const startsAt = startParsed.at;
+    const endsAt = resolveSchemaEnd(startParsed, endRaw == null ? null : String(endRaw));
     const place = placeFrom(rec.location);
     const organisationName = organiserFrom(rec, host);
     const urlCandidate = typeof rec.url === "string" ? rec.url : typeof rec.sameAs === "string" ? rec.sameAs : null;
     const url = urlCandidate && isHttpUrl(urlCandidate) ? urlCandidate : sourceUrl;
     // Prefer a stable public id/url so entity-decoding title changes do not fork sourceKeys.
     const uid = clip(
-      String(rec["@id"] ?? rec.identifier ?? (urlCandidate && isHttpUrl(urlCandidate) ? urlCandidate : null) ?? `${title}:${start.at.toISOString()}`),
+      String(rec["@id"] ?? rec.identifier ?? (urlCandidate && isHttpUrl(urlCandidate) ? urlCandidate : null) ?? `${title}:${startsAt.toISOString()}`),
       180
     );
     const description = rec.description
@@ -202,13 +192,12 @@ export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEv
         ? clip(stripHtml(String(rec.abstract)), LIMITS.textLength)
         : null;
     const attendance = String(rec.eventAttendanceMode ?? rec.attendanceMode ?? "");
-    const timeNote = start.dateOnly ? "Time not listed on source — open the Event link to check." : null;
     events.push({
       sourceKey: `live:${host}:${uid}`,
       title,
       organisationName,
       category: "Meetup",
-      startsAt: start.at,
+      startsAt,
       endsAt,
       online:
         /OnlineEventAttendanceMode/i.test(attendance) ||
@@ -218,7 +207,7 @@ export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEv
       lat: place.lat,
       lng: place.lng,
       externalUrl: url,
-      notes: joinNotes(description, offerNotes(rec), timeNote),
+      notes: joinNotes(description, offerNotes(rec)),
       fetchedFrom: sourceUrl,
       needsTypeReview: false
     });

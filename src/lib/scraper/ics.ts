@@ -1,5 +1,6 @@
 import { londonDate } from "../time";
 import { LIMITS } from "../security";
+import { resolveSchemaEnd, type ParsedSchemaInstant } from "./schema-date";
 import { cleanText, clip, joinNotes, looksOnline, stripHtml } from "./text";
 import type { ScrapedEvent } from "./types";
 
@@ -98,15 +99,25 @@ export function parseIcsEvents(raw: string, sourceUrl: string): ScrapedEvent[] {
       block = null;
       if (props.STATUS && /CANCELLED/i.test(props.STATUS)) continue;
       const title = clip(cleanText(props.SUMMARY || "Untitled event"), LIMITS.titleLength);
+      const startDateOnly = !!props.DTSTART_DATE;
       const startsAt = parseIcsDate(props.DTSTART ?? "", {
         utc: !!props.DTSTART_UTC,
-        dateOnly: !!props.DTSTART_DATE
+        dateOnly: startDateOnly
       });
       if (!startsAt) continue;
+      const startParsed: ParsedSchemaInstant = { at: startsAt, dateOnly: startDateOnly };
       const durationMs = parseDurationMs(props.DURATION);
-      const endsAt =
-        parseIcsDate(props.DTEND ?? "", { utc: !!props.DTEND_UTC, dateOnly: !!props.DTEND_DATE }) ??
-        (durationMs ? new Date(startsAt.getTime() + durationMs) : new Date(startsAt.getTime() + 60 * 60 * 1000));
+      const parsedEnd = parseIcsDate(props.DTEND ?? "", {
+        utc: !!props.DTEND_UTC,
+        dateOnly: !!props.DTEND_DATE
+      });
+      const endsAt = parsedEnd
+        ? parsedEnd.getTime() > startsAt.getTime()
+          ? parsedEnd
+          : resolveSchemaEnd(startParsed, null)
+        : durationMs
+          ? new Date(startsAt.getTime() + durationMs)
+          : resolveSchemaEnd(startParsed, null);
       const uid = clip(props.UID || `${title}:${startsAt.toISOString()}`, 180);
       const location = props.LOCATION ? cleanText(props.LOCATION) || null : null;
       const url = props.URL?.trim() || sourceUrl;
@@ -119,7 +130,7 @@ export function parseIcsEvents(raw: string, sourceUrl: string): ScrapedEvent[] {
         organisationName: clip(organiser, LIMITS.titleLength),
         category: "Meetup",
         startsAt,
-        endsAt: endsAt.getTime() <= startsAt.getTime() ? new Date(startsAt.getTime() + 60 * 60 * 1000) : endsAt,
+        endsAt,
         online: looksOnline(title, location, description),
         placeName: location ? clip(location, LIMITS.placeLength) : null,
         lat: geo?.lat ?? null,

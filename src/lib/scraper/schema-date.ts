@@ -33,6 +33,15 @@ export function parseSchemaInstant(raw: string | null | undefined): ParsedSchema
     return { at: londonDate(year, month, day, 0, 0), dateOnly: true };
   }
 
+  // Aggregators sometimes emit UTC midnight for a calendar day (Allevents / schema dumps).
+  const midnightUtc = /^(\d{4})-(\d{2})-(\d{2})T00:00(?::00)?(?:\.0+)?Z$/i.exec(s);
+  if (midnightUtc) {
+    const year = Number(midnightUtc[1]);
+    const month = Number(midnightUtc[2]);
+    const day = Number(midnightUtc[3]);
+    return { at: londonDate(year, month, day, 0, 0), dateOnly: true };
+  }
+
   const at = new Date(s);
   if (Number.isNaN(at.getTime())) return null;
   return { at, dateOnly: false };

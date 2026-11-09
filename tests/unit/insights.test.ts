@@ -179,6 +179,7 @@ describe("period and share", () => {
     expect(tablesFor(data, "byCell")[0].name).toBe("By cell");
     expect(tablesFor(data, "perEvent")[0].name).toBe("Per-event attendance");
     expect(tablesFor(data, "attendees")[0].name).toBe("Attendee list");
+    expect(tablesFor(data, "feedback")[0].name).toBe("Member feedback");
     expect(tablesFor(data, "everything").length).toBeGreaterThan(3);
   });
 });

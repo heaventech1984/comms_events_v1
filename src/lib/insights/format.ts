@@ -20,7 +20,12 @@ export function summaryLines(data: InsightsData): string[] {
   ];
 }
 
-export function tablesFor(data: InsightsData, dataset: string, attendeeRows: (string | number)[][] = []): Table[] {
+export function tablesFor(
+  data: InsightsData,
+  dataset: string,
+  attendeeRows: (string | number)[][] = [],
+  feedbackTable?: Table | null
+): Table[] {
   const summary: Table = {
     name: "Summary",
     columns: ["Measure", "Value"],
@@ -68,12 +73,27 @@ export function tablesFor(data: InsightsData, dataset: string, attendeeRows: (st
     columns: ["Event", "When", "Name", "Cell number", "Cell", "Attendance", "Booked by"],
     rows: attendeeRows
   };
-  const all = { summary, weekly, byType, byCell, perEvent, attendees };
+  const feedback: Table = feedbackTable ?? {
+    name: "Member feedback",
+    columns: [
+      "When rated",
+      "Rating",
+      "Member",
+      "Cell",
+      "Event",
+      "Event type",
+      "Event starts",
+      "Format"
+    ],
+    rows: []
+  };
+  const all = { summary, weekly, byType, byCell, perEvent, attendees, feedback };
   if (dataset === "everything") return Object.values(all);
   if (dataset === "weekly") return [weekly];
   if (dataset === "byType") return [byType];
   if (dataset === "byCell") return [byCell];
   if (dataset === "perEvent") return [perEvent];
   if (dataset === "attendees") return [attendees];
+  if (dataset === "feedback") return [feedback];
   return [summary];
 }

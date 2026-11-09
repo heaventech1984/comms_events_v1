@@ -17,11 +17,11 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## 2026-11-09 — Pending: clickable Event link + honest times
+## 2026-11-09 — Pending polish + member feedback hub
 
-- Event link on each tile opens the listing in a **new tab**; the rest of the tile still opens edit details.
-- Midnight placeholder clocks show **Time not listed** (AllEvents date-only feeds no longer look like 00:00–01:00).
-- Greeting uses your first name; host-only organisers show as AllEvents / Meetup / etc.
+- Pending: Event Link opens the listing in a **new tab**; the tile body still opens edit. Hover/focus preview on fine pointers. Multi-select + **Approve selected** / **Discard selected** (`POST /api/events/batch`).
+- Date-only scrapes show **Time not listed** instead of `00:00–01:00` (schema-date wired into JSON-LD / microdata / ICS).
+- Insights **Member feedback**: cell-scoped ratings table + filters + CSV export dataset. Free-text notes stay private.
 
 ## 2026-11-09 — Scraper extras-only box + readable scrape results
 

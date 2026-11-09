@@ -2,6 +2,15 @@
 
 Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October are a closed community demo, not an NHS production system. The 28 October section is the later read.
 
+## 9 November 2026 — Pending polish + member feedback hub
+
+| Sev | Item | Status |
+| --- | --- | --- |
+| — | Event Link new tab vs tile → edit; hover preview; multi-approve | **Shipped** |
+| — | Allevents-style `00:00–01:00` clocks → Time not listed | **Shipped** — display + parser wire-up |
+| — | Leaders/admins see member feedback (ratings) with filters + export | **Shipped** — Insights section; comments still private |
+| Med | Re-scrape to refresh already-stored midnight junk ends | **Open** — display layer fixes old rows; new scrapes store honest ends |
+
 ## 9 November 2026 — For you + after-event feedback
 
 | Sev | Item | Status |

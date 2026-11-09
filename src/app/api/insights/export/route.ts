@@ -7,6 +7,12 @@ import { parseInsightsParams } from "@/lib/insights/period";
 import { loadAttendeeRows, loadRawInsights } from "@/lib/insights/load";
 import { aggregateInsights } from "@/lib/insights/aggregate";
 import { summaryLines, tablesFor } from "@/lib/insights/format";
+import {
+  feedbackExportTable,
+  feedbackFiltersFromInsights,
+  loadFeedbackRows,
+  parseFeedbackQuery
+} from "@/lib/insights/feedback";
 import { DATASETS, EXPORT_FORMATS, type Dataset, type ExportFormat } from "@/lib/insights/types";
 import { toCsv, toJson, toTxt, toXlsx } from "@/lib/export-format";
 
@@ -20,6 +26,7 @@ export async function POST(request: NextRequest) {
   const dataset = DATASETS.includes(body.dataset as Dataset) ? (body.dataset as Dataset) : "summary";
   const format = EXPORT_FORMATS.includes(body.format as ExportFormat) ? (body.format as ExportFormat) : "csv";
   const filters = parseInsightsParams(body);
+  const feedbackExtra = parseFeedbackQuery(body);
   const raw = await loadRawInsights(scope, filters);
   const data = aggregateInsights(raw, filters, scope);
   const eventIds = raw.events
@@ -37,7 +44,19 @@ export async function POST(request: NextRequest) {
           r.bookedBy
         ])
       : [];
-  const tables = tablesFor(data, dataset, attendeeRows);
+  const feedbackRows =
+    dataset === "feedback" || dataset === "everything"
+      ? (
+          await loadFeedbackRows(
+            scope,
+            feedbackFiltersFromInsights(
+              { from: filters.from, to: filters.to, category: filters.category, cellId: filters.cellId },
+              feedbackExtra
+            )
+          )
+        ).rows
+      : [];
+  const tables = tablesFor(data, dataset, attendeeRows, feedbackExportTable(feedbackRows));
   const stamp = data.generatedAt.slice(0, 10);
   const filename = `gather-insights-${dataset}-${stamp}.${format}`;
   let buffer: Buffer;

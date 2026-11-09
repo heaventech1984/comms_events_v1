@@ -1,4 +1,3 @@
-import { friendlyHostLabel } from "../pending-copy";
 import { LIMITS, isHttpUrl } from "../security";
 import { parseSchemaInstant, resolveSchemaEnd } from "./schema-date";
 import { cleanText, clip, joinNotes, looksOnline, stripHtml } from "./text";
@@ -66,33 +65,31 @@ export function eventsFromMicrodata(html: string, sourceUrl: string): ScrapedEve
     const props = propMap(block);
     const title = clip(cleanText(first(props, "name", "headline") ?? "Untitled event"), LIMITS.titleLength);
     const startRaw = first(props, "startDate", "startTime");
-    const start = parseSchemaInstant(startRaw);
-    if (!start) continue;
-    const endsAt = resolveSchemaEnd(start, first(props, "endDate", "endTime"));
+    if (!startRaw) continue;
+    const startParsed = parseSchemaInstant(startRaw);
+    if (!startParsed) continue;
+    const startsAt = startParsed.at;
+    const endRaw = first(props, "endDate", "endTime");
+    const endsAt = resolveSchemaEnd(startParsed, endRaw);
     const placeName = first(props, "location", "address");
     const urlRaw = first(props, "url");
     const url = urlRaw && isHttpUrl(urlRaw) ? urlRaw : sourceUrl;
     const description = first(props, "description");
-    const organiserRaw = first(props, "organizer", "performer");
-    const organiser = organiserRaw ? cleanText(organiserRaw) : friendlyHostLabel(host);
-    const uid = clip(urlRaw && isHttpUrl(urlRaw) ? urlRaw : `${title}:${start.at.toISOString()}`, 180);
-    const timeNote = start.dateOnly ? "Time not listed on source — open the Event link to check." : null;
+    const organiser = first(props, "organizer", "performer") ?? host;
+    const uid = clip(urlRaw && isHttpUrl(urlRaw) ? urlRaw : `${title}:${startsAt.toISOString()}`, 180);
     events.push({
       sourceKey: `live:${host}:${uid}`,
       title,
-      organisationName: clip(organiser, LIMITS.titleLength),
+      organisationName: clip(cleanText(organiser), LIMITS.titleLength),
       category: "Meetup",
-      startsAt: start.at,
+      startsAt,
       endsAt,
       online: looksOnline(title, placeName, description),
       placeName: placeName ? clip(cleanText(placeName), LIMITS.placeLength) : null,
       lat: null,
       lng: null,
       externalUrl: url,
-      notes: joinNotes(
-        description ? clip(stripHtml(description), LIMITS.textLength) : null,
-        timeNote
-      ),
+      notes: joinNotes(description ? clip(stripHtml(description), LIMITS.textLength) : null),
       fetchedFrom: sourceUrl,
       needsTypeReview: false
     });

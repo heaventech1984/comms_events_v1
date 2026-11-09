@@ -13,6 +13,7 @@ const DATASET_LABEL: Record<Dataset, string> = {
   byCell: "By cell",
   perEvent: "Per-event attendance",
   attendees: "Attendee list (names, your scope)",
+  feedback: "Member feedback (ratings only)",
   everything: "Everything"
 };
 

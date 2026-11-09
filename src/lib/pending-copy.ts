@@ -1,4 +1,5 @@
 import { formatDate, formatDateTimeRange, formatTimeRange, londonParts } from "./time";
+import type { Role } from "./constants";
 
 /**
  * Discard confirm copy — Discard changes event status only.
@@ -45,16 +46,10 @@ function hostKey(hostname: string): string {
   return hostname.toLowerCase().replace(/^www\./, "");
 }
 
-/** Friendly site name for a hostname (or the bare host if unknown). */
-export function friendlyHostLabel(hostnameOrUrl: string): string {
-  try {
-    const host = hostnameOrUrl.includes("://")
-      ? hostKey(new URL(hostnameOrUrl).hostname)
-      : hostKey(hostnameOrUrl);
-    return EVENT_LINK_SITE_NAMES[host] ?? host;
-  } catch {
-    return hostnameOrUrl || "listing";
-  }
+/** Site name for a hostname (with or without www). */
+export function friendlyHostLabel(hostname: string): string {
+  const host = hostKey(hostname);
+  return EVENT_LINK_SITE_NAMES[host] ?? host;
 }
 
 /**
@@ -64,56 +59,46 @@ export function friendlyHostLabel(hostnameOrUrl: string): string {
 export function eventLinkLabel(url: string): string {
   try {
     const host = hostKey(new URL(url).hostname);
-    const site = EVENT_LINK_SITE_NAMES[host] ?? host;
-    return `On ${site}`;
+    return `On ${friendlyHostLabel(host)}`;
   } catch {
     return "On source page";
   }
 }
 
 /**
- * Midnight clocks with a missing or default +1h end usually mean the feed had a date
- * but no real start time (common on AllEvents). Show plain words instead of 00:00–01:00.
+ * Clock under a day heading. Date-only / midnight-only feeds (common from Allevents)
+ * show "Time not listed" instead of a fake 00:00–01:00.
  */
-export function clockLooksUnset(startsAt: Date, endsAt: Date | null | undefined): boolean {
-  const a = londonParts(startsAt);
-  if (a.hour !== 0 || a.minute !== 0) return false;
-  if (!endsAt) return true;
-  const b = londonParts(endsAt);
-  if (a.year === b.year && a.month === b.month && a.day === b.day) {
-    if (b.hour === 0 && b.minute === 0) return true;
-    if (b.hour === 1 && b.minute === 0) return true;
-  }
-  // Same instant stored twice (date-only end = start).
-  if (endsAt.getTime() === startsAt.getTime()) return true;
-  return false;
-}
-
-/** Clock under a day heading — or “Time not listed” when the feed had no real time. */
 export function pendingClockLabel(startsAt: Date, endsAt: Date | null | undefined): string {
-  if (clockLooksUnset(startsAt, endsAt)) return "Time not listed";
+  const start = londonParts(startsAt);
+  const startMidnight = start.hour === 0 && start.minute === 0;
+  if (!startMidnight) {
+    return formatTimeRange(startsAt, endsAt);
+  }
+  if (!endsAt) return "Time not listed";
+  const end = londonParts(endsAt);
+  const sameDay = end.year === start.year && end.month === start.month && end.day === start.day;
+  const endEqualsStart = endsAt.getTime() === startsAt.getTime();
+  const endOneHour =
+    sameDay && end.hour === 1 && end.minute === 0 && startsAt.getTime() + 60 * 60 * 1000 === endsAt.getTime();
+  if (endEqualsStart || endOneHour || (sameDay && end.hour === 0 && end.minute === 0)) {
+    return "Time not listed";
+  }
   return formatTimeRange(startsAt, endsAt);
 }
 
-/** Start as full London date-time; end as clock only when same day. */
+/** Full when-line for previews: date + honest clock. */
 export function pendingWhen(startsAt: Date, endsAt: Date | null | undefined): string {
-  if (clockLooksUnset(startsAt, endsAt)) {
+  const clock = pendingClockLabel(startsAt, endsAt);
+  if (clock === "Time not listed") {
     return `${formatDate(startsAt)} · Time not listed`;
   }
   return formatDateTimeRange(startsAt, endsAt);
 }
 
-/** First name for a short greeting (An Te → An). */
-export function firstNameOf(fullName: string): string {
-  const part = fullName.trim().split(/\s+/)[0];
-  return part || "there";
-}
-
-/** Pending page lede — personal, role-aware, one clear tip. */
-export function pendingReviewLede(user: { name: string; role: string }): string {
-  const first = firstNameOf(user.name);
-  if (user.role === "admin") {
-    return `${first} — tap a tile to edit details, or the Event link to open the listing in a new tab. Use the chips to vet one type or Online / In person.`;
-  }
-  return `${first} — tap a tile to edit, or the Event link for the listing (new tab). Approve or Discard when you are ready.`;
+/** Personal greeting + tip for Pending review. */
+export function pendingReviewLede(user: { name: string; role: Role }): string {
+  const first = user.name.trim().split(/\s+/)[0] || "Hello";
+  const who = user.role === "admin" ? "as admin" : "for your cell";
+  return `${first} — review scraped listings ${who}. Tap a tile for details, or the Event Link for the listing in a new tab. Select several to approve together.`;
 }

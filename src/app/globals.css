@@ -1438,6 +1438,125 @@ table.data .members-check-col input[type="checkbox"] {
   gap: var(--space-2);
   margin: var(--space-3) 0 0;
 }
+.pending-select-bar {
+  margin: 0 0 var(--space-3);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.pending-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pending-tile-check {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 2;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.pending-tile-check input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--terracotta);
+}
+
+.pending-tile-preview {
+  display: none;
+}
+
+@keyframes pending-preview-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pending-preview-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.98rem;
+}
+
+.pending-batch-bar {
+  position: sticky;
+  bottom: max(var(--space-3), env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.pending-batch-count {
+  margin: 0;
+  margin-right: auto;
+  font-size: 0.95rem;
+}
+
+.feedback-hub {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.feedback-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.feedback-summary li {
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+.feedback-summary strong {
+  color: var(--terracotta);
+  font-variant-numeric: tabular-nums;
+}
+
+.feedback-table-wrap {
+  overflow-x: auto;
+}
+
+.feedback-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.pending-tile[data-selected="true"] {
+  border-color: var(--cat, var(--terracotta));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cat, var(--terracotta)) 35%, transparent);
+}
+
 .pending-type-row {
   display: flex;
   flex-wrap: wrap;
@@ -1516,6 +1635,7 @@ a.pending-ext-link .pending-ext-url {
   overflow: hidden;
 }
 .pending-tile {
+  position: relative;
   text-decoration: none;
   color: inherit;
   display: flex;
@@ -1898,6 +2018,7 @@ a.pending-ext-link .pending-ext-url {
   text-decoration: none;
   color: inherit;
   padding: var(--space-3);
+  padding-left: 3rem;
 }
 /* Home — Apple-like calm bands (Gather blush/berry tokens) */
 .home-apple {

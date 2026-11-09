@@ -125,7 +125,16 @@ export type InsightsData = {
   topEvents: TopEvent[];
 };
 
-export const DATASETS = ["summary", "weekly", "byType", "byCell", "perEvent", "attendees", "everything"] as const;
+export const DATASETS = [
+  "summary",
+  "weekly",
+  "byType",
+  "byCell",
+  "perEvent",
+  "attendees",
+  "feedback",
+  "everything"
+] as const;
 export type Dataset = (typeof DATASETS)[number];
 
 export const EXPORT_FORMATS = ["csv", "txt", "json", "xlsx"] as const;

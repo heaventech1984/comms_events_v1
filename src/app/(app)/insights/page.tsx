@@ -7,7 +7,13 @@ import { parseInsightsParams, insightsHref } from "@/lib/insights/period";
 import { loadRawInsights } from "@/lib/insights/load";
 import { aggregateInsights, pctLabel } from "@/lib/insights/aggregate";
 import { shareSummary } from "@/lib/insights/share";
-import { CATEGORIES } from "@/lib/constants";
+import {
+  FEEDBACK_RATING_LABELS,
+  feedbackFiltersFromInsights,
+  loadFeedbackRows,
+  parseFeedbackQuery
+} from "@/lib/insights/feedback";
+import { CATEGORIES, FEEDBACK_RATINGS } from "@/lib/constants";
 import {
   ChartCard,
   FunnelList,
@@ -41,19 +47,30 @@ export default async function InsightsPage({
     );
   }
   const filters = { ...requested, cellId: scope.kind === "cell" ? scope.cellId : requested.cellId };
-  const [raw, settings, cells] = await Promise.all([
+  const feedbackExtra = parseFeedbackQuery(params);
+  const [raw, settings, cells, feedback] = await Promise.all([
     loadRawInsights(scope, filters),
     getSettings(),
-    user.role === "admin" ? prisma.cell.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([])
+    user.role === "admin" ? prisma.cell.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
+    loadFeedbackRows(
+      scope,
+      feedbackFiltersFromInsights(
+        { from: filters.from, to: filters.to, category: filters.category, cellId: filters.cellId },
+        feedbackExtra
+      )
+    )
   ]);
   const data = aggregateInsights(raw, filters, scope);
   const origin = process.env.APP_ORIGIN ?? "http://localhost:3000";
   const text = shareSummary(data, origin, filters);
+  const firstName = user.name.trim().split(/\s+/)[0] || "Hello";
   const query: Record<string, string> = {
     period: filters.preset,
     category: filters.category,
     format: filters.format,
-    cell: filters.cellId ?? ""
+    cell: filters.cellId ?? "",
+    rating: feedbackExtra.rating,
+    q: feedbackExtra.q
   };
 
   return (
@@ -61,9 +78,10 @@ export default async function InsightsPage({
       <div className="page-head insights-head">
         <h1>Insights</h1>
         <p className="lede">
-          {scope.kind === "region" ? `${settings.locationLabel} region` : "Your cell"} · {formatDate(filters.from)} to{" "}
-          {formatDate(new Date(filters.to.getTime() - 1))}. Charts are totals. Groups of fewer than three people are
-          hidden.
+          {firstName} — {scope.kind === "region" ? `${settings.locationLabel} region` : feedback.scopeLabel} ·{" "}
+          {formatDate(filters.from)} to {formatDate(new Date(filters.to.getTime() - 1))}. Charts are totals. Groups of
+          fewer than three people are hidden. Member feedback below shows ratings only — private notes stay with the
+          person who wrote them.
         </p>
       </div>
 
@@ -121,6 +139,27 @@ export default async function InsightsPage({
             </label>
           </>
         ) : null}
+        <label>
+          Feedback rating
+          <select name="rating" defaultValue={feedbackExtra.rating}>
+            <option value="">Any rating</option>
+            {FEEDBACK_RATINGS.map((r) => (
+              <option key={r} value={r}>
+                {FEEDBACK_RATING_LABELS[r]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Find in feedback
+          <input
+            type="search"
+            name="q"
+            defaultValue={feedbackExtra.q}
+            placeholder="Member or event"
+            autoComplete="off"
+          />
+        </label>
         <button type="submit">Apply</button>
       </form>
 
@@ -238,6 +277,62 @@ export default async function InsightsPage({
                     <td className="num" data-label="Attendance">
                       {pctLabel(e.attendancePct)}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="card feedback-hub" data-testid="insights-feedback">
+        <h2>Member feedback</h2>
+        <p className="muted">
+          {feedback.scopeLabel}. After-event moods from people in your scope. Free-text notes are never shown here.
+          Export “Member feedback” below for a spreadsheet.
+        </p>
+        <ul className="feedback-summary" aria-label="Feedback totals">
+          <li>
+            <strong>{feedback.summary.total}</strong> ratings
+          </li>
+          {FEEDBACK_RATINGS.map((r) => (
+            <li key={r}>
+              <strong>{feedback.summary.byRating[r]}</strong> {FEEDBACK_RATING_LABELS[r]}
+            </li>
+          ))}
+        </ul>
+        {feedback.rows.length === 0 ? (
+          <p className="muted">
+            {feedbackExtra.rating || feedbackExtra.q || filters.category
+              ? "Nothing matches these feedback filters. Try Any rating or clear the search."
+              : scope.kind === "cell"
+                ? "Nobody in your cell has rated an event in this period yet."
+                : "No ratings in this period yet."}
+          </p>
+        ) : (
+          <div className="table-wrap feedback-table-wrap">
+            <table className="data stack-sm">
+              <thead>
+                <tr>
+                  <th>When rated</th>
+                  <th>Rating</th>
+                  <th>Member</th>
+                  <th>Cell</th>
+                  <th>Event</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {feedback.rows.map((row) => (
+                  <tr key={row.id}>
+                    <td data-label="When rated">{row.createdAt}</td>
+                    <td data-label="Rating">{row.ratingLabel}</td>
+                    <td data-label="Member">{row.memberName}</td>
+                    <td data-label="Cell">{row.cellName}</td>
+                    <td data-label="Event">
+                      <Link href={`/events/${row.eventId}`}>{row.eventTitle}</Link>
+                    </td>
+                    <td data-label="Type">{row.eventCategory}</td>
                   </tr>
                 ))}
               </tbody>
