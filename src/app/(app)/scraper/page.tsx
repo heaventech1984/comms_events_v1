@@ -121,14 +121,14 @@ export default async function ScraperPage() {
       <div className="page-head">
         <h1>Scraper settings</h1>
         <p className="lede">
-          Daily run at 05:00 Europe/London via cron. Run now saves the priority list, then fetches it. Demo events
-          run unless SCRAPE_FIXTURES=0. A second run of those demo events updates them in place, so pending can look
-          unchanged. A live feed is fetched only from an allowlisted https address.
+          Daily run at 05:00 Europe/London via cron. Run now always fetches the frozen Birmingham discovery pack, then
+          any extras in the box below. Re-runs refresh place and Event Link when the feed has them. Demo events run
+          unless SCRAPE_FIXTURES=0. Live feeds are allowlisted https only — not an open crawl of the whole web.
         </p>
-        {cleaned.urls.length === 0 ? (
+        {cleaned.stored.length === 0 ? (
           <p className="muted" data-testid="priority-empty">
-            No Priority URLs saved — the harvest uses the built-in demo fixtures only. Add allowlisted https ICS or
-            JSON-LD feeds above (cathedral what&apos;s-on, Meetup Birmingham find, and other hosts on the list).
+            No extras saved — Run now still uses the built-in Birmingham pack ({cleaned.urls.length} feeds). Add an
+            allowlisted https feed here only when something useful is missing.
           </p>
         ) : null}
       </div>

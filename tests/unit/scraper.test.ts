@@ -165,8 +165,9 @@ describe("allowlist", () => {
 
   it("explains a demo-only run that leaves pending looking the same", () => {
     const text = runFinishedMessage({ createdCount: 0, updatedCount: 12, sources: [], dropped: [] });
-    expect(text).toMatch(/created 0/);
-    expect(text).toMatch(/pending list looks the same/i);
+    expect(text).toMatch(/12 refreshed/i);
+    expect(text).toMatch(/place and Event Link/i);
+    expect(text).toMatch(/Pending can look the same/i);
     const dropped = runFinishedMessage({
       createdCount: 0,
       sources: [],

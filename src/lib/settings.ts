@@ -2,7 +2,11 @@ import { prisma } from "./db";
 import { writeAudit } from "./audit";
 import { CATEGORIES, DEFAULT_COLOURS, parseMemberAttendeeView, type Category } from "./constants";
 import { parsePriorityUrls } from "./scraper/allowlist";
-import { frozenDiscoveryUrls, mergeDiscoveryWithExtras } from "./scraper/discovery-pack";
+import {
+  extrasOnlyPriorityUrls,
+  frozenDiscoveryUrls,
+  mergeDiscoveryWithExtras
+} from "./scraper/discovery-pack";
 
 function readPriorityUrlList(raw: string | null | undefined): unknown[] {
   try {
@@ -14,22 +18,52 @@ function readPriorityUrlList(raw: string | null | undefined): unknown[] {
 }
 
 /**
- * If Priority URLs are empty (or FORCE_DISCOVERY_PACK=1), install the frozen discovery pack
- * and enable all five types. Keeps Oracle / fresh boxes on the same method without a manual paste.
+ * If Priority extras are empty (or FORCE_DISCOVERY_PACK=1), enable all five types.
+ * The frozen pack is merged at Run time — we no longer paste it into the Priority box.
  */
 export async function ensureFrozenDiscoveryPack(actorId?: string | null) {
   const row = await prisma.settings.findUnique({ where: { id: "default" } });
-  if (!row) return { urls: [] as string[], applied: false };
+  if (!row) return { urls: mergeDiscoveryWithExtras([]), applied: false };
   const current = parsePriorityUrls(readPriorityUrlList(row.priorityUrls)).urls;
+  const extras = extrasOnlyPriorityUrls(current);
   const force = process.env.FORCE_DISCOVERY_PACK === "1";
-  if (current.length > 0 && !force) {
-    return { urls: current, applied: false };
+  const needsRewrite = force || extras.length !== current.length;
+  if (current.length > 0 && !force && !needsRewrite) {
+    return { urls: mergeDiscoveryWithExtras(extras), applied: false };
   }
-  const urls = frozenDiscoveryUrls();
+  if (current.length === 0 && !force) {
+    // Empty extras is the happy path — pack still runs via mergeDiscoveryWithExtras.
+    const enabledAll =
+      row.christianEnabled &&
+      row.networkingEnabled &&
+      row.professionalEnabled &&
+      row.studentEnabled &&
+      row.meetupEnabled;
+    if (enabledAll) return { urls: mergeDiscoveryWithExtras([]), applied: false };
+    await prisma.settings.update({
+      where: { id: "default" },
+      data: {
+        christianEnabled: true,
+        networkingEnabled: true,
+        professionalEnabled: true,
+        studentEnabled: true,
+        meetupEnabled: true
+      }
+    });
+    await writeAudit({
+      actorId: actorId ?? null,
+      action: "settings.discoveryPack.applied",
+      entityType: "Settings",
+      entityId: "default",
+      summary: `Enabled all five types for the frozen Birmingham discovery pack (${frozenDiscoveryUrls().length} feeds at Run).`
+    });
+    return { urls: mergeDiscoveryWithExtras([]), applied: true };
+  }
+  // Strip pack URLs from the box (or force-clear extras) so admins only see gap-fillers.
   await prisma.settings.update({
     where: { id: "default" },
     data: {
-      priorityUrls: JSON.stringify(urls),
+      priorityUrls: JSON.stringify(force ? [] : extras),
       christianEnabled: true,
       networkingEnabled: true,
       professionalEnabled: true,
@@ -42,9 +76,11 @@ export async function ensureFrozenDiscoveryPack(actorId?: string | null) {
     action: "settings.discoveryPack.applied",
     entityType: "Settings",
     entityId: "default",
-    summary: `Installed frozen Birmingham discovery pack (${urls.length} Priority URLs).`
+    summary: force
+      ? `Reset Priority extras; Run uses frozen Birmingham pack (${frozenDiscoveryUrls().length} feeds).`
+      : `Moved frozen-pack URLs out of Priority extras; Run still merges the pack (${frozenDiscoveryUrls().length} feeds).`
   });
-  return { urls, applied: true };
+  return { urls: mergeDiscoveryWithExtras(force ? [] : extras), applied: true };
 }
 
 export async function getSettings() {
@@ -63,13 +99,15 @@ export async function getSettings() {
     memberAttendeeView: parseMemberAttendeeView(row?.memberAttendeeView),
     colours: { ...DEFAULT_COLOURS, ...colours },
     enabled,
-    priorityUrls: partitioned.urls
+    // Form shows gap-fillers only — the pack is always added at Run.
+    priorityUrls: extrasOnlyPriorityUrls(partitioned.urls)
   };
 }
 
 /**
  * Drops stored Priority URLs that no longer pass the allowlist (e.g. a leftover Meetup search page)
  * so Save and Run now are not blocked by stale config. Writes an audit row when anything is removed.
+ * Also strips frozen-pack URLs from the box (they are merged automatically on every Run).
  */
 export async function persistCleanPriorityUrls(actorId?: string | null) {
   const ensured = await ensureFrozenDiscoveryPack(actorId);
@@ -82,26 +120,29 @@ export async function persistCleanPriorityUrls(actorId?: string | null) {
     };
   }
   const partitioned = parsePriorityUrls(readPriorityUrlList(row.priorityUrls));
-  if (partitioned.rejected.length) {
+  const extras = extrasOnlyPriorityUrls(partitioned.urls);
+  const shouldRewrite =
+    partitioned.rejected.length > 0 || extras.length !== partitioned.urls.length;
+  if (shouldRewrite) {
     await prisma.settings.update({
       where: { id: "default" },
-      data: { priorityUrls: JSON.stringify(partitioned.urls) }
+      data: { priorityUrls: JSON.stringify(extras) }
     });
-    await writeAudit({
-      actorId: actorId ?? null,
-      action: "settings.priorityUrls.dropped",
-      entityType: "Settings",
-      entityId: "default",
-      summary: `Removed ${partitioned.rejected.length} Priority URL(s) no longer on the allowlist: ${partitioned.rejected
-        .map((item) => item.url)
-        .join(", ")}`
-    });
+    if (partitioned.rejected.length) {
+      await writeAudit({
+        actorId: actorId ?? null,
+        action: "settings.priorityUrls.dropped",
+        entityType: "Settings",
+        entityId: "default",
+        summary: `Removed ${partitioned.rejected.length} Priority URL(s) no longer on the allowlist: ${partitioned.rejected
+          .map((item) => item.url)
+          .join(", ")}`
+      });
+    }
   }
-  const stored = partitioned.urls.length ? partitioned.urls : ensured.urls;
-  // Run always uses discovery pack + stored extras (Guillaume: Priority box fills gaps).
   return {
-    urls: mergeDiscoveryWithExtras(stored),
-    stored,
+    urls: mergeDiscoveryWithExtras(extras),
+    stored: extras,
     dropped: partitioned.rejected
   };
 }

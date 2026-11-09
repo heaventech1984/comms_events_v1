@@ -211,3 +211,9 @@ export function mergeDiscoveryWithExtras(extras: string[]): string[] {
   }
   return merged.slice(0, MAX_PRIORITY_URLS);
 }
+
+/** Strip frozen-pack URLs so Settings only stores gap-fillers (Guillaume: box is an addition). */
+export function extrasOnlyPriorityUrls(urls: string[]): string[] {
+  const pack = new Set(frozenDiscoveryUrls().map((u) => u.toLowerCase()));
+  return parsePriorityUrls(urls).urls.filter((url) => !pack.has(url.toLowerCase()));
+}

@@ -1,12 +1,12 @@
 /**
- * Probe the Birmingham discovery pack and seed Settings.priorityUrls with feeds
- * that return ≥1 parseable event. Enables all five type toggles.
+ * Probe the Birmingham discovery pack. Enables all five type toggles and clears
+ * Priority extras (Run always merges the frozen pack — the box is gap-fillers only).
  *
  * Usage: npx tsx scripts/seed-discovery-pack.ts
  */
 import { DEFAULT_COLOURS } from "../src/lib/constants";
 import { MAX_PRIORITY_URLS, scrapeUrlAllowed } from "../src/lib/scraper/allowlist";
-import { DISCOVERY_PACK } from "../src/lib/scraper/discovery-pack";
+import { DISCOVERY_PACK, frozenDiscoveryUrls } from "../src/lib/scraper/discovery-pack";
 import { fetchLiveEvents } from "../src/lib/scraper/live-adapter";
 import { prisma } from "../src/lib/db";
 
@@ -33,8 +33,9 @@ async function main() {
     if (working.length >= MAX_PRIORITY_URLS) break;
   }
 
+  // Extras stay empty — pack URLs are merged at Run, not pasted into the Priority box.
   const enabled = {
-    priorityUrls: JSON.stringify(working),
+    priorityUrls: JSON.stringify([]),
     christianEnabled: true,
     networkingEnabled: true,
     professionalEnabled: true,
@@ -54,7 +55,10 @@ async function main() {
     });
   }
 
-  console.log(`\nSeeded ${working.length} Priority URL(s). Failures: ${failures.length}.`);
+  console.log(`\nProbe OK: ${working.length}. Failures: ${failures.length}.`);
+  console.log(
+    `Priority extras cleared. Every Run merges the frozen pack (${frozenDiscoveryUrls().length} feeds).`
+  );
   console.log("All five type toggles enabled.");
 }
 

@@ -12,7 +12,7 @@ Cover Birmingham and nearby West Midlands / Midlands listings for the five Gathe
 
 1. **Allowlist only** — [`src/lib/scraper/allowlist.ts`](../src/lib/scraper/allowlist.ts). No arbitrary URL fetch.
 2. **Discovery pack** — [`src/lib/scraper/discovery-pack.ts`](../src/lib/scraper/discovery-pack.ts). Christian slices are listed **first** (first-wins dedupe). Sources: Eventbrite category + nearby-city pages, Meetup faith/keyword finds, Allevents city pages (Brum + WM + nearby Midlands), Ticketmaster, cathedral, Luma, Visit Birmingham, A Church Near You when parseable.
-3. **Probe then seed** — `npx tsx scripts/seed-discovery-pack.ts` keeps only URLs that return ≥1 event; writes Settings Priority URLs (cap **100**); turns all five type toggles on. **Every Run now** merges the frozen pack **first**, then any extra lines in the Priority box (gap-fillers). Still allowlist-only — not an open web crawl.
+3. **Probe then seed** — `npx tsx scripts/seed-discovery-pack.ts` keeps only URLs that return ≥1 event; can write working feeds as Settings extras (cap **100**); turns all five type toggles on. **Every Run now** merges the frozen pack **first**, then any extra lines in the Priority box (gap-fillers). Pack URLs are stripped from the box on save — they are not the primary list. Still allowlist-only — not an open web crawl.
 4. **Parsers** — ICS, JSON-LD (incl. ItemList → item), microdata, same-host `.ics` discovery.
 5. **Category from aggregator URL** — path / `keywords=` beats bare host default for Eventbrite, Meetup, Allevents.
 6. **Dedupe** — first live `sourceKey` wins; fixtures still overwrite.
@@ -31,7 +31,7 @@ npx tsx scripts/seed-discovery-pack.ts   # probe + write Settings
 SCRAPE_FIXTURES=0 npm run scrape         # live harvest + month table
 ```
 
-Empty Priority URLs also get the frozen pack automatically (`ensureFrozenDiscoveryPack`). Re-apply with `FORCE_DISCOVERY_PACK=1`.
+Empty Priority extras still run the frozen pack (`ensureFrozenDiscoveryPack` enables all five types). `FORCE_DISCOVERY_PACK=1` clears extras and re-enables types.
 
 ## Out of scope
 

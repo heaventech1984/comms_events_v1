@@ -4,7 +4,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, type Category, type MemberAttendeeView } from "@/lib/constants";
 import { MEETUP_BIRMINGHAM_FIND_URL, STARTER_PRIORITY_URL } from "@/lib/scraper/allowlist";
-import { droppedPriorityUrlMessage, runFinishedMessage } from "@/lib/scraper/priority-copy";
+import {
+  droppedPriorityUrlMessage,
+  runFinishedSummary,
+  type RunFinishedSummary
+} from "@/lib/scraper/priority-copy";
 import { requestJson, type JsonResult } from "@/lib/fetch-json";
 import { StatusBanner } from "./StatusBanner";
 
@@ -33,6 +37,7 @@ export function ScraperForm({
   const [message, setMessage] = useState<string | null>(notice ?? null);
   const [kind, setKind] = useState<"info" | "error">("info");
   const [running, setRunning] = useState(false);
+  const [runSummary, setRunSummary] = useState<RunFinishedSummary | null>(null);
   const [orgFilter, setOrgFilter] = useState<"ALL" | "WHITELIST" | "STANDARD" | "BLACKLIST">("ALL");
   const visibleOrgs =
     orgFilter === "ALL" ? organisations : organisations.filter((o) => o.status === orgFilter);
@@ -62,19 +67,26 @@ export function ScraperForm({
 
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setRunSummary(null);
     const result = await requestJson<{ dropped?: { url: string; reason: string }[] }>("/api/settings", {
       method: "POST",
       body: settingsBody(new FormData(e.currentTarget))
     });
     const skipped = result.ok ? droppedPriorityUrlMessage(result.data.dropped ?? []) : null;
-    show(result, skipped ? `Settings saved. ${skipped}` : "Settings saved. The priority list above is what will be fetched.");
+    show(
+      result,
+      skipped
+        ? `Settings saved. ${skipped}`
+        : "Settings saved. Extras above are gap-fillers — every Run also fetches the Birmingham discovery pack."
+    );
   }
 
   async function runNow(form: HTMLFormElement) {
     if (running) return;
     setRunning(true);
     setKind("info");
-    setMessage("Saving the priority list, then running the scraper…");
+    setRunSummary(null);
+    setMessage("Saving extras, then running the Birmingham pack plus any lines above…");
     const saved = await requestJson<{ dropped?: { url: string; reason: string }[] }>("/api/settings", {
       method: "POST",
       body: settingsBody(new FormData(form))
@@ -91,17 +103,26 @@ export function ScraperForm({
       discardedByRule?: number;
       leftPending?: number;
       skippedHumanEdited?: number;
+      droppedDisabledCategory?: number;
+      droppedNearDupe?: number;
+      droppedGeo?: number;
       sources?: { url: string; ok: boolean; eventCount: number; error?: string }[];
     }>("/api/scraper/run", {
       method: "POST"
     });
     setRunning(false);
-    show(
-      result,
-      result.ok
-        ? runFinishedMessage({ ...result.data, dropped: saved.data.dropped ?? [] })
-        : ""
-    );
+    if (!result.ok) {
+      show(result, "");
+      return;
+    }
+    const summary = runFinishedSummary({
+      ...result.data,
+      dropped: saved.data.dropped ?? []
+    });
+    setRunSummary(summary);
+    setKind("info");
+    setMessage(summary.headline);
+    router.refresh();
   }
 
   async function setOrg(id: string, status: string) {
@@ -112,6 +133,58 @@ export function ScraperForm({
   return (
     <div className="stack">
       <StatusBanner message={message} kind={kind} />
+      {runSummary ? (
+        <section className="card scrape-result-card" data-testid="scrape-result-card" aria-live="polite">
+          <h2>Last scrape</h2>
+          <ul className="scrape-result-stats">
+            <li>
+              <strong>{runSummary.created}</strong> new
+            </li>
+            <li>
+              <strong>{runSummary.updated}</strong> refreshed
+            </li>
+            <li>
+              <strong>{runSummary.pending}</strong> in Pending
+            </li>
+            <li>
+              <strong>{runSummary.feedsOk}</strong> feeds with events
+            </li>
+            {runSummary.feedsFailed ? (
+              <li>
+                <strong>{runSummary.feedsFailed}</strong> feeds failed
+              </li>
+            ) : null}
+          </ul>
+          {runSummary.topSites.length ? (
+            <p className="scrape-result-sites">
+              <span className="muted">Top sites</span>
+              {runSummary.topSites.map((site) => (
+                <span key={site.host} className="scrape-result-chip">
+                  {site.host} · {site.count}
+                </span>
+              ))}
+            </p>
+          ) : null}
+          {runSummary.details.length ? (
+            <ul className="scrape-result-details muted">
+              {runSummary.details.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="row scrape-result-actions">
+            <a className="button" href="/pending">
+              Open Pending
+            </a>
+            <a className="button secondary" href="/pending?format=inperson">
+              In person only
+            </a>
+            <a className="button secondary" href="/pending?types=Christian">
+              Christian only
+            </a>
+          </p>
+        </section>
+      ) : null}
       <form className="card stack" onSubmit={save}>
         <label>
           Location label
@@ -137,21 +210,21 @@ export function ScraperForm({
           ))}
         </fieldset>
         <label>
-          Extra Priority URLs (optional — added on top of the Birmingham discovery pack)
+          Extra Priority URLs (optional — gap-fillers only)
           <textarea
             className="scraper-priority-urls"
             name="priorityUrls"
-            rows={10}
+            rows={6}
             value={priorityText}
             onChange={(e) => setPriorityText(e.target.value)}
-            placeholder={`${STARTER_PRIORITY_URL}\n${MEETUP_BIRMINGHAM_FIND_URL}`}
+            placeholder={`Leave empty for the Birmingham pack only.\nAdd a missing allowlisted feed here, for example:\n${STARTER_PRIORITY_URL}`}
           />
           <span className="muted">
-            Every Run now already fetches the frozen Birmingham discovery pack (cathedral, Eventbrite / Meetup /
-            Allevents slices, Guild, and more — allowlisted hosts only, not the whole open web). Lines in this box are
-            extras to fill gaps. Up to 100 https feeds total. Hosts allowed: {allowedHosts.join(", ")}. For Meetup use a
-            Birmingham find page (for example {MEETUP_BIRMINGHAM_FIND_URL}). After a run, open Pending and filter by
-            type or Online / In person — place and Event Link refresh when the feed provides them.
+            Run now always fetches the frozen Birmingham discovery pack first (cathedral, Eventbrite, Meetup,
+            Allevents, Guild, and more — allowlisted hosts only, not the whole open web). This box is only for
+            extras when a useful site is missing. Pack URLs pasted here are ignored on save. Hosts allowed:{" "}
+            {allowedHosts.join(", ")}. Meetup example: {MEETUP_BIRMINGHAM_FIND_URL}. After a run, Pending shows
+            refreshed place and Event Link when the feed provided them.
           </span>
         </label>
         <div className="row">

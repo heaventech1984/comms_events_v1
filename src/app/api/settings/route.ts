@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { CATEGORIES, DEFAULT_COLOURS, parseMemberAttendeeView } from "@/lib/constants";
 import { isHexColour } from "@/lib/security";
 import { parsePriorityUrls } from "@/lib/scraper/allowlist";
+import { extrasOnlyPriorityUrls } from "@/lib/scraper/discovery-pack";
 import { writeAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
@@ -21,7 +22,8 @@ export async function POST(request: NextRequest) {
     CATEGORIES.map((c) => [c, isHexColour(submittedColours[c]) ? submittedColours[c] : DEFAULT_COLOURS[c]])
   );
   const parsedUrls = parsePriorityUrls(Array.isArray(body.priorityUrls) ? body.priorityUrls : []);
-  const priorityUrls = parsedUrls.urls;
+  // Store gap-fillers only — every Run merges the frozen Birmingham pack automatically.
+  const priorityUrls = extrasOnlyPriorityUrls(parsedUrls.urls);
   const locationLabel = String(body.locationLabel ?? "Birmingham").trim().slice(0, 80) || "Birmingham";
   const previous = await prisma.settings.findUnique({ where: { id: "default" } });
   const previousView = parseMemberAttendeeView(previous?.memberAttendeeView);

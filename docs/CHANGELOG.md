@@ -17,6 +17,12 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-09 — Scraper extras-only box + readable scrape results
+
+- Priority box stores **gap-fillers only**; pack URLs are stripped on save/load. Run still merges the full Birmingham pack.
+- Re-scrape **refreshes** place and Event Link when the feed has richer detail (keeps prior when thin).
+- Scraper page shows a clear **Last scrape** card (counts, top sites, Pending shortcuts) instead of one long status line.
+
 ## 2026-11-09 — Pending type/format filters + pack-first scrape
 
 - Pending matches calendar chips: **All types** / each type, **Any format** / In person / Online, plus Needs type.

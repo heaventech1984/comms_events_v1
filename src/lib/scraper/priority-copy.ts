@@ -9,8 +9,31 @@ export function droppedPriorityUrlMessage(rejected: { url: string }[]): string |
 
 type RunSource = { url: string; ok: boolean; eventCount: number; error?: string };
 
-/** What Run now should say, including why the pending queue can look unchanged. */
-export function runFinishedMessage(input: {
+export type RunFinishedSummary = {
+  /** Short headline for the status banner. */
+  headline: string;
+  /** Extra plain-language lines (drops, feeds, next step). */
+  details: string[];
+  /** Host → listing count for the result card. */
+  topSites: { host: string; count: number }[];
+  feedsOk: number;
+  feedsFailed: number;
+  feedsEmpty: number;
+  created: number;
+  updated: number;
+  pending: number;
+};
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/** Structured run result for the scraper page (easy to scan). */
+export function runFinishedSummary(input: {
   createdCount?: number;
   updatedCount?: number;
   publishedCount?: number;
@@ -22,72 +45,100 @@ export function runFinishedMessage(input: {
   droppedGeo?: number;
   sources?: RunSource[];
   dropped?: { url: string }[];
-}): string {
+}): RunFinishedSummary {
   const created = input.createdCount ?? 0;
   const updated = input.updatedCount ?? 0;
-  const parts: string[] = [];
+  const pending = input.leftPending ?? 0;
+  const published = input.publishedCount ?? 0;
+  const discarded = input.discardedByRule ?? 0;
+  const skipped = input.skippedHumanEdited ?? 0;
+  const details: string[] = [];
   const dropped = droppedPriorityUrlMessage(input.dropped ?? []);
-  if (dropped) parts.push(dropped);
-  parts.push(
-    `Run finished: created ${created}, updated ${updated}, published ${input.publishedCount ?? 0}, discarded ${input.discardedByRule ?? 0}, pending ${input.leftPending ?? 0}, skipped human-edited ${input.skippedHumanEdited ?? 0}.`
-  );
+  if (dropped) details.push(dropped);
+
+  const bits: string[] = [];
+  if (created) bits.push(`${created} new`);
+  if (updated) bits.push(`${updated} refreshed (place and Event Link updated when the feed had them)`);
+  if (published) bits.push(`${published} published straight away`);
+  if (pending) bits.push(`${pending} waiting in Pending`);
+  if (discarded) bits.push(`${discarded} discarded by organisation rules`);
+  if (skipped) bits.push(`${skipped} left alone (already edited by a person)`);
+  const headline =
+    bits.length > 0
+      ? `Scrape finished — ${bits.join("; ")}.`
+      : "Scrape finished — nothing new this time.";
+
   const typeDrops = input.droppedDisabledCategory ?? 0;
   if (typeDrops > 0) {
-    parts.push(
-      `${typeDrops} harvested event(s) were dropped because their type toggle is off (turn Meetup on to keep Meetup feeds).`
+    details.push(
+      `${typeDrops} listing(s) skipped because that event type is turned off (turn Meetup on in settings to keep Meetup feeds).`
     );
   }
   const geoDrops = input.droppedGeo ?? 0;
   if (geoDrops > 0) {
-    parts.push(
-      `${geoDrops} harvested event(s) were dropped because they did not look Birmingham / West Midlands (or online).`
+    details.push(
+      `${geoDrops} listing(s) skipped — they did not look like Birmingham / West Midlands (or online).`
     );
   }
   const nearDupes = input.droppedNearDupe ?? 0;
   if (nearDupes > 0) {
-    parts.push(
-      `${nearDupes} harvested event(s) were dropped as cross-host near-duplicates (same title and start).`
-    );
+    details.push(`${nearDupes} listing(s) skipped as near-duplicates (same title and start time).`);
   }
+
   const sources = input.sources ?? [];
+  const ok = sources.filter((source) => source.ok && source.eventCount > 0);
+  const failed = sources.filter((source) => !source.ok);
+  const empty = sources.filter((source) => source.ok && source.eventCount === 0);
+  const topSitesMap = new Map<string, number>();
+  for (const source of ok) {
+    const host = hostOf(source.url);
+    topSitesMap.set(host, (topSitesMap.get(host) ?? 0) + source.eventCount);
+  }
+  const topSites = [...topSitesMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([host, count]) => ({ host, count }));
+
   if (sources.length === 0) {
-    parts.push(
+    details.push(
       created === 0
-        ? "No live feed was fetched. Demo events already stored are updated in place, so the pending list looks the same."
+        ? "No live feed was fetched. Demo events already stored are refreshed in place, so Pending can look the same."
         : "No Priority URL was fetched. New rows came from the demo harvest."
     );
   } else {
-    const ok = sources.filter((source) => source.ok && source.eventCount > 0);
-    const failed = sources.filter((source) => !source.ok);
-    const empty = sources.filter((source) => source.ok && source.eventCount === 0);
     if (ok.length) {
-      parts.push(
-        `${ok.length} feed(s) returned events (${ok.reduce((n, s) => n + s.eventCount, 0)} listings before dedupe).`
+      details.push(
+        `${ok.length} feed(s) returned listings (${ok.reduce((n, s) => n + s.eventCount, 0)} before dedupe).`
       );
-      const byHost = new Map<string, number>();
-      for (const source of ok) {
-        let host = source.url;
-        try {
-          host = new URL(source.url).hostname.replace(/^www\./, "");
-        } catch {
-          // keep raw
-        }
-        byHost.set(host, (byHost.get(host) ?? 0) + source.eventCount);
-      }
-      const top = [...byHost.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
-        .map(([host, n]) => `${host} ${n}`)
-        .join(" · ");
-      if (top) parts.push(`Top sites: ${top}.`);
     }
     if (failed.length) {
-      parts.push(`${failed.length} feed(s) failed (blocked, timeout, or error).`);
+      details.push(`${failed.length} feed(s) failed (blocked, timeout, or error) — the others still ran.`);
     }
     if (empty.length) {
-      parts.push(`${empty.length} feed(s) had no calendar events this time.`);
+      details.push(`${empty.length} feed(s) had no calendar events this time.`);
     }
-    parts.push("Open Pending to review — filter by type or Online / In person.");
+    details.push("Open Pending to review — filter by type or Online / In person.");
   }
-  return parts.join(" ");
+
+  return {
+    headline,
+    details,
+    topSites,
+    feedsOk: ok.length,
+    feedsFailed: failed.length,
+    feedsEmpty: empty.length,
+    created,
+    updated,
+    pending
+  };
+}
+
+/** What Run now should say (single string — tests and simple banners). */
+export function runFinishedMessage(input: Parameters<typeof runFinishedSummary>[0]): string {
+  const summary = runFinishedSummary(input);
+  const top =
+    summary.topSites.length > 0
+      ? ` Top sites: ${summary.topSites.map((s) => `${s.host} ${s.count}`).join(" · ")}.`
+      : "";
+  return [summary.headline, ...summary.details].join(" ") + top;
 }

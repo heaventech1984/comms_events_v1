@@ -5,6 +5,7 @@ import { categoryEnabledKey, type Category, CATEGORIES } from "../constants";
 import { dropEndedStars } from "../stars";
 import { persistCleanPriorityUrls } from "../settings";
 import { scrapeDecision } from "./apply";
+import { preferExternalUrl, preferNotes, preferPlace } from "./enrich";
 import { fixtureEvents } from "./fixtures";
 import { selectHarvestEvents } from "./harvest";
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
@@ -87,6 +88,9 @@ export async function runScraper(opts: {
         needsTypeReview: incoming.needsTypeReview
       });
       const incomingUrl = safeExternalUrl(incoming.externalUrl);
+      const incomingNotes = incoming.notes
+        ? clip(stripHtml(incoming.notes), LIMITS.textLength)
+        : null;
       const fields = {
         title: incoming.title,
         organisationName: incoming.organisationName,
@@ -95,13 +99,12 @@ export async function runScraper(opts: {
         startsAt: incoming.startsAt,
         endsAt: incoming.endsAt,
         online: incoming.online,
-        // Prefer fresh scrape details; keep prior place/link/geo when this fetch was thin.
-        placeName: incoming.placeName ?? existingEvent?.placeName ?? null,
+        // Refresh place / link / notes when the feed has more detail; keep prior when thin.
+        placeName: preferPlace(incoming.placeName, existingEvent?.placeName),
         lat: incoming.lat ?? existingEvent?.lat ?? null,
         lng: incoming.lng ?? existingEvent?.lng ?? null,
-        externalUrl: incomingUrl ?? existingEvent?.externalUrl ?? null,
-        // Strip any leftover markup so member-facing notes stay readable.
-        notes: incoming.notes ? clip(stripHtml(incoming.notes), LIMITS.textLength) : existingEvent?.notes ?? null
+        externalUrl: preferExternalUrl(incomingUrl, existingEvent?.externalUrl),
+        notes: preferNotes(incomingNotes, existingEvent?.notes)
       };
       if (decision.action === "skip-discarded") continue;
       if (decision.action === "skip-human-edited") {
