@@ -2,6 +2,13 @@
 
 Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October are a closed community demo, not an NHS production system. The 28 October section is the later read.
 
+## 9 November 2026 — Members expert list
+
+| Sev | Item | Status |
+| --- | --- | --- |
+| — | Admin + cell leader Members: search, column filters, A→Z / Z→A | **Shipped** |
+| — | Account create / edit / delete stays admin-only | **Held** (FUNCTIONAL: admin creates every account) |
+
 ## 9 November 2026 — Formatting stress (D-016–D-019, D-021)
 
 Destructive pass on long titles, junk place crumbs, empty Home bands, chopped month clocks, and first-paint ghosting. Fixes shipped on `experiment`. Login cell directory left open as **D-020**.

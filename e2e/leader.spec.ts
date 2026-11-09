@@ -2,6 +2,18 @@ import { test, expect } from "@playwright/test";
 import { expectNavLacks, login } from "./helpers";
 
 test.describe("cell leader paths", () => {
+  test("members list can search and sort A→Z / Z→A", async ({ page }) => {
+    await login(page, "leader");
+    await page.goto("/members");
+    await expect(page.getByTestId("members-toolbar")).toBeVisible();
+    await expect(page.getByRole("link", { name: /add person/i })).toHaveCount(0);
+    await expect(page.getByTestId("members-delete-selected")).toHaveCount(0);
+    await page.getByTestId("members-filter-role").selectOption("member");
+    await expect(page.getByTestId("members-count")).toContainText(/showing/i);
+    await page.getByTestId("members-dir-desc").click();
+    await expect(page.getByTestId("members-dir-desc")).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("insights legends visible; no scraper/import in nav", async ({ page }) => {
     await login(page, "leader");
     await expectNavLacks(page, /scraper/i);

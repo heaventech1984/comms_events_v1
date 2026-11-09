@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { canManageMembers } from "@/lib/policy";
 import { MembersAdminTable } from "@/components/MembersAdminTable";
 
 export default async function MembersPage() {
@@ -9,56 +10,30 @@ export default async function MembersPage() {
     include: { cell: true },
     orderBy: { name: "asc" }
   });
-
-  if (user.role === "admin") {
-    return (
-      <main>
-        <div className="page-head">
-          <h1>Members</h1>
-          <p className="lede">Everyone in Gather. Tick people, then Delete selected, before a fresh Import.</p>
-        </div>
-        <MembersAdminTable
-          selfId={user.id}
-          members={members.map((m) => ({
-            id: m.id,
-            name: m.name,
-            cellNumber: m.cellNumber,
-            cellName: m.cell?.name ?? "—",
-            role: m.role
-          }))}
-        />
-      </main>
-    );
-  }
+  const canManage = canManageMembers(user);
 
   return (
     <main>
       <div className="page-head">
         <h1>Members</h1>
-        <p className="lede">People in your cell only.</p>
+        <p className="lede">
+          {canManage
+            ? "Everyone in Gather. Search, filter, and sort, then Edit or Delete selected before a fresh Import."
+            : "People in your cell. Search, filter, and sort the list. An admin adds or edits accounts."}
+        </p>
       </div>
-      <div className="table-wrap">
-        <table className="data stack-sm">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Cell number</th>
-              <th>Cell</th>
-              <th>Permission</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((m) => (
-              <tr key={m.id}>
-                <td data-label="Name">{m.name}</td>
-                <td data-label="Cell number">{m.cellNumber}</td>
-                <td data-label="Cell">{m.cell?.name ?? "—"}</td>
-                <td data-label="Permission">{m.role}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <MembersAdminTable
+        canManage={canManage}
+        selfId={user.id}
+        members={members.map((m) => ({
+          id: m.id,
+          name: m.name,
+          cellNumber: m.cellNumber,
+          cellName: m.cell?.name ?? "—",
+          role: m.role,
+          active: m.active
+        }))}
+      />
     </main>
   );
 }

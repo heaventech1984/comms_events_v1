@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *`experiment` (formatting D-016–D-019, D-021)* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Members expert list* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,12 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-09 — Members expert list (admin + cell leader)
+
+- Members is one searchable list for **admin** and **cell leader**. Filter by name, cell number, cell, permission, and active/inactive. Sort any column **A→Z** or **Z→A**.
+- Admin still Adds, Edits, and Delete-selected. Cell leaders see their own cell only and cannot create or delete accounts.
+- Header clicks reverse the same sort. Showing *n of N* and Clear filters.
 
 ## 2026-11-09 — Formatting (D-016–D-019, D-021)
 

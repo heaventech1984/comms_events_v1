@@ -63,6 +63,13 @@ test.describe("admin paths", () => {
     await expect(page.getByRole("heading", { name: /organisations/i })).toBeVisible();
 
     await page.goto("/members");
+    await expect(page.getByTestId("members-toolbar")).toBeVisible();
+    await page.getByTestId("members-search").fill("Hannah");
+    await expect(page.getByTestId("members-count")).toContainText(/showing 1 of/i);
+    await expect(page.getByTestId("members-table")).toContainText(/Hannah Cole/i);
+    await page.getByTestId("members-search").fill("");
+    await page.getByTestId("members-dir-desc").click();
+    await expect(page.getByTestId("members-dir-desc")).toHaveAttribute("aria-pressed", "true");
     const edit = page.locator('a[href*="/members/"]').filter({ hasNotText: /add|new/i }).first();
     if (await edit.count()) {
       await edit.click();
