@@ -1403,6 +1403,22 @@ table.data .members-check-col input[type="checkbox"] {
   background: var(--white);
   padding: 0.35rem 0.6rem;
 }
+.pending-calendar-filters {
+  margin-top: var(--space-3);
+}
+.pending-place {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.pending-open-link {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-2);
+  font-size: 0.9rem;
+}
+.pending-open-link a {
+  font-weight: 600;
+}
+
 .event-day-groups {
   display: grid;
   gap: var(--space-4);

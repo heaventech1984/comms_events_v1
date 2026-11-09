@@ -58,19 +58,36 @@ export function runFinishedMessage(input: {
     );
   } else {
     const ok = sources.filter((source) => source.ok && source.eventCount > 0);
+    const failed = sources.filter((source) => !source.ok);
+    const empty = sources.filter((source) => source.ok && source.eventCount === 0);
     if (ok.length) {
       parts.push(
-        `Sources with events: ${ok
-          .map((source) => `${source.url} (${source.eventCount})`)
-          .join("; ")}.`
+        `${ok.length} feed(s) returned events (${ok.reduce((n, s) => n + s.eventCount, 0)} listings before dedupe).`
       );
+      const byHost = new Map<string, number>();
+      for (const source of ok) {
+        let host = source.url;
+        try {
+          host = new URL(source.url).hostname.replace(/^www\./, "");
+        } catch {
+          // keep raw
+        }
+        byHost.set(host, (byHost.get(host) ?? 0) + source.eventCount);
+      }
+      const top = [...byHost.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([host, n]) => `${host} ${n}`)
+        .join(" · ");
+      if (top) parts.push(`Top sites: ${top}.`);
     }
-    const problems = sources.filter((source) => !source.ok || source.eventCount === 0);
-    if (problems.length) {
-      parts.push(
-        problems.map((source) => `${source.url}: ${source.error ?? "No events found."}`).join(" ")
-      );
+    if (failed.length) {
+      parts.push(`${failed.length} feed(s) failed (blocked, timeout, or error).`);
     }
+    if (empty.length) {
+      parts.push(`${empty.length} feed(s) had no calendar events this time.`);
+    }
+    parts.push("Open Pending to review — filter by type or Online / In person.");
   }
   return parts.join(" ");
 }

@@ -1,5 +1,10 @@
 import type { Category } from "../constants";
-import { MEETUP_BIRMINGHAM_FIND_URL, STARTER_PRIORITY_URL, parsePriorityUrls } from "./allowlist";
+import {
+  MAX_PRIORITY_URLS,
+  MEETUP_BIRMINGHAM_FIND_URL,
+  STARTER_PRIORITY_URL,
+  parsePriorityUrls
+} from "./allowlist";
 
 /**
  * Frozen Birmingham + West Midlands discovery pack (Nov 2026 stretch).
@@ -188,4 +193,21 @@ export const DISCOVERY_PACK_URLS = DISCOVERY_PACK.map((row) => row.url);
 /** Allowlist-filtered, capped Priority URL list — install this on empty Settings. */
 export function frozenDiscoveryUrls(): string[] {
   return parsePriorityUrls(DISCOVERY_PACK_URLS).urls;
+}
+
+/**
+ * Every Run now fetches the frozen Birmingham pack first, then any extra admin URLs.
+ * Priority box is an addition (gap-filler), not the whole internet — still allowlist-only.
+ */
+export function mergeDiscoveryWithExtras(extras: string[]): string[] {
+  const pack = frozenDiscoveryUrls();
+  const seen = new Set(pack.map((u) => u.toLowerCase()));
+  const merged = [...pack];
+  for (const url of parsePriorityUrls(extras).urls) {
+    const key = url.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(url);
+  }
+  return merged.slice(0, MAX_PRIORITY_URLS);
 }

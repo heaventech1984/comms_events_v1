@@ -86,6 +86,7 @@ export async function runScraper(opts: {
         humanEditedAt: existingEvent?.humanEditedAt,
         needsTypeReview: incoming.needsTypeReview
       });
+      const incomingUrl = safeExternalUrl(incoming.externalUrl);
       const fields = {
         title: incoming.title,
         organisationName: incoming.organisationName,
@@ -94,12 +95,13 @@ export async function runScraper(opts: {
         startsAt: incoming.startsAt,
         endsAt: incoming.endsAt,
         online: incoming.online,
-        placeName: incoming.placeName ?? null,
-        lat: incoming.lat ?? null,
-        lng: incoming.lng ?? null,
-        externalUrl: safeExternalUrl(incoming.externalUrl),
+        // Prefer fresh scrape details; keep prior place/link/geo when this fetch was thin.
+        placeName: incoming.placeName ?? existingEvent?.placeName ?? null,
+        lat: incoming.lat ?? existingEvent?.lat ?? null,
+        lng: incoming.lng ?? existingEvent?.lng ?? null,
+        externalUrl: incomingUrl ?? existingEvent?.externalUrl ?? null,
         // Strip any leftover markup so member-facing notes stay readable.
-        notes: incoming.notes ? clip(stripHtml(incoming.notes), LIMITS.textLength) : null
+        notes: incoming.notes ? clip(stripHtml(incoming.notes), LIMITS.textLength) : existingEvent?.notes ?? null
       };
       if (decision.action === "skip-discarded") continue;
       if (decision.action === "skip-human-edited") {

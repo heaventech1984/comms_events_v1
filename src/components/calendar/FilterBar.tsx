@@ -54,12 +54,14 @@ export function Chip({
   href,
   current,
   pressed,
-  children
+  children,
+  "data-testid": testId
 }: {
   href: string;
   current: boolean;
   pressed?: boolean;
   children: React.ReactNode;
+  "data-testid"?: string;
 }) {
   return (
     <Link
@@ -68,6 +70,7 @@ export function Chip({
       aria-current={current ? "true" : undefined}
       aria-pressed={pressed}
       scroll={false}
+      data-testid={testId}
     >
       {children}
     </Link>

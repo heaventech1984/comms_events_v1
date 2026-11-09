@@ -2,7 +2,7 @@ import { prisma } from "./db";
 import { writeAudit } from "./audit";
 import { CATEGORIES, DEFAULT_COLOURS, parseMemberAttendeeView, type Category } from "./constants";
 import { parsePriorityUrls } from "./scraper/allowlist";
-import { frozenDiscoveryUrls } from "./scraper/discovery-pack";
+import { frozenDiscoveryUrls, mergeDiscoveryWithExtras } from "./scraper/discovery-pack";
 
 function readPriorityUrlList(raw: string | null | undefined): unknown[] {
   try {
@@ -74,25 +74,36 @@ export async function getSettings() {
 export async function persistCleanPriorityUrls(actorId?: string | null) {
   const ensured = await ensureFrozenDiscoveryPack(actorId);
   const row = await prisma.settings.findUnique({ where: { id: "default" } });
-  if (!row) return { urls: [] as string[], dropped: [] as { url: string; reason: string }[] };
-  const partitioned = parsePriorityUrls(readPriorityUrlList(row.priorityUrls));
-  if (!partitioned.rejected.length) {
-    return { urls: partitioned.urls.length ? partitioned.urls : ensured.urls, dropped: partitioned.rejected };
+  if (!row) {
+    return {
+      urls: mergeDiscoveryWithExtras([]),
+      stored: [] as string[],
+      dropped: [] as { url: string; reason: string }[]
+    };
   }
-  await prisma.settings.update({
-    where: { id: "default" },
-    data: { priorityUrls: JSON.stringify(partitioned.urls) }
-  });
-  await writeAudit({
-    actorId: actorId ?? null,
-    action: "settings.priorityUrls.dropped",
-    entityType: "Settings",
-    entityId: "default",
-    summary: `Removed ${partitioned.rejected.length} Priority URL(s) no longer on the allowlist: ${partitioned.rejected
-      .map((item) => item.url)
-      .join(", ")}`
-  });
-  return { urls: partitioned.urls, dropped: partitioned.rejected };
+  const partitioned = parsePriorityUrls(readPriorityUrlList(row.priorityUrls));
+  if (partitioned.rejected.length) {
+    await prisma.settings.update({
+      where: { id: "default" },
+      data: { priorityUrls: JSON.stringify(partitioned.urls) }
+    });
+    await writeAudit({
+      actorId: actorId ?? null,
+      action: "settings.priorityUrls.dropped",
+      entityType: "Settings",
+      entityId: "default",
+      summary: `Removed ${partitioned.rejected.length} Priority URL(s) no longer on the allowlist: ${partitioned.rejected
+        .map((item) => item.url)
+        .join(", ")}`
+    });
+  }
+  const stored = partitioned.urls.length ? partitioned.urls : ensured.urls;
+  // Run always uses discovery pack + stored extras (Guillaume: Priority box fills gaps).
+  return {
+    urls: mergeDiscoveryWithExtras(stored),
+    stored,
+    dropped: partitioned.rejected
+  };
 }
 
 export function enabledCategories(enabled: Record<Category, boolean>): Category[] {

@@ -137,21 +137,21 @@ export function ScraperForm({
           ))}
         </fieldset>
         <label>
-          Priority URLs (https ICS or JSON-LD, one per line. Leave empty for the demo harvest only.)
+          Extra Priority URLs (optional — added on top of the Birmingham discovery pack)
           <textarea
             className="scraper-priority-urls"
             name="priorityUrls"
-            rows={14}
+            rows={10}
             value={priorityText}
             onChange={(e) => setPriorityText(e.target.value)}
             placeholder={`${STARTER_PRIORITY_URL}\n${MEETUP_BIRMINGHAM_FIND_URL}`}
           />
           <span className="muted">
-            Run now saves this box first. Up to 40 allowlisted https feeds. An address is kept only when its host is
-            one of: {allowedHosts.join(", ")}. Anything else is left out, and the run will not fetch it. For Meetup use
-            a Birmingham find or group page (for example {MEETUP_BIRMINGHAM_FIND_URL}). The bare meetup.com homepage is
-            mostly other cities. Feeds keep description, place, geo, organiser, price, and a Source feed line when the
-            calendar publishes them.
+            Every Run now already fetches the frozen Birmingham discovery pack (cathedral, Eventbrite / Meetup /
+            Allevents slices, Guild, and more — allowlisted hosts only, not the whole open web). Lines in this box are
+            extras to fill gaps. Up to 100 https feeds total. Hosts allowed: {allowedHosts.join(", ")}. For Meetup use a
+            Birmingham find page (for example {MEETUP_BIRMINGHAM_FIND_URL}). After a run, open Pending and filter by
+            type or Online / In person — place and Event Link refresh when the feed provides them.
           </span>
         </label>
         <div className="row">

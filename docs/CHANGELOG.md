@@ -17,6 +17,12 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-09 — Pending type/format filters + pack-first scrape
+
+- Pending matches calendar chips: **All types** / each type, **Any format** / In person / Online, plus Needs type.
+- Tiles show place, Online/In person, clearer Event Link, and **Open listing**.
+- Run now always fetches the frozen discovery pack first; Priority box lines are extras. Friendlier run summary (site counts, not a URL dump).
+
 ## 2026-11-09 — Maximal scraper 10/10 checklist
 
 - Meetup **tenMiles**; geo drops far trip titles even with a Brum org/feed.
