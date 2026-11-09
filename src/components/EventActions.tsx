@@ -123,11 +123,11 @@ export function EventActions({
         </p>
       ) : null}
       <div className="row">
-        {booked ? (
+        {booked && !past ? (
           <span className="chip" aria-current="true">
-            You clicked Attend
+            You’re going
           </span>
-        ) : full ? (
+        ) : full && !booked ? (
           <span className="chip">This event is full</span>
         ) : past ? null : (
           <button type="button" onClick={() => attend()} disabled={busy}>

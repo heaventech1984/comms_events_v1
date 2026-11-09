@@ -43,16 +43,8 @@ test.describe("mobile matrix layouts", () => {
     await expect(page).toHaveURL(/view=month/);
     await expect(page.getByTestId("month-day-agenda")).toBeVisible();
 
-    // In-cell titles hide only under max-width 700px (candybar / phone / WebKit phone).
-    // Landscape is wide (844px) so titles stay; the agenda still lists the selected day.
-    if (
-      testInfo.project.name.includes("candybar") ||
-      testInfo.project.name === "chromium-phone" ||
-      testInfo.project.name.includes("webkit")
-    ) {
-      const display = await page.locator(".month-event-list").first().evaluate((el) => getComputedStyle(el).display);
-      expect(display).toBe("none");
-    }
+    // Month cells use dots, not chopped time+title. Full titles live in the day agenda.
+    await expect(page.locator(".month-event-list")).toHaveCount(0);
 
     await page.goto("/calendar?view=week");
     await dismissAttendancePrompt(page);

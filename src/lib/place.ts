@@ -1,5 +1,13 @@
 import { cleanText } from "./scraper/text";
 
+/** One-letter or punctuation crumbs that print as “Place. T”. */
+function isJunkDisplayName(value: string): boolean {
+  const t = value.trim();
+  if (t.length < 3) return true;
+  if (/^[-–—.,;:/\\]+$/.test(t)) return true;
+  return false;
+}
+
 /**
  * Collapse repeated city / venue / country crumbs from aggregator place strings.
  * Like wiping a sticky label that says “kitchen, kitchen, house” down to “kitchen”.
@@ -7,7 +15,7 @@ import { cleanText } from "./scraper/text";
 export function tidyPlaceName(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   let s = cleanText(raw);
-  if (!s) return null;
+  if (!s || isJunkDisplayName(s)) return null;
 
   // Meetup placeholder spam
   if (/^(see main event text)([,\s—–-]+\1)*([,\s]+(?:gb|uk))?$/i.test(s)) return null;
@@ -43,5 +51,20 @@ export function tidyPlaceName(raw: string | null | undefined): string | null {
   }
 
   result = result.replace(/\s{2,}/g, " ").replace(/\s+,/g, ",").trim();
-  return result || null;
+  if (!result || isJunkDisplayName(result)) return null;
+  return result;
+}
+
+/** Hide one-letter / blank organisation names so the event page is not a form dump. */
+export function tidyOrgName(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const s = cleanText(raw);
+  if (!s || isJunkDisplayName(s)) return null;
+  return s;
+}
+
+/** Where line for cards: Online, a real place, or In person — never a blank after the dot. */
+export function formatWhereLine(online: boolean, placeName: string | null | undefined): string {
+  if (online) return "Online";
+  return tidyPlaceName(placeName) || "In person";
 }

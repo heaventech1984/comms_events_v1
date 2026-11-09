@@ -54,7 +54,7 @@ function BookingRow({
             </span>
           ) : null}
           <span className={attendanceChipClass(booking.attendance)} data-testid="attendance-chip">
-            {attendanceLabel(booking.attendance)}
+            {attendanceLabel(booking.attendance, { past: event.startsAt <= new Date() })}
           </span>
         </span>
         <span className="event-title">{event.title}</span>

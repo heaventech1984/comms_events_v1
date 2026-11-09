@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { CategoryThumb } from "@/components/CategoryThumb";
-import { categoryAccentStyle } from "@/lib/category-art";
 import {
   calendarHref,
   dayKeyOf,
@@ -10,7 +8,6 @@ import {
   type CalendarState,
   type DayKey
 } from "@/lib/calendar";
-import { formatTime } from "@/lib/time";
 
 type GridEvent = { id: string; title: string; startsAt: Date; category: string };
 
@@ -31,8 +28,7 @@ export function MonthGrid({
   today,
   events,
   colours,
-  canAdd,
-  starredIds
+  canAdd
 }: {
   state: CalendarState;
   days: DayKey[];
@@ -40,7 +36,6 @@ export function MonthGrid({
   events: GridEvent[];
   colours: Record<string, string>;
   canAdd?: boolean;
-  starredIds?: Set<string>;
 }) {
   const weeks = Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7));
   return (
@@ -100,30 +95,6 @@ export function MonthGrid({
                       {cats.length > 3 ? <span className="month-day-more">+{cats.length - 3}</span> : null}
                     </div>
                   ) : null}
-                  <div className="month-event-list">
-                    {dayEvents.map((event) => {
-                      const starred = starredIds?.has(event.id);
-                      const labelText = `${formatTime(event.startsAt)} ${event.title}`;
-                      return (
-                        <Link
-                          key={event.id}
-                          className="event-link"
-                          href={`/events/${event.id}`}
-                          title={`${event.category}: ${labelText}${starred ? " (starred)" : ""}`}
-                          style={categoryAccentStyle(colours[event.category])}
-                        >
-                          <CategoryThumb category={event.category} size="sm" />
-                          <span className="sr-only">{event.category}: </span>
-                          <span className="event-link-text">{labelText}</span>
-                          {starred ? (
-                            <span className="event-link-star" aria-label="Starred">
-                              ★
-                            </span>
-                          ) : null}
-                        </Link>
-                      );
-                    })}
-                  </div>
                 </td>
               );
             })}

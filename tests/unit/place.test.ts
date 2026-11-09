@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tidyPlaceName } from "@/lib/place";
+import { formatWhereLine, tidyOrgName, tidyPlaceName } from "@/lib/place";
 import { formatDateTimeRange, formatTimeRange } from "@/lib/time";
 
 describe("tidyPlaceName", () => {
@@ -23,6 +23,21 @@ describe("tidyPlaceName", () => {
     expect(
       tidyPlaceName("See main event text — See main event text, See main event text, See main event text, gb")
     ).toBeNull();
+  });
+
+  it("drops one-letter and punctuation crumbs that printed as Place. T", () => {
+    expect(tidyPlaceName("T")).toBeNull();
+    expect(tidyPlaceName("ab")).toBeNull();
+    expect(tidyPlaceName("—")).toBeNull();
+    expect(tidyOrgName("T")).toBeNull();
+    expect(tidyOrgName("St Mary's")).toBe("St Mary's");
+  });
+
+  it("formats a where line without a blank after the dot", () => {
+    expect(formatWhereLine(true, "Hall")).toBe("Online");
+    expect(formatWhereLine(false, "Town Hall, Birmingham")).toBe("Town Hall, Birmingham");
+    expect(formatWhereLine(false, "T")).toBe("In person");
+    expect(formatWhereLine(false, null)).toBe("In person");
   });
 });
 

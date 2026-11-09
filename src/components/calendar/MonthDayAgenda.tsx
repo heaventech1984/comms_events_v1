@@ -8,7 +8,7 @@ import {
   sameDayKey,
   type DayKey
 } from "@/lib/calendar";
-import { tidyPlaceName } from "@/lib/place";
+import { formatWhereLine } from "@/lib/place";
 import { formatTime } from "@/lib/time";
 
 type AgendaEvent = {
@@ -18,7 +18,6 @@ type AgendaEvent = {
   category: string;
   placeName: string | null;
   online: boolean;
-  sourceKey?: string | null;
 };
 
 /** Full-title list for the selected month day (phone/tablet pattern from §16.9). */
@@ -76,9 +75,7 @@ export function MonthDayAgenda({
                 </span>
                 <span className="event-title">{event.title}</span>
                 <span className="muted">
-                  {formatTime(event.startsAt)} ·{" "}
-                  {event.online ? "Online" : tidyPlaceName(event.placeName)}
-                  {event.sourceKey ? " · From scrape" : ""}
+                  {formatTime(event.startsAt)} · {formatWhereLine(event.online, event.placeName)}
                 </span>
               </span>
             </Link>

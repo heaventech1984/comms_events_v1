@@ -5,7 +5,7 @@ import { CATEGORIES, type Category } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
-import { tidyPlaceName } from "@/lib/place";
+import { formatWhereLine } from "@/lib/place";
 import { formatTime } from "@/lib/time";
 
 const LIST_CAP = 50;
@@ -147,9 +147,7 @@ export async function HomeBrowse({
                           <span className="muted">
                             {formatTime(event.startsAt)}
                             {" · "}
-                            {event.online
-                              ? "Online"
-                              : tidyPlaceName(event.placeName) || "In person"}
+                            {formatWhereLine(event.online, event.placeName)}
                           </span>
                         </span>
                         {starred.has(event.id) ? (

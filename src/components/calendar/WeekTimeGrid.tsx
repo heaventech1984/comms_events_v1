@@ -10,7 +10,7 @@ import {
   sameDayKey,
   type DayKey
 } from "@/lib/calendar";
-import { tidyPlaceName } from "@/lib/place";
+import { formatWhereLine } from "@/lib/place";
 import { formatTime, londonParts } from "@/lib/time";
 
 const HOUR_START = 7;
@@ -203,13 +203,7 @@ export function WeekTimeGrid({
                       </span>
                       {showRange ? (
                         <span className="week-time-event-time">
-                          {startLabel}–{endLabel}
-                          {event.online
-                            ? " · Online"
-                            : (() => {
-                                const place = tidyPlaceName(event.placeName);
-                                return place ? ` · ${place}` : "";
-                              })()}
+                          {startLabel}–{endLabel} · {formatWhereLine(event.online, event.placeName)}
                         </span>
                       ) : null}
                     </Link>

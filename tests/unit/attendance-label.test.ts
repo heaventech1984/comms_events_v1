@@ -6,6 +6,8 @@ describe("attendanceLabel", () => {
     expect(attendanceLabel("ATTENDED")).toBe("Attended");
     expect(attendanceLabel("ABSENT")).toBe("Didn’t");
     expect(attendanceLabel("UNCONFIRMED")).toBe("Unconfirmed");
+    expect(attendanceLabel("UNCONFIRMED", { past: false })).toBe("Going");
+    expect(attendanceLabel("UNCONFIRMED", { past: true })).toBe("Unconfirmed");
   });
 });
 

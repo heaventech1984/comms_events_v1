@@ -6,6 +6,11 @@ When something ships: copy from [`desirables.md`](desirables.md) Open (keeping t
 
 | Id | Date done | Area | Wish (one sentence) | Proof | Visual (optional) |
 | --- | --- | --- | --- | --- | --- |
+| D-016 | 2026-11-09 | Home | Signed-in Home is one next event, then a list — not six empty bands. | [CHANGELOG — Formatting (D-016–D-019, D-021)](CHANGELOG.md) | — |
+| D-017 | 2026-11-09 | Calendar | Month cells show dots, not a chopped clock like `14:0…`. Full titles live in the day agenda. | Same CHANGELOG section | — |
+| D-018 | 2026-11-09 | Booking | After Attend, status is Going until the event ends (not unconfirmed). | Same CHANGELOG section | — |
+| D-019 | 2026-11-09 | Event | Event page is title, when, where, I’m going; hide junk Place / form labels. | Same CHANGELOG section | — |
+| D-021 | 2026-11-09 | Welcome | First paint must not ghost the brand (welcome animation from opacity 0). | Same CHANGELOG section | — |
 | D-R01 | 2026-11-09 | Home | **For you** suggestions from bookings and attended events; after **I went**, loved/fine/not-for-me plus private note. | [CHANGELOG — For you + after-event feedback](CHANGELOG.md) | `presentation/shots/calendar-today.png` |
 | D-R02 | 2026-11-09 | Mobile | Month day-agenda, tablet split, collapsible phone map, PWA manifest (no offline Attend), Playwright device matrix. | [CHANGELOG — Mobile UX max-out](CHANGELOG.md) · [MOBILE-MATRIX.md](MOBILE-MATRIX.md) | — |
 | D-R03 | 2026-11-09 | Pending | Event Link new tab, tile → edit, hover preview, multi-approve/discard; **Time not listed** instead of fake midnight range. | [CHANGELOG — Pending polish + member feedback hub](CHANGELOG.md) | — |

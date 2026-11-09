@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db";
 import { initialsFromName } from "@/lib/initials";
 import { getSettings } from "@/lib/settings";
 import { attendanceChipClass, attendanceLabel } from "@/lib/attendance-label";
-import { tidyPlaceName } from "@/lib/place";
+import { formatWhereLine, tidyOrgName } from "@/lib/place";
 import { formatDateTimeRange } from "@/lib/time";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -57,7 +57,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         })
       : null;
   const showFeedback = past && myBooking?.attendance === "ATTENDED" && !existingFeedback;
-  const placeLabel = tidyPlaceName(event.placeName);
+  const orgLabel = tidyOrgName(event.organisationName);
+  const whereLine = formatWhereLine(event.online, event.placeName);
 
   return (
     <main className="stack">
@@ -73,35 +74,48 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           <h1>{event.title}</h1>
           <p className="lede">
             <span className="swatch" style={{ background: settings.colours[event.category as keyof typeof settings.colours] }} />{" "}
-            {event.category} · {event.online ? "Online" : "In person"} ·{" "}
-            {formatDateTimeRange(event.startsAt, event.endsAt)}
+            {event.category}
           </p>
         </div>
       </div>
-      <section className="card stack">
-        <p>
-          <strong>Organisation.</strong> {event.organisationName}
+      <section className="card stack event-facts">
+        <p className="event-when" data-testid="event-when">
+          {formatDateTimeRange(event.startsAt, event.endsAt)}
         </p>
-        {placeLabel ? (
-          <p>
-            <strong>Place.</strong> {placeLabel}
-          </p>
-        ) : null}
-        {event.externalUrl ? (
-          <p>
-            <strong>Event Link.</strong>{" "}
-            <a href={event.externalUrl} target="_blank" rel="noreferrer">
-              Register there if they ask, and still click Attend here
-            </a>
-          </p>
-        ) : null}
-        {event.sourceKey ? <p className="muted">Brought in by the scraper.</p> : null}
-        {event.notes ? <p>{event.notes}</p> : null}
-        <p>
-          <strong>Planning to go.</strong> {count}
+        <p className="event-where" data-testid="event-where">
+          {whereLine}
+          {orgLabel ? ` · ${orgLabel}` : ""}
+        </p>
+        <p className="event-going-count">
+          {count === 1 ? "1 person planning to go" : `${count} planning to go`}
           {event.capacity !== null ? ` of ${event.capacity}` : ""}
           {full ? " — this event is full." : ""}
         </p>
+        <EventActions
+          eventId={event.id}
+          booked={!!myBooking}
+          full={full && !myBooking}
+          starred={starred}
+          canCancel={canCancel}
+          members={cellMembers.map((m) => ({ id: m.id, name: m.name }))}
+          bookedMemberIds={event.bookings.map((b) => b.userId)}
+          canDelegate={user.role === "cell leader"}
+          canEdit={canReview(user)}
+          myAttendance={myBooking?.attendance}
+          myBookingId={myBooking?.id}
+          canConfirmOwn={canConfirmOwn}
+          past={past}
+        />
+        {event.externalUrl ? (
+          <p>
+            <a href={event.externalUrl} target="_blank" rel="noreferrer">
+              Organiser’s page
+            </a>
+            {" — "}
+            register there if they ask, and still click Attend here.
+          </p>
+        ) : null}
+        {event.notes ? <p>{event.notes}</p> : null}
         {user.role === "member" && settings.memberAttendeeView === "COUNT_AND_INITIALS" ? (
           <p className="muted">
             Initials: {event.bookings.map((b) => initialsFromName(b.user.name)).join(", ") || "nobody yet"}
@@ -120,21 +134,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             <p className="muted">Nobody has booked yet.</p>
           )
         ) : null}
-        <EventActions
-          eventId={event.id}
-          booked={!!myBooking}
-          full={full && !myBooking}
-          starred={starred}
-          canCancel={canCancel}
-          members={cellMembers.map((m) => ({ id: m.id, name: m.name }))}
-          bookedMemberIds={event.bookings.map((b) => b.userId)}
-          canDelegate={user.role === "cell leader"}
-          canEdit={canReview(user)}
-          myAttendance={myBooking?.attendance}
-          myBookingId={myBooking?.id}
-          canConfirmOwn={canConfirmOwn}
-          past={past}
-        />
         {showFeedback ? <EventFeedbackBox eventId={event.id} eventTitle={event.title} /> : null}
         {existingFeedback ? (
           <p className="muted" data-testid="event-feedback-saved">
@@ -172,7 +171,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                     <td data-label="Cell">{b.user.cell?.name}</td>
                     <td data-label="Attendance">
                       <span className={attendanceChipClass(b.attendance)}>
-                        {attendanceLabel(b.attendance)}
+                        {attendanceLabel(b.attendance, { past })}
                       </span>
                     </td>
                     {canRemoveAttendees ? (

@@ -7,10 +7,7 @@ test.describe("member paths", () => {
     await page.goto("/");
     await dismissAttendancePrompt(page);
     await expect(page.getByTestId("home-dashboard")).toBeVisible();
-    await expect(page.getByTestId("home-upcoming")).toBeVisible();
-    await expect(page.getByTestId("home-for-you")).toBeVisible();
-    await expect(page.getByTestId("home-confirm")).toBeVisible();
-    await expect(page.getByTestId("home-new")).toBeVisible();
+    await expect(page.getByTestId("home-kinds")).toBeVisible();
 
     await page.goto("/calendar?view=week");
     await dismissAttendancePrompt(page);
@@ -45,7 +42,7 @@ test.describe("member paths", () => {
     const attend = page.getByRole("button", { name: /^attend$/i });
     if (await attend.isVisible()) {
       await attend.click();
-      await expect(page.getByText(/planning to go|you clicked attend/i).first()).toBeVisible();
+      await expect(page.getByText(/planning to go|you’re going|you're going/i).first()).toBeVisible();
     }
     const cancel = page.getByRole("button", { name: /cancel booking/i });
     if (await cancel.isVisible()) {
@@ -63,7 +60,7 @@ test.describe("member paths", () => {
     await expect(chip).toBeVisible();
     await expect(chip).toHaveClass(/attendance-chip/);
     await expect(chip).toHaveClass(/attendance-(attended|absent|unconfirmed)/);
-    await expect(chip).toHaveText(/Attended|Didn’t|Unconfirmed/);
+    await expect(chip).toHaveText(/Attended|Didn’t|Unconfirmed|Going/);
 
     await page.goto("/calendar?view=month&d=2035-06-15");
     await dismissAttendancePrompt(page);

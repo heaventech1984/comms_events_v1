@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CategoryThumb } from "@/components/CategoryThumb";
 import { categoryAccentStyle } from "@/lib/category-art";
 import { dayKeyOf, formatDayKey, formatDayLabel, sameDayKey, type CalendarView, type DayKey } from "@/lib/calendar";
-import { tidyPlaceName } from "@/lib/place";
+import { formatWhereLine } from "@/lib/place";
 import { formatTime } from "@/lib/time";
 
 type ListEvent = {
@@ -12,7 +12,6 @@ type ListEvent = {
   category: string;
   placeName: string | null;
   online: boolean;
-  sourceKey?: string | null;
 };
 
 export function DatedList({
@@ -79,9 +78,7 @@ export function DatedList({
                     </span>
                     <span className="event-title">{event.title}</span>
                     <span className="muted">
-                      {formatTime(event.startsAt)} ·{" "}
-                      {event.online ? "Online" : tidyPlaceName(event.placeName)}
-                      {event.sourceKey ? " · From scrape" : ""}
+                      {formatTime(event.startsAt)} · {formatWhereLine(event.online, event.placeName)}
                     </span>
                   </span>
                 </Link>

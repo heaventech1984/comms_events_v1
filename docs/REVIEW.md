@@ -2,6 +2,25 @@
 
 Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October are a closed community demo, not an NHS production system. The 28 October section is the later read.
 
+## 9 November 2026 — Formatting stress (D-016–D-019, D-021)
+
+Destructive pass on long titles, junk place crumbs, empty Home bands, chopped month clocks, and first-paint ghosting. Fixes shipped on `experiment`. Login cell directory left open as **D-020**.
+
+## 9 November 2026 — Oracle critic (product walk host)
+
+Host: https://132.145.68.166.sslip.io at `6158e98`. Health `{ok:true}`. Door and calendar bounce walked. Attend not walked (imported cells, no seed `07000`). Railway was the wrong window; do not re-walk it for UX. Wishes parked as **D-016–D-021** in [`desirables.md`](desirables.md). Railway spare steps: [`RAILWAY-FREEZE.md`](RAILWAY-FREEZE.md).
+
+| Sev | Item | Status |
+| --- | --- | --- |
+| High | Signed-in Home is six empty bands (`HomeDashboard`) | **Shipped** D-016 |
+| High | Month cells truncate to chopped clocks (`14:0…`) | **Shipped** D-017 |
+| High | Attend then Bookings shows unconfirmed | **Shipped** D-018 |
+| Med | Event page is a form dump (`Place. T`, date twice, Attend below) | **Shipped** D-019 |
+| Med | Login dropdown lists every live cell | **Open** D-020 |
+| Low | Welcome first paint ghosts the brand (opacity 0 animation) | **Shipped** D-021 |
+| — | Door is one form (no kind icons, no second Sign in); `?next=/calendar` bounce works | **Held** |
+| — | Search tab and pink Loading… bar (Railway-only; gone on this host) | **N/A Oracle** |
+
 ## 9 November 2026 — Feedback hub (`/feedback`)
 
 | — | Leader submit issue + member gate; admin approve desirable + copy row | **Shipped** — e2e `feedback.spec.ts` |

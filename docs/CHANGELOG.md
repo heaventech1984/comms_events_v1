@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *`6158e98`* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *`experiment` (formatting D-016–D-019, D-021)* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,15 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-09 — Formatting (D-016–D-019, D-021)
+
+- Home shows the next booked/starred event, then only bands that have something in them (D-016).
+- Month cells use category dots, not chopped `14:0…` clocks; tap a day for full titles (D-017).
+- After Attend, Bookings says **Going** until the event ends (D-018).
+- Event page is title, when, where, Attend — junk `Place. T` / form labels / scraper kicker gone (D-019).
+- Welcome and Home no longer start at opacity 0, so the brand does not blink empty (D-021).
+- Long titles wrap; blank place crumbs become “In person”.
 
 ## 2026-11-09 — Feedback page (issues + desirables)
 

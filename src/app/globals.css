@@ -930,8 +930,9 @@ textarea.scraper-priority-urls {
 .calendar td.day-selected {
   background: color-mix(in srgb, var(--accent) 8%, var(--white));
 }
+.month-event-list { display: none; }
 .month-day-dots {
-  display: none;
+  display: flex;
   flex-wrap: wrap;
   gap: 3px;
   align-items: center;
@@ -1069,7 +1070,20 @@ textarea.scraper-priority-urls {
   background: linear-gradient(135deg, var(--cat-soft, #f7f8fc) 0%, #fff 60%);
   border: 1px solid var(--cat-edge, var(--line));
 }
-.event-hero h1 { margin-bottom: var(--space-2); }
+.event-hero h1 {
+  margin-bottom: var(--space-2);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.event-when {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.08rem;
+}
+.event-where,
+.event-going-count {
+  margin: 0;
+}
 .event-hero .lede { margin-bottom: 0; }
 .pending-tile-top {
   display: flex;
@@ -1221,18 +1235,14 @@ textarea.scraper-priority-urls {
   text-align: left;
 }
 @keyframes welcome-settle {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes welcome-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { transform: translateY(6px); }
+  to { transform: none; }
 }
 .welcome-settle {
-  animation: welcome-settle 350ms ease both;
+  animation: welcome-settle 350ms ease;
 }
 .welcome-fade {
-  animation: welcome-fade 350ms ease 50ms both;
+  animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .welcome-settle,
@@ -2056,7 +2066,7 @@ table.data .members-check-col input[type="checkbox"] {
 }
 
 .month-day-count {
-  display: none;
+  display: inline-flex;
   min-width: 1.25rem;
   height: 1.25rem;
   padding: 0 0.3rem;
@@ -2270,6 +2280,16 @@ table.data .members-check-col input[type="checkbox"] {
   font-size: 1.02rem;
   letter-spacing: -0.015em;
   color: var(--ink);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.home-next-card {
+  text-align: left;
+  max-width: 28rem;
+  margin: 0 auto var(--space-5);
+}
+.home-next-card .home-eyebrow {
+  margin-bottom: 0.15rem;
 }
 .home-event-meta {
   font-size: 0.88rem;
@@ -2337,17 +2357,11 @@ table.data .members-check-col input[type="checkbox"] {
 }
 
 @keyframes home-rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { transform: translateY(8px); }
+  to { transform: translateY(0); }
 }
 .home-rise {
-  animation: home-rise-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: home-rise-in 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .home-rise-2 { animation-delay: 60ms; }
 .home-rise-3 { animation-delay: 120ms; }

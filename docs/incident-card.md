@@ -1,8 +1,8 @@
 # Gather incident card (Oracle / Pi)
 
 **On-call:** Guillaume primary · An backup  
-**Live until cutover:** Railway https://commseventsv1-production.up.railway.app  
-**Oracle (not announced):** https://132.145.68.166.sslip.io  
+**Announced until cutover:** Railway https://commseventsv1-production.up.railway.app (frozen spare; auto-deploy Off)  
+**Product walk / Oracle:** https://132.145.68.166.sslip.io  
 **Health:** `GET https://132.145.68.166.sslip.io/api/health`  
 **SSH:** `ssh -i ~/.ssh/gather_oracle_ed25519 ubuntu@132.145.68.166` then `cd /var/www/gather`
 

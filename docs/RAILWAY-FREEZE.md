@@ -26,4 +26,20 @@ This is browser login only. It does not change Gather code.
 
 Update README / Canva / testers → **then** stop or delete the Railway project.
 
-Until gate: Railway remains the announced demo.
+Until gate: Railway remains the **announced** demo. From 9 Nov 2026, **product work and critic walks go to Oracle**, not here.
+
+## 9 Nov 2026 — Oracle is home for product work
+
+Walks, screenshots, and UX critique: https://132.145.68.166.sslip.io  
+Railway: cold Postgres spare only.
+
+**Do**
+
+1. Keep auto-deploy **Off**.
+2. Do not push `experiment` (SQLite) here.
+3. Do not change env or redeploy.
+4. Do not spend critic or UI time on this URL.
+
+**Do not yet:** stop or delete the project (off-box backup and “tell testers” are still open — [`GATE-STATUS.md`](GATE-STATUS.md)).
+
+**Then, to retire it:** tell Becca and Guillaume the Oracle URL → one Attend on Oracle HTTPS → off-box DB copy → point README / Canva at sslip → **then** stop Railway.

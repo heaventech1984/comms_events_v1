@@ -1,6 +1,6 @@
 # Gather — agent briefing
 
-Closed calendar for one Birmingham community (demo, not NHS production). Soft blush / berry UI. Live demo on Railway until Ubuntu+SQLite cutover gate is green ([`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md)).
+Closed calendar for one Birmingham community (demo, not NHS production). Soft blush / berry UI. **Product walks, critic, and smoke: Oracle** https://132.145.68.166.sslip.io (`experiment`). Railway is a frozen Postgres spare until the Ubuntu gate says stop ([`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md)).
 
 **Source of truth for agents.** Thin adapters (`CLAUDE.md`, Cursor rules) point here. Do not duplicate this file elsewhere.
 
@@ -15,8 +15,9 @@ npm run build
 npm run dev           # local; needs SQLite DATABASE_URL=file:./data/gather.db
 ```
 
-Live demo (until Ubuntu gate): https://commseventsv1-production.up.railway.app  
-Ubuntu / Oracle cutover: [`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md). **Do not push SQLite to Railway while it still has a Postgres URL** (pause redeploy first). `scripts/start.sh` refuses Postgres URLs.  
+Product walk: https://132.145.68.166.sslip.io  
+Railway spare (auto-deploy paused, last Postgres): https://commseventsv1-production.up.railway.app  
+Ubuntu / Oracle cutover: [`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md). **Do not push SQLite to Railway while it still has a Postgres URL.** `scripts/start.sh` refuses Postgres URLs. Railway next-steps: [`docs/RAILWAY-FREEZE.md`](docs/RAILWAY-FREEZE.md). Open critic wish: [`docs/desirables.md`](docs/desirables.md) **D-020**. Formatting ships **D-016–D-019, D-021**.
 Branch for work: `experiment`. Ship notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.md). Smoke checklist: [`docs/REVIEW.md`](docs/REVIEW.md). Product calls: [`DECISIONS.md`](DECISIONS.md). What it does / sign-off: [`docs/FUNCTIONAL.md`](docs/FUNCTIONAL.md). Frozen scraper method: [`docs/scraper-discovery.md`](docs/scraper-discovery.md) (do not casually replace with open crawl).
 
 ## Always

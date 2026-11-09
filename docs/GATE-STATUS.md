@@ -11,6 +11,12 @@
 - [x] `npm test` + `npm run typecheck` + `npm run build` green locally  
 - [x] `/api/health` is a public middleware path (`24c0ec3`)  
 
+## 9 Nov 2026 — product walk host
+
+- UX / critic / smoke: Oracle https://132.145.68.166.sslip.io (`6158e98`). Door walked; Attend not shown (imported cells).
+- Railway: keep auto-deploy Off; do not stop until remaining boxes below. Steps: [`RAILWAY-FREEZE.md`](RAILWAY-FREEZE.md).
+- Critic wishes: [`desirables.md`](desirables.md) **D-020** still open; D-016–D-019 and D-021 shipped · walk notes: [`REVIEW.md`](REVIEW.md).
+
 ## Waiting on humans / Oracle
 
 - [x] Railway auto-deploy **paused** (freeze)  

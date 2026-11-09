@@ -101,7 +101,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               events={events}
               colours={settings.colours}
               canAdd={canReview(user)}
-              starredIds={starredIds}
             />
             <MonthDayAgenda
               day={state.anchor}
