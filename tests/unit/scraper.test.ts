@@ -322,6 +322,23 @@ describe("JSON-LD", () => {
     expect(event.externalUrl).toContain("birmingham.ac.uk");
   });
 
+  it("keeps date-only starts honest (no fake 01:00) and softens host organisers", () => {
+    const [event] = eventsFromJsonLd(
+      {
+        "@type": "Event",
+        name: "Sports Amenities Landscaping Trade Exhibition",
+        startDate: "2026-11-10",
+        url: "https://allevents.in/birmingham/sports-amenities"
+      },
+      "https://allevents.in/birmingham-uk/all"
+    );
+    expect(event.organisationName).toBe("AllEvents");
+    expect(event.endsAt.getTime()).toBe(event.startsAt.getTime());
+    expect(event.notes).toMatch(/Time not listed/i);
+    const parts = londonParts(event.startsAt);
+    expect(parts).toMatchObject({ year: 2026, month: 11, day: 10, hour: 0, minute: 0 });
+  });
+
   it("walks @graph, skips broken scripts and events without a start", () => {
     const html = `<script type="application/ld+json">not-json</script>
 <script type="application/ld+json">{"@graph":[{"@type":["Event","Thing"],"name":"Panel","startDate":"2026-10-21T16:00:00Z","organizer":{"name":"Aston SU"},"eventAttendanceMode":"https://schema.org/OnlineEventAttendanceMode","location":{"name":"Online"}}]}</script>`;

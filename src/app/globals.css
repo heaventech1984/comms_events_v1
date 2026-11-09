@@ -1468,6 +1468,31 @@ table.data .members-check-col input[type="checkbox"] {
 .pending-open-link a {
   font-weight: 600;
 }
+a.pending-ext-link {
+  display: block;
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-2);
+  text-decoration: none;
+  color: inherit;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  transition: background 0.15s ease;
+  touch-action: manipulation;
+}
+a.pending-ext-link:hover,
+a.pending-ext-link:focus-visible {
+  background: var(--paper-2);
+  outline: none;
+}
+a.pending-ext-link:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--terracotta);
+}
+a.pending-ext-link .pending-ext-url {
+  color: var(--terracotta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 .event-day-groups {
   display: grid;
@@ -1554,6 +1579,7 @@ table.data .members-check-col input[type="checkbox"] {
   font-size: 0.9rem;
 }
 .pending-ext-empty {
+  padding: var(--space-2) var(--space-3);
   border-top-color: transparent;
   min-height: 2.75rem;
 }

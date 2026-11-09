@@ -3,8 +3,12 @@ import {
   DISCARD_EVENT_CONFIRM_BODY,
   discardTouchesOrganisation,
   eventLinkLabel,
+  friendlyHostLabel,
+  pendingClockLabel,
+  pendingReviewLede,
   pendingWhen
 } from "@/lib/pending-copy";
+import { londonDate } from "@/lib/time";
 
 describe("Discard ≠ blacklist", () => {
   it("confirm copy says Discard does not blacklist the organisation", () => {
@@ -44,5 +48,26 @@ describe("pending tile display", () => {
     const startsAt = new Date("2026-10-28T16:00:00+00:00");
     expect(pendingWhen(startsAt, null)).not.toMatch(/–/);
     expect(pendingWhen(startsAt, undefined)).not.toMatch(/–/);
+  });
+
+  it("says Time not listed instead of 00:00–01:00 for date-only feeds", () => {
+    const start = londonDate(2026, 11, 10, 0, 0);
+    const endHour = londonDate(2026, 11, 10, 1, 0);
+    expect(pendingClockLabel(start, endHour)).toBe("Time not listed");
+    expect(pendingClockLabel(start, start)).toBe("Time not listed");
+    expect(pendingWhen(start, endHour)).toMatch(/Time not listed/);
+  });
+
+  it("keeps a real evening clock", () => {
+    const start = londonDate(2026, 11, 10, 18, 30);
+    const end = londonDate(2026, 11, 10, 20, 0);
+    expect(pendingClockLabel(start, end)).toBe("18:30–20:00");
+  });
+
+  it("greets by first name and role tip", () => {
+    expect(pendingReviewLede({ name: "An Te", role: "admin" })).toMatch(/^An —/);
+    expect(pendingReviewLede({ name: "An Te", role: "admin" })).toMatch(/new tab/i);
+    expect(pendingReviewLede({ name: "Priya Nair", role: "cell leader" })).toMatch(/^Priya —/);
+    expect(friendlyHostLabel("www.allevents.in")).toBe("AllEvents");
   });
 });

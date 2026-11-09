@@ -6,7 +6,12 @@ import { requireUser } from "@/lib/auth";
 import { categoryAccentStyle } from "@/lib/category-art";
 import { dayKeyOf, formatDayKey } from "@/lib/calendar";
 import { CATEGORIES, type Category } from "@/lib/constants";
-import { eventLinkLabel } from "@/lib/pending-copy";
+import {
+  eventLinkLabel,
+  friendlyHostLabel,
+  pendingClockLabel,
+  pendingReviewLede
+} from "@/lib/pending-copy";
 import {
   eventMatchesPendingFilters,
   parsePendingFilters,
@@ -18,14 +23,24 @@ import { tidyPlaceName } from "@/lib/place";
 import { isUpdatedScrapedRow } from "@/lib/scraper/apply";
 import { notesNeedTypeReview } from "@/lib/scraper/type-review";
 import { getSettings } from "@/lib/settings";
-import { formatDate, formatTimeRange } from "@/lib/time";
+import { formatDate } from "@/lib/time";
+
+function displayOrganisation(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "Organiser not listed";
+  // Host-looking leftovers from older scrapes → friendly site name.
+  if (/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(trimmed) && !/\s/.test(trimmed)) {
+    return friendlyHostLabel(trimmed);
+  }
+  return trimmed;
+}
 
 export default async function PendingPage({
   searchParams
 }: {
   searchParams: Promise<{ filter?: string; types?: string; format?: string }>;
 }) {
-  await requireUser(["admin", "cell leader"]);
+  const user = await requireUser(["admin", "cell leader"]);
   const settings = await getSettings();
   const sp = await searchParams;
   const filters = parsePendingFilters(sp);
@@ -50,10 +65,7 @@ export default async function PendingPage({
     <main>
       <div className="page-head">
         <h1>Pending review</h1>
-        <p className="lede">
-          Scraped events still ahead (or on now), waiting for a cell leader or admin, grouped by day. Use the chips to
-          vet one type or Online / In person. Past ones leave this list automatically.
-        </p>
+        <p className="lede">{pendingReviewLede(user)}</p>
         <div className="calendar-filters pending-calendar-filters">
           <div className="filters" role="group" aria-label="Event type">
             <Chip href={pendingHref(filters, { types: [] })} current={filters.types.length === 0}>
@@ -125,6 +137,7 @@ export default async function PendingPage({
               const needsType = notesNeedTypeReview(event.notes);
               const category = event.category as Category;
               const place = tidyPlaceName(event.placeName);
+              const clock = pendingClockLabel(event.startsAt, event.endsAt);
               return (
                 <article
                   key={event.id}
@@ -145,30 +158,28 @@ export default async function PendingPage({
                     </div>
                     <h3>{event.title}</h3>
                     <p className="pending-meta muted">
-                      <span>{event.organisationName}</span>
-                      <time dateTime={event.startsAt.toISOString()}>
-                        {formatTimeRange(event.startsAt, event.endsAt)}
-                      </time>
+                      <span>{displayOrganisation(event.organisationName)}</span>
+                      <time dateTime={event.startsAt.toISOString()}>{clock}</time>
                     </p>
                     <p className="pending-place muted">
                       {event.online ? "Online" : place || "In person · place not listed"}
                     </p>
-                    {event.externalUrl ? (
-                      <p className="pending-ext" title={event.externalUrl}>
-                        <span className="pending-ext-label">Event Link</span>
-                        <span className="pending-ext-url">{eventLinkLabel(event.externalUrl)}</span>
-                      </p>
-                    ) : (
-                      <p className="pending-ext pending-ext-empty muted">No event link yet</p>
-                    )}
                   </Link>
                   {event.externalUrl ? (
-                    <p className="pending-open-link">
-                      <a href={event.externalUrl} target="_blank" rel="noreferrer">
-                        Open listing
-                      </a>
-                    </p>
-                  ) : null}
+                    <a
+                      className="pending-ext pending-ext-link"
+                      href={event.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={event.externalUrl}
+                      data-testid="pending-event-link"
+                    >
+                      <span className="pending-ext-label">Event link · new tab</span>
+                      <span className="pending-ext-url">{eventLinkLabel(event.externalUrl)}</span>
+                    </a>
+                  ) : (
+                    <p className="pending-ext pending-ext-empty muted">No event link yet</p>
+                  )}
                   <PendingTileActions
                     eventId={event.id}
                     title={event.title}

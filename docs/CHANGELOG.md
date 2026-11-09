@@ -17,6 +17,12 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-09 — Pending: clickable Event link + honest times
+
+- Event link on each tile opens the listing in a **new tab**; the rest of the tile still opens edit details.
+- Midnight placeholder clocks show **Time not listed** (AllEvents date-only feeds no longer look like 00:00–01:00).
+- Greeting uses your first name; host-only organisers show as AllEvents / Meetup / etc.
+
 ## 2026-11-09 — Scraper extras-only box + readable scrape results
 
 - Priority box stores **gap-fillers only**; pack URLs are stripped on save/load. Run still merges the full Birmingham pack.

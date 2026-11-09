@@ -1,4 +1,6 @@
+import { friendlyHostLabel } from "../pending-copy";
 import { LIMITS, isHttpUrl } from "../security";
+import { parseSchemaInstant, resolveSchemaEnd } from "./schema-date";
 import { cleanText, clip, joinNotes, looksOnline, stripHtml } from "./text";
 import type { ScrapedEvent } from "./types";
 
@@ -64,33 +66,33 @@ export function eventsFromMicrodata(html: string, sourceUrl: string): ScrapedEve
     const props = propMap(block);
     const title = clip(cleanText(first(props, "name", "headline") ?? "Untitled event"), LIMITS.titleLength);
     const startRaw = first(props, "startDate", "startTime");
-    if (!startRaw) continue;
-    const startsAt = new Date(startRaw);
-    if (Number.isNaN(startsAt.getTime())) continue;
-    const endRaw = first(props, "endDate", "endTime");
-    const endsAt = endRaw ? new Date(endRaw) : new Date(startsAt.getTime() + 60 * 60 * 1000);
+    const start = parseSchemaInstant(startRaw);
+    if (!start) continue;
+    const endsAt = resolveSchemaEnd(start, first(props, "endDate", "endTime"));
     const placeName = first(props, "location", "address");
     const urlRaw = first(props, "url");
     const url = urlRaw && isHttpUrl(urlRaw) ? urlRaw : sourceUrl;
     const description = first(props, "description");
-    const organiser = first(props, "organizer", "performer") ?? host;
-    const uid = clip(urlRaw && isHttpUrl(urlRaw) ? urlRaw : `${title}:${startsAt.toISOString()}`, 180);
+    const organiserRaw = first(props, "organizer", "performer");
+    const organiser = organiserRaw ? cleanText(organiserRaw) : friendlyHostLabel(host);
+    const uid = clip(urlRaw && isHttpUrl(urlRaw) ? urlRaw : `${title}:${start.at.toISOString()}`, 180);
+    const timeNote = start.dateOnly ? "Time not listed on source — open the Event link to check." : null;
     events.push({
       sourceKey: `live:${host}:${uid}`,
       title,
-      organisationName: clip(cleanText(organiser), LIMITS.titleLength),
+      organisationName: clip(organiser, LIMITS.titleLength),
       category: "Meetup",
-      startsAt,
-      endsAt:
-        Number.isNaN(endsAt.getTime()) || endsAt.getTime() <= startsAt.getTime()
-          ? new Date(startsAt.getTime() + 60 * 60 * 1000)
-          : endsAt,
+      startsAt: start.at,
+      endsAt,
       online: looksOnline(title, placeName, description),
       placeName: placeName ? clip(cleanText(placeName), LIMITS.placeLength) : null,
       lat: null,
       lng: null,
       externalUrl: url,
-      notes: joinNotes(description ? clip(stripHtml(description), LIMITS.textLength) : null),
+      notes: joinNotes(
+        description ? clip(stripHtml(description), LIMITS.textLength) : null,
+        timeNote
+      ),
       fetchedFrom: sourceUrl,
       needsTypeReview: false
     });
