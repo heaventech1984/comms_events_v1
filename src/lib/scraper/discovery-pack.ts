@@ -74,8 +74,19 @@ export const DISCOVERY_PACK: DiscoveryCandidate[] = [
   meetup("alpha course", "Christian"),
   meetup("praise", "Christian"),
   meetup("fellowship", "Christian"),
-  // Carrs Lane / Guild / UoB / BCU / Aston HTML probed Nov 2026 — no Event JSON-LD or ICS yet.
-  // Keep allowlisted; re-add when they expose calendars. Cathedral what’s-on is the working church primary.
+  // Extra Christian primary (ACNY parish page — keep for when Event nodes appear; Cathedral what’s-on is the working JSON-LD primary).
+
+  // —— Student primary (MSL event cards on allowlisted Guild host) ——
+  {
+    url: "https://www.guildofstudents.com/events/",
+    category: "Student",
+    label: "Guild of Students events"
+  },
+  {
+    url: "https://www.bcusu.com/eventscalendar/",
+    category: "Student",
+    label: "BCU SU event calendar"
+  },
 
   // —— Networking ——
   {
@@ -112,9 +123,9 @@ export const DISCOVERY_PACK: DiscoveryCandidate[] = [
   // —— Volume / Meetup / West Midlands ——
   { url: MEETUP_BIRMINGHAM_FIND_URL, category: "Meetup", label: "Meetup Birmingham find" },
   {
-    url: `${MU}?source=EVENTS&location=gb--Birmingham&distance=fiftyMiles`,
+    url: `${MU}?source=EVENTS&location=gb--Birmingham&distance=tenMiles`,
     category: "Meetup",
-    label: "Meetup 50 miles"
+    label: "Meetup 10 miles"
   },
   { url: `${EB}/all-events/`, category: "Meetup", label: "EB Brum all" },
   ebCity("solihull", "all-events/", "Meetup", "EB Solihull all"),

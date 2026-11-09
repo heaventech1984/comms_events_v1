@@ -150,6 +150,9 @@ model ScraperRun {
   leftPending         Int       @default(0)
   publishedCount      Int       @default(0)
   skippedHumanEdited  Int       @default(0)
+  droppedGeo          Int       @default(0)
+  droppedNearDupe     Int       @default(0)
+  droppedDisabledCategory Int   @default(0)
   errorText           String?
   priorityUrlsSnapshot String   @default("[]")
   sourceResults       String    @default("[]")

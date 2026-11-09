@@ -17,6 +17,13 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-09 — Maximal scraper 10/10 checklist
+
+- Meetup **tenMiles**; geo drops far trip titles even with a Brum org/feed.
+- Cross-host **near-dedupe** (title + start ±15m); Eventbrite **429/405** soft-fail.
+- Pending **Needs type** filter + Confirm; Scraper quality scorecard (weak / geo / near-dupe).
+- Student primary: Guild MSL event cards ([`msl.ts`](../src/lib/scraper/msl.ts)). Scorecard: [`scraper-quality-vnext.md`](scraper-quality-vnext.md).
+
 ## 2026-11-09 — Less repeated place / date / time
 
 - Tidies scraped places (`Birmingham, Birmingham, gb` → one city).

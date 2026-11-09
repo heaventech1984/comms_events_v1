@@ -6,6 +6,7 @@ import { filterLocalEvents } from "./geo";
 import { parseIcsEvents } from "./ics";
 import { eventsFromJsonLd, extractJsonLdScripts } from "./jsonld";
 import { discoverCalendarLinks, eventsFromMicrodata } from "./microdata";
+import { eventsFromMslHtml } from "./msl";
 import type { ScrapedEvent } from "./types";
 
 export const SCRAPE_USER_AGENT = "GatherBirmingham/1.0 (community-events; +https://commseventsv1-production.up.railway.app)";
@@ -59,7 +60,24 @@ function pathDisallowed(robots: string, path: string): boolean {
   });
 }
 
-async function timedFetch(fetchFn: FetchLike, url: string): Promise<{ ok: boolean; status: number; contentType: string; body: string }> {
+function isEventbriteHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^www\./, "");
+  return h === "eventbrite.co.uk" || h === "eventbrite.com";
+}
+
+function retryAfterMs(header: string | null, fallbackMs: number): number {
+  if (!header) return fallbackMs;
+  const asInt = Number(header);
+  if (Number.isFinite(asInt) && asInt >= 0) return Math.min(asInt * 1000, 60_000);
+  const when = Date.parse(header);
+  if (Number.isFinite(when)) return Math.min(Math.max(0, when - Date.now()), 60_000);
+  return fallbackMs;
+}
+
+async function timedFetch(
+  fetchFn: FetchLike,
+  url: string
+): Promise<{ ok: boolean; status: number; contentType: string; body: string; retryAfter: string | null }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_MS);
   try {
@@ -72,7 +90,8 @@ async function timedFetch(fetchFn: FetchLike, url: string): Promise<{ ok: boolea
       ok: response.ok,
       status: response.status,
       contentType: response.headers.get("content-type") ?? "",
-      body
+      body,
+      retryAfter: response.headers.get("retry-after")
     };
   } finally {
     clearTimeout(timer);
@@ -131,7 +150,9 @@ function parseBody(url: string, contentType: string, body: string): ScrapedEvent
   }
   const fromScripts = extractJsonLdScripts(body).flatMap((block) => eventsFromJsonLd(block, url));
   if (fromScripts.length) return fromScripts;
-  return eventsFromMicrodata(body, url);
+  const micro = eventsFromMicrodata(body, url);
+  if (micro.length) return micro;
+  return eventsFromMslHtml(body, url);
 }
 
 /**
@@ -152,6 +173,8 @@ export async function fetchLiveEvents(
   const sources: SourceResult[] = [];
   const events: ScrapedEvent[] = [];
   const fetchedIcs = new Set<string>();
+  /** After Eventbrite HTTP 405, skip remaining EB URLs this run (bad IP / WAF). */
+  let eventbriteSoftFailed = false;
 
   async function robotsOk(url: URL): Promise<string | null> {
     const origin = url.origin;
@@ -174,6 +197,15 @@ export async function fetchLiveEvents(
       continue;
     }
     const { url } = allowed;
+    if (eventbriteSoftFailed && isEventbriteHost(url.hostname)) {
+      sources.push({
+        url: raw,
+        ok: false,
+        eventCount: 0,
+        error: "Skipped: Eventbrite soft-failed earlier this run (HTTP 405)."
+      });
+      continue;
+    }
     try {
       const robots = await robotsOk(url);
       if (robots == null) {
@@ -184,9 +216,24 @@ export async function fetchLiveEvents(
         sources.push({ url: raw, ok: false, eventCount: 0, error: "robots.txt disallows this path." });
         continue;
       }
-      const page = await timedFetch(fetchFn, url.toString());
+      let page = await timedFetch(fetchFn, url.toString());
+      if (!page.ok && page.status === 429) {
+        const wait = retryAfterMs(page.retryAfter, Math.max(pause, 3000));
+        await sleep(wait);
+        page = await timedFetch(fetchFn, url.toString());
+      }
       if (!page.ok) {
-        sources.push({ url: raw, ok: false, eventCount: 0, error: `HTTP ${page.status}` });
+        if (page.status === 405 && isEventbriteHost(url.hostname)) {
+          eventbriteSoftFailed = true;
+          sources.push({
+            url: raw,
+            ok: false,
+            eventCount: 0,
+            error: "HTTP 405 — Eventbrite soft-fail; further Eventbrite URLs skipped this run."
+          });
+        } else {
+          sources.push({ url: raw, ok: false, eventCount: 0, error: `HTTP ${page.status}` });
+        }
       } else if (page.body.length > FETCH_BODY_MAX) {
         sources.push({ url: raw, ok: false, eventCount: 0, error: "Response too large." });
       } else {

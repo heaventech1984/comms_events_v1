@@ -61,6 +61,7 @@ export async function runScraper(opts: {
     const harvest = selectHarvestEvents(live.events, fixtureEvents(), enabled);
     const events = harvest.events;
     const droppedDisabledCategory = harvest.droppedDisabledCategory;
+    const droppedNearDupe = harvest.droppedNearDupe;
 
     const organisations = await prisma.organisation.findMany();
     const orgByKey = new Map(organisations.map((o) => [o.nameKey, o]));
@@ -130,6 +131,9 @@ export async function runScraper(opts: {
       where: { id: runId },
       data: {
         ...counts,
+        droppedGeo,
+        droppedNearDupe,
+        droppedDisabledCategory,
         sourceResults: JSON.stringify(sources),
         status: "OK",
         finishedAt: new Date()
@@ -142,7 +146,15 @@ export async function runScraper(opts: {
       entityId: runId,
       summary: `${opts.trigger} scraper created ${counts.createdCount}, updated ${counts.updatedCount}, skipped ${counts.skippedHumanEdited} human-edited`
     });
-    return { id: runId, ...counts, sources, droppedDisabledCategory, droppedGeo, status: "OK" as const };
+    return {
+      id: runId,
+      ...counts,
+      sources,
+      droppedDisabledCategory,
+      droppedNearDupe,
+      droppedGeo,
+      status: "OK" as const
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Scraper failed";
     if (runId) {

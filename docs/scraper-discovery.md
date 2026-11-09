@@ -18,8 +18,11 @@ Cover Birmingham and nearby West Midlands / Midlands listings for the five Gathe
 6. **Dedupe** — first live `sourceKey` wins; fixtures still overwrite.
 7. **Caps** — 1 MiB body · 300 events/URL · **2500**/run · **100** Priority URLs · default pause **1500ms** (`SCRAPE_PAUSE_MS`).
 8. **Coverage** — this week (Mon–Sun) + whole calendar month day×type on admin Scraper page and `npm run scrape`.
-9. **Geo filter (vNext)** — keep Birmingham / West Midlands (or online); drop far named cities. See [`geo.ts`](../src/lib/scraper/geo.ts).
-10. **Category strength (vNext)** — strong (host/keywords) vs weak (aggregator page only → human review). See [`scraper-quality-vnext.md`](scraper-quality-vnext.md).
+9. **Geo filter** — keep Birmingham / West Midlands (or online); drop far named cities and far trip titles. See [`geo.ts`](../src/lib/scraper/geo.ts).
+10. **Category strength** — strong (host/keywords) vs weak (aggregator page only → human review + Pending Confirm). See [`scraper-quality-vnext.md`](scraper-quality-vnext.md).
+11. **Near-dedupe** — after sourceKey first-wins, collapse same normalised title + start ±15 minutes.
+12. **MSL SU lists** — Guild/BCU-style `event_item` HTML when JSON-LD/ICS are empty ([`msl.ts`](../src/lib/scraper/msl.ts)).
+13. **Fetch soft-fail** — Eventbrite 429 retries; 405 skips further EB URLs that run.
 
 ## Install / refresh on a box
 

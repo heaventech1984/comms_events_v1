@@ -64,6 +64,11 @@ async function main() {
       `\nNote: ${result.droppedGeo} event(s) dropped by Birmingham / West Midlands geo filter.`
     );
   }
+  if (result.droppedNearDupe > 0) {
+    console.log(
+      `\nNote: ${result.droppedNearDupe} event(s) dropped as cross-host near-duplicates.`
+    );
+  }
 
   const events = await loadReportEvents();
   const report = buildCoverageReport(events);

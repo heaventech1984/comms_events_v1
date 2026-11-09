@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings, persistCleanPriorityUrls } from "@/lib/settings";
 import { ALLOWED_HOSTS } from "@/lib/scraper/allowlist";
 import { buildCoverageReport, type CoverageDay, type CoverageWindow } from "@/lib/scraper/coverage-report";
 import { droppedPriorityUrlMessage } from "@/lib/scraper/priority-copy";
+import { notesNeedTypeReview } from "@/lib/scraper/type-review";
 import { ScraperForm } from "@/components/ScraperForm";
 import { addDays, formatDateTime, londonDate, londonParts } from "@/lib/time";
 import { CATEGORIES, type Category } from "@/lib/constants";
@@ -46,7 +48,7 @@ async function loadCoverageEvents(): Promise<ScrapedEvent[]> {
       externalUrl: row.externalUrl,
       notes: row.notes,
       fetchedFrom: fromNotes,
-      needsTypeReview: false
+      needsTypeReview: notesNeedTypeReview(row.notes)
     };
   });
 }
@@ -103,7 +105,16 @@ export default async function ScraperPage() {
   const orgs = await prisma.organisation.findMany({ orderBy: { name: "asc" } });
   const runs = await prisma.scraperRun.findMany({ orderBy: { startedAt: "desc" }, take: 8 });
   const droppedNotice = droppedPriorityUrlMessage(cleaned.dropped);
-  const coverage = buildCoverageReport(await loadCoverageEvents());
+  const coverageEvents = await loadCoverageEvents();
+  const coverage = buildCoverageReport(coverageEvents);
+  const weakInWindow = coverageEvents.filter((e) => e.needsTypeReview).length;
+  const pendingRows = await prisma.event.findMany({
+    where: { status: "PENDING" },
+    select: { notes: true }
+  });
+  const pendingOpen = pendingRows.length;
+  const pendingNeedsType = pendingRows.filter((row) => notesNeedTypeReview(row.notes)).length;
+  const latestOk = runs.find((r) => r.status === "OK");
 
   return (
     <main className="stack">
@@ -127,6 +138,28 @@ export default async function ScraperPage() {
         allowedHosts={[...ALLOWED_HOSTS].sort()}
         notice={droppedNotice}
       />
+
+      <section className="stack" data-testid="scraper-quality-scorecard">
+        <h2>Quality scorecard</h2>
+        <p className="muted">
+          Live window rows needing type review: <strong>{weakInWindow}</strong>
+          {" · "}
+          Open pending: <strong>{pendingOpen}</strong>
+          {" · "}
+          Needs type:{" "}
+          <Link href="/pending?filter=needs-type">
+            <strong>{pendingNeedsType}</strong>
+          </Link>
+        </p>
+        {latestOk ? (
+          <p className="muted" data-testid="scraper-last-drops">
+            Last OK run drops — geo {latestOk.droppedGeo}, near-dupes {latestOk.droppedNearDupe}, disabled type{" "}
+            {latestOk.droppedDisabledCategory}.
+          </p>
+        ) : (
+          <p className="muted">No successful scrape run yet to show geo / near-dupe drops.</p>
+        )}
+      </section>
 
       <section className="stack" data-testid="scraper-coverage">
         <h2>Coverage</h2>

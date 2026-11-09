@@ -6,6 +6,7 @@ import { fromDatetimeLocalValue } from "@/lib/time";
 import { writeAudit } from "@/lib/audit";
 import { deleteOccurrence } from "@/lib/series";
 import { CATEGORIES, type Category } from "@/lib/constants";
+import { stripTypeReviewNotes } from "@/lib/scraper/type-review";
 import { eventInputProblem } from "@/lib/security";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +19,32 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const event = await prisma.event.findUnique({ where: { id }, include: { _count: { select: { bookings: true } } } });
   if (!event) return NextResponse.json({ error: "Event not found." }, { status: 404 });
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+  // Pending “Confirm type” / quick type switch — clear review notes and freeze scrape fields.
+  if (body.confirmType === true) {
+    const category = String(body.category ?? event.category);
+    if (!CATEGORIES.includes(category as Category)) {
+      return NextResponse.json({ error: "Choose a valid event type." }, { status: 400 });
+    }
+    await prisma.event.update({
+      where: { id },
+      data: {
+        category,
+        notes: stripTypeReviewNotes(event.notes),
+        humanEditedAt: new Date(),
+        reviewedById: user.id
+      }
+    });
+    await writeAudit({
+      actorId: user.id,
+      action: "event.confirm-type",
+      entityType: "Event",
+      entityId: event.id,
+      summary: `${user.name} confirmed type ${category} for ${event.title}`
+    });
+    return NextResponse.json({ ok: true, id: event.id });
+  }
+
   // Status-only patches (pending Approve/Discard) must not wipe capacity.
   const capacity =
     body.capacity === undefined

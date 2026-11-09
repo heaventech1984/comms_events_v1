@@ -18,6 +18,7 @@ export function runFinishedMessage(input: {
   leftPending?: number;
   skippedHumanEdited?: number;
   droppedDisabledCategory?: number;
+  droppedNearDupe?: number;
   droppedGeo?: number;
   sources?: RunSource[];
   dropped?: { url: string }[];
@@ -40,6 +41,12 @@ export function runFinishedMessage(input: {
   if (geoDrops > 0) {
     parts.push(
       `${geoDrops} harvested event(s) were dropped because they did not look Birmingham / West Midlands (or online).`
+    );
+  }
+  const nearDupes = input.droppedNearDupe ?? 0;
+  if (nearDupes > 0) {
+    parts.push(
+      `${nearDupes} harvested event(s) were dropped as cross-host near-duplicates (same title and start).`
     );
   }
   const sources = input.sources ?? [];

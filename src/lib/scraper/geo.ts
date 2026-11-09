@@ -76,15 +76,25 @@ export function geoKeepEvent(event: Pick<
     return { keep: false, reason: "outside-wm-bbox" };
   }
 
-  const place = `${event.placeName ?? ""} ${event.title} ${event.organisationName}`;
-  if (FAR_PLACE.test(place) && !LOCAL_PLACE.test(place)) {
-    return { keep: false, reason: "far-place-name" };
+  const title = event.title ?? "";
+  const placeName = event.placeName ?? "";
+  const org = event.organisationName ?? "";
+  const farTitle = FAR_PLACE.test(title);
+  const farPlace = FAR_PLACE.test(placeName);
+  const localVenue = LOCAL_PLACE.test(`${placeName} ${title}`);
+  // Org name alone (e.g. “Birmingham Hiking Club”) must not keep a Morocco trip.
+  if ((farTitle || farPlace) && !localVenue) {
+    return { keep: false, reason: farTitle ? "far-title" : "far-place-name" };
   }
-  if (LOCAL_PLACE.test(place)) return { keep: true, reason: "local-place-name" };
+  if (localVenue) return { keep: true, reason: "local-place-name" };
+  if (LOCAL_PLACE.test(org) && !farTitle && !farPlace) {
+    return { keep: true, reason: "local-org-name" };
+  }
 
   // Aggregator rows with no place: keep only when the feed URL itself is Birmingham-scoped.
   const feed = event.fetchedFrom ?? "";
   if (/birmingham|solihull|wolverhampton|coventry|walsall|west-brom|sutton-coldfield|redditch|bromsgrove|cannock|lichfield|nuneaton|kidderminster|warwick|stratford/i.test(feed)) {
+    if (farTitle || farPlace) return { keep: false, reason: "far-title-on-brum-feed" };
     return { keep: true, reason: "birmingham-scoped-feed" };
   }
 

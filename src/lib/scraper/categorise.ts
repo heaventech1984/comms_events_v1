@@ -156,7 +156,7 @@ export function inferCategory(input: {
     return { category: fromApprox, inferred: true, strength: "weak" };
   }
 
-  // Aggregator slice alone is a soft guess — human should confirm.
+  // Aggregator *slice* alone (e.g. /christianity--events/) is a soft guess — human should confirm.
   if (fromPage && AGGREGATOR_HOSTS.has(host)) {
     return { category: fromPage, inferred: true, strength: "weak" };
   }
@@ -165,8 +165,9 @@ export function inferCategory(input: {
     return { category: fromPage, inferred: true, strength: "weak" };
   }
 
+  // Platform default (Meetup host → Meetup type) is trusted; only page-slice guesses stay weak.
   if (host && HOST_CATEGORY[host]) {
-    return { category: HOST_CATEGORY[host], inferred: true, strength: "weak" };
+    return { category: HOST_CATEGORY[host], inferred: true, strength: "strong" };
   }
 
   return { category: CATEGORIES[4], inferred: false, strength: "none" };

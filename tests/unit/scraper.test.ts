@@ -11,16 +11,18 @@ import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "@/lib/scraper/c
 import { filterLocalEvents, geoKeepEvent } from "@/lib/scraper/geo";
 import { fixtureEvents } from "@/lib/scraper/fixtures";
 import { buildCoverageReport, formatCoverageReport } from "@/lib/scraper/coverage-report";
-import { RUN_EVENT_CAP, selectHarvestEvents } from "@/lib/scraper/harvest";
+import { RUN_EVENT_CAP, collapseNearDuplicates, selectHarvestEvents } from "@/lib/scraper/harvest";
+import { notesNeedTypeReview, stripTypeReviewNotes } from "@/lib/scraper/type-review";
 import { parseIcsDate, parseIcsEvents } from "@/lib/scraper/ics";
 import { eventsFromJsonLd, extractJsonLdScripts } from "@/lib/scraper/jsonld";
 import { scrapeLockAcquired, scrapeLockUntil } from "@/lib/scraper/lock";
 import { fetchLiveEvents, type FetchLike } from "@/lib/scraper/live-adapter";
 import { discoverCalendarLinks, eventsFromMicrodata } from "@/lib/scraper/microdata";
+import { eventsFromMslHtml, parseMslTimeRange } from "@/lib/scraper/msl";
 import { stripHtml } from "@/lib/scraper/text";
 import { londonDate, londonParts } from "@/lib/time";
 import type { ScrapedEvent } from "@/lib/scraper/types";
-import type { Category } from "@/lib/constants";
+import { CATEGORIES, type Category } from "@/lib/constants";
 
 describe("fixture harvest", () => {
   const events = fixtureEvents();
@@ -270,6 +272,16 @@ describe("geo filter", () => {
     ]);
     expect(filtered.droppedGeo).toBe(1);
     expect(filtered.kept).toHaveLength(1);
+    // Far trip title must not ride a Birmingham org / Meetup feed alone.
+    expect(
+      geoKeepEvent({
+        online: false,
+        placeName: null,
+        title: "HIKE THE HIGH ATLAS MOUNTAINS, MOROCCO",
+        organisationName: "Birmingham Walkers",
+        fetchedFrom: "https://www.meetup.com/find/?location=gb--Birmingham&distance=tenMiles"
+      })
+    ).toEqual({ keep: false, reason: "far-title" });
   });
 });
 
@@ -453,8 +465,8 @@ describe("live adapter", () => {
     expect(harvest.events[0].category).toBe("Meetup");
     expect(harvest.events[0].title).toMatch(/DevOps Society/i);
     expect(harvest.events[0].externalUrl).toContain("meetup.com/devops-society");
-    // Meetup host alone is weak — admin should confirm type before Publish.
-    expect(harvest.events[0].needsTypeReview).toBe(true);
+    // Meetup platform default is strong; page-slice guesses (e.g. keywords=christian) stay weak.
+    expect(harvest.events[0].needsTypeReview).toBe(false);
   });
 
   it("records Response too large and keeps zero events", async () => {
@@ -530,9 +542,77 @@ describe("harvest select", () => {
   it("slices combined live and fixture events to the run cap", () => {
     const enabled = new Set<Category>(["Meetup"]);
     const live = Array.from({ length: RUN_EVENT_CAP + 10 }, (_, i) =>
-      sampleEvent({ sourceKey: `live:n:${i}`, category: "Meetup" })
+      sampleEvent({
+        sourceKey: `live:n:${i}`,
+        category: "Meetup",
+        title: `Sample event ${i}`,
+        startsAt: new Date(Date.UTC(2026, 10, 1, 12, 0) + i * 60 * 60 * 1000)
+      })
     );
     expect(selectHarvestEvents(live, [], enabled).events).toHaveLength(RUN_EVENT_CAP);
+  });
+
+  it("collapses cross-host near-duplicates keeping the first (Christian-first) row", () => {
+    const start = new Date("2026-11-12T18:00:00+00:00");
+    const faith = sampleEvent({
+      sourceKey: "live:eventbrite.co.uk:faith",
+      category: "Christian",
+      title: "Praise and Worship Night",
+      startsAt: start
+    });
+    const twin = sampleEvent({
+      sourceKey: "live:meetup.com:twin",
+      category: "Meetup",
+      title: "Praise and Worship Night!!!",
+      startsAt: new Date(start.getTime() + 5 * 60 * 1000)
+    });
+    const other = sampleEvent({
+      sourceKey: "live:meetup.com:other",
+      category: "Meetup",
+      title: "Board Games",
+      startsAt: start
+    });
+    const collapsed = collapseNearDuplicates([faith, twin, other]);
+    expect(collapsed.droppedNearDupe).toBe(1);
+    expect(collapsed.events.map((e) => e.sourceKey)).toEqual([
+      "live:eventbrite.co.uk:faith",
+      "live:meetup.com:other"
+    ]);
+    const selected = selectHarvestEvents([faith, twin, other], [], new Set(CATEGORIES));
+    expect(selected.droppedNearDupe).toBe(1);
+    expect(selected.events).toHaveLength(2);
+  });
+});
+
+describe("type review notes", () => {
+  it("detects and strips weak / unknown type notes", () => {
+    const notes = `${TYPE_WEAK_NOTE}\n\nSource feed: https://example.com`;
+    expect(notesNeedTypeReview(notes)).toBe(true);
+    expect(stripTypeReviewNotes(notes)).toBe("Source feed: https://example.com");
+    expect(notesNeedTypeReview(TYPE_REVIEW_NOTE)).toBe(true);
+    expect(stripTypeReviewNotes(TYPE_REVIEW_NOTE)).toBeNull();
+  });
+});
+
+describe("MSL SU event list", () => {
+  it("parses Guild-style event cards and time ranges", () => {
+    const range = parseMslTimeRange("11th November 6pm - 9pm", 2026);
+    expect(range?.startsAt.getUTCHours()).toBeDefined();
+    const html = `
+      <div class="event_item item1">
+        <dl>
+          <dt><a href="/ents/event/14934/" class="msl_event_name">University Challenge Tryouts</a></dt>
+          <dd class="msl_event_time">11th November 6pm - 9pm</dd>
+          <dd class="msl_event_location">Guild Council Chambers</dd>
+          <dd class="msl_event_description">Come and try out</dd>
+        </dl>
+      </div>`;
+    const events = eventsFromMslHtml(html, "https://www.guildofstudents.com/events/");
+    expect(events).toHaveLength(1);
+    expect(events[0].title).toMatch(/University Challenge/i);
+    expect(events[0].category).toBe("Student");
+    expect(events[0].placeName).toMatch(/Guild Council/i);
+    expect(events[0].externalUrl).toContain("/ents/event/14934/");
   });
 });
 
