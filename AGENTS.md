@@ -18,7 +18,7 @@ npm run dev           # local; needs SQLite DATABASE_URL=file:./data/gather.db
 Product walk: https://132.145.68.166.sslip.io  
 Railway spare (auto-deploy paused, last Postgres): https://commseventsv1-production.up.railway.app  
 Ubuntu / Oracle cutover: [`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md). **Do not push SQLite to Railway while it still has a Postgres URL.** `scripts/start.sh` refuses Postgres URLs. Railway next-steps: [`docs/RAILWAY-FREEZE.md`](docs/RAILWAY-FREEZE.md). Open critic wish: [`docs/desirables.md`](docs/desirables.md) **D-020**. Formatting ships **D-016–D-019, D-021**.
-Branch for work: `experiment`. Ship notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.md). Smoke checklist: [`docs/REVIEW.md`](docs/REVIEW.md). Product calls: [`DECISIONS.md`](DECISIONS.md). What it does / sign-off: [`docs/FUNCTIONAL.md`](docs/FUNCTIONAL.md). Frozen scraper method: [`docs/scraper-discovery.md`](docs/scraper-discovery.md) (do not casually replace with open crawl).
+Branch for work: `experiment`. Ship notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.md). Smoke checklist: [`docs/REVIEW.md`](docs/REVIEW.md). Product calls: [`DECISIONS.md`](DECISIONS.md). What it does / sign-off: [`docs/FUNCTIONAL.md`](docs/FUNCTIONAL.md). Frozen scraper method: [`docs/scraper-discovery.md`](docs/scraper-discovery.md) (do not casually replace with open crawl). Change control: [`docs/AEP-001-change-control.md`](docs/AEP-001-change-control.md) (fridge note: [`.cursor/rules/change-control.mdc`](.cursor/rules/change-control.mdc)).
 
 ## Always
 
@@ -36,6 +36,10 @@ Branch for work: `experiment`. Ship notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.
 - Changing roles, privacy toggles, or scraper allowlists
 - Installing Loop Engineering or other unattended agent loops
 - Forging or filling FUNCTIONAL sign-off (An / Becca / Guillaume)
+- Editing a protected file: package.json, package-lock.json, .github/workflows/ci.yml, railway.toml, scripts/start.sh, prisma/schema.prisma, or any .env
+- Upgrading, downgrading, replacing, or relocking a dependency (no npm update, no npm audit fix)
+- Bumping package.json "version"
+- Tagging a release, deploying to Oracle, or changing Railway
 
 ## Never
 
@@ -44,6 +48,9 @@ Branch for work: `experiment`. Ship notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.
 - Skip hooks unless the user explicitly asks
 - Invent App Store / offline PWA caching of bookings (stale Attend is unsafe)
 - Dump huge third-party rulebooks into **always-on** rules (on-demand skills under `.cursor/skills/` are fine when documented)
+- Dump the full AEP-001 manual into an always-on rule (the manual is docs/AEP-001-change-control.md)
+- Invent a develop branch or commit straight to main
+- Move, delete, or stage untracked videos/ or any other uncommitted work you did not create
 
 ## Verify (goal-driven)
 

@@ -1,0 +1,20 @@
+---
+description: Gather change control. Preserve working code, lock dependency versions, and ask before releases. Full manual is docs/AEP-001-change-control.md.
+alwaysApply: true
+---
+
+# Change control (fridge note)
+
+Preserve first. Inspect second. Plan third. Change only what the user asked for.
+
+Before editing: read the relevant files, check git status and branch, and name side effects. If the task or the tree is unclear, stop and ask.
+
+- Do not upgrade, downgrade, or replace dependencies. Do not run npm update or npm audit fix. Install from the lockfile with npm ci.
+- Ask before editing package.json, package-lock.json, .github/workflows/ci.yml, railway.toml, scripts/start.sh, prisma/schema.prisma, or any .env.
+- Do not bump package.json "version". It stays 1.0.0 until a human names a church release.
+- Work on experiment. Do not commit to main. Do not force-push. Do not touch uncommitted work you did not create (including videos/).
+- REL-YYYY-NNN is a release-batch envelope. It does not replace D-xxx or docs/CHANGELOG.md.
+- Do not tag, deploy to Oracle, or change Railway unless the user explicitly asks.
+- Commit, push, and open a PR only when the user asks.
+- On a consequential task, end with the completion report in docs/AEP-001-change-control.md.
+- Full manual: docs/AEP-001-change-control.md. Open it for a dependency change, a release, or a deploy.
