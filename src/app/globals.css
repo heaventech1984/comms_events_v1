@@ -2002,6 +2002,7 @@ table.data .members-check-col input[type="checkbox"] {
 .home-rise-3 { animation-delay: 120ms; }
 .home-rise-4 { animation-delay: 180ms; }
 .home-rise-5 { animation-delay: 240ms; }
+.home-rise-6 { animation-delay: 300ms; }
 
 @media (hover: hover) and (pointer: fine) {
   .home-event-row:hover {
@@ -2019,8 +2020,16 @@ table.data .members-check-col input[type="checkbox"] {
   .home-rise-2,
   .home-rise-3,
   .home-rise-4,
-  .home-rise-5 {
+  .home-rise-5,
+  .home-rise-6 {
     animation: none;
+  }
+  .feedback-mood,
+  .feedback-note-wrap {
+    transition: none;
+  }
+  .feedback-mood:active {
+    transform: none;
   }
   .home-event-row,
   .kind-circle-showcase {
@@ -2219,5 +2228,136 @@ table.data .members-check-col input[type="checkbox"] {
     align-items: center;
     min-height: 44px;
     padding: 0.15rem 0;
+  }
+}
+
+/* After-event feedback — rare, so a little motion is allowed. */
+.home-feedback-list {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.feedback-box {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--white) 86%, var(--paper-2));
+}
+.feedback-box-compact {
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.feedback-box-compact .feedback-kicker {
+  display: none;
+}
+.feedback-kicker {
+  margin: 0 0 var(--space-1);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.feedback-title {
+  margin: 0 0 var(--space-3);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.feedback-moods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+button.feedback-mood {
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 4.5rem;
+  padding: var(--space-3) var(--space-2);
+  border-radius: 18px;
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: none;
+  border: 1px solid var(--line);
+  font-weight: 700;
+  line-height: 1.15;
+  transition: transform 160ms ease-out, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+button.feedback-mood:active {
+  transform: scale(0.97);
+}
+button.feedback-mood[aria-pressed="true"] {
+  background: var(--accent-gradient);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 8px 18px var(--accent-glow);
+}
+.feedback-mood-label {
+  font-size: 0.92rem;
+}
+.feedback-mood-hint {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+button.feedback-mood[aria-pressed="true"] .feedback-mood-hint {
+  color: rgba(255, 255, 255, 0.86);
+}
+.feedback-note-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 250ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.feedback-note-wrap.is-open {
+  grid-template-rows: 1fr;
+}
+.feedback-note-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.feedback-note-label {
+  margin-top: var(--space-3);
+}
+.feedback-note {
+  min-height: 5rem;
+  resize: vertical;
+}
+.feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.feedback-thanks {
+  margin: 0;
+  font-weight: 700;
+  color: var(--ok);
+}
+.feedback-box-done {
+  background: color-mix(in srgb, var(--ok) 12%, var(--white));
+  border-color: color-mix(in srgb, var(--ok) 28%, var(--line));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button.feedback-mood:hover {
+    filter: none;
+    transform: none;
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  }
+  button.feedback-mood[aria-pressed="true"]:hover {
+    transform: none;
+    filter: brightness(1.03);
+  }
+}
+
+@media (max-width: 520px) {
+  button.feedback-mood {
+    min-height: 4.25rem;
+    padding: var(--space-2);
+  }
+  .feedback-mood-label {
+    font-size: 0.82rem;
   }
 }

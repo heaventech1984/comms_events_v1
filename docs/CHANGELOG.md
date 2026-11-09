@@ -17,6 +17,11 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-09 — For you + after-event feedback
+
+- Home **For you**: suggests upcoming events from what this person booked and what they marked as attended. Neighbouring types (e.g. Networking ~ Professional) and close title spellings count. No cloud AI.
+- After **I went**: a three-choice “How was it?” box (Loved it / It was fine / Not for me) plus an optional private note. Feeds the next suggestions. Audit stores the rating, not the comment.
+
 ## 2026-11-09 — Scraper quality vNext (geo + category review)
 
 - Birmingham / West Midlands **geo filter** after live harvest ([`geo.ts`](../src/lib/scraper/geo.ts)); far Allevents cities dropped from the pack.

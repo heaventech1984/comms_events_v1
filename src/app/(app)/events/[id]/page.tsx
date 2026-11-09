@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CategoryThumb } from "@/components/CategoryThumb";
 import { EventActions, RemoveAttendeeButton } from "@/components/EventActions";
+import { EventFeedbackBox } from "@/components/EventFeedbackBox";
 import { EventMap } from "@/components/EventMap";
 import { requireUser, canReview } from "@/lib/auth";
 import { categoryAccentStyle } from "@/lib/category-art";
@@ -48,6 +49,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const canRemoveAttendees = user.role === "admin" || user.role === "cell leader";
   const canCancel = !!myBooking; // policy: own cancel anytime
   const canConfirmOwn = !!myBooking && past && myBooking.attendance === "UNCONFIRMED";
+  const existingFeedback =
+    myBooking?.attendance === "ATTENDED"
+      ? await prisma.eventFeedback.findUnique({
+          where: { userId_eventId: { userId: user.id, eventId: event.id } }
+        })
+      : null;
+  const showFeedback = past && myBooking?.attendance === "ATTENDED" && !existingFeedback;
 
   return (
     <main className="stack">
@@ -125,6 +133,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           canConfirmOwn={canConfirmOwn}
           past={past}
         />
+        {showFeedback ? <EventFeedbackBox eventId={event.id} eventTitle={event.title} /> : null}
+        {existingFeedback ? (
+          <p className="muted" data-testid="event-feedback-saved">
+            You already told us how this one felt.
+          </p>
+        ) : null}
       </section>
       {event.lat != null && event.lng != null ? (
         <section className="card map-card">

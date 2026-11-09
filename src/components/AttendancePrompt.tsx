@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { requestJson } from "@/lib/fetch-json";
+import { EventFeedbackBox } from "./EventFeedbackBox";
 import { StatusBanner } from "./StatusBanner";
 
-type Item = { id: string; title: string; when: string };
+type Item = { id: string; eventId: string; title: string; when: string };
 
 const SNOOZE_KEY = "gather-attendance-snooze";
 
@@ -12,6 +13,7 @@ export function AttendancePrompt() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackFor, setFeedbackFor] = useState<Item | null>(null);
   const first = useRef<HTMLButtonElement>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -78,16 +80,25 @@ export function AttendancePrompt() {
 
   if (!open || !items?.length) return null;
 
-  async function mark(id: string, attendance: "ATTENDED" | "ABSENT") {
-    const result = await requestJson("/api/attendance", { method: "POST", body: { bookingId: id, attendance } });
+  function dropItem(id: string) {
+    const next = (items ?? []).filter((item) => item.id !== id);
+    setItems(next);
+    setFeedbackFor(null);
+    if (next.length === 0) close();
+  }
+
+  async function mark(item: Item, attendance: "ATTENDED" | "ABSENT") {
+    const result = await requestJson("/api/attendance", { method: "POST", body: { bookingId: item.id, attendance } });
     if (!result.ok) {
       setError(result.error);
       return;
     }
     setError(null);
-    const next = (items ?? []).filter((item) => item.id !== id);
-    setItems(next);
-    if (next.length === 0) close();
+    if (attendance === "ATTENDED") {
+      setFeedbackFor(item);
+      return;
+    }
+    dropItem(item.id);
   }
 
   return (
@@ -99,26 +110,42 @@ export function AttendancePrompt() {
         aria-modal="true"
         aria-labelledby="attend-title"
       >
-        <h2 id="attend-title">Did you go?</h2>
-        <p className="muted">These events have finished. Confirming helps your cell leader keep records.</p>
+        <h2 id="attend-title">{feedbackFor ? "How was it?" : "Did you go?"}</h2>
+        <p className="muted">
+          {feedbackFor
+            ? "A tap here shapes what we suggest next. Skip if you’d rather not say."
+            : "These events have finished. Confirming helps your cell leader keep records."}
+        </p>
         <StatusBanner message={error} kind="error" />
         <div className="stack">
-          {items.map((item, index) => (
+          {(feedbackFor ? [feedbackFor] : items).map((item, index) => (
             <div key={item.id}>
-              <strong>{item.title}</strong>
-              <p className="muted">{item.when}</p>
-              <div className="dialog-actions">
-                <button
-                  ref={index === 0 ? first : undefined}
-                  type="button"
-                  onClick={() => mark(item.id, "ATTENDED")}
-                >
-                  Attended
-                </button>
-                <button className="secondary" type="button" onClick={() => mark(item.id, "ABSENT")}>
-                  Didn’t attend
-                </button>
-              </div>
+              {feedbackFor?.id === item.id ? (
+                <EventFeedbackBox
+                  eventId={item.eventId}
+                  eventTitle={item.title}
+                  compact
+                  onSaved={() => dropItem(item.id)}
+                  onSkip={() => dropItem(item.id)}
+                />
+              ) : (
+                <>
+                  <strong>{item.title}</strong>
+                  <p className="muted">{item.when}</p>
+                  <div className="dialog-actions">
+                    <button
+                      ref={index === 0 ? first : undefined}
+                      type="button"
+                      onClick={() => mark(item, "ATTENDED")}
+                    >
+                      Attended
+                    </button>
+                    <button className="secondary" type="button" onClick={() => mark(item, "ABSENT")}>
+                      Didn’t attend
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

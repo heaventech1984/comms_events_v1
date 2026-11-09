@@ -28,6 +28,18 @@ export function parseMemberAttendeeView(value: unknown): MemberAttendeeView {
   return MEMBER_ATTENDEE_VIEWS.includes(value as MemberAttendeeView) ? (value as MemberAttendeeView) : "COUNT";
 }
 
+/** How a person felt after an event they went to. Private to them. */
+export const FEEDBACK_RATINGS = ["LOVED", "OK", "NOT_FOR_ME"] as const;
+export type FeedbackRating = (typeof FEEDBACK_RATINGS)[number];
+
+export function parseFeedbackRating(value: unknown): FeedbackRating | null {
+  return FEEDBACK_RATINGS.includes(value as FeedbackRating) ? (value as FeedbackRating) : null;
+}
+
+export function parseCategory(value: unknown): Category | null {
+  return CATEGORIES.includes(value as Category) ? (value as Category) : null;
+}
+
 export const SESSION_COOKIE = "gather_session";
 export const SESSION_HOURS = 12;
 export const GENERIC_LOGIN_ERROR = "Cell number or password is not recognised.";

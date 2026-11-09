@@ -8,6 +8,7 @@ test.describe("member paths", () => {
     await dismissAttendancePrompt(page);
     await expect(page.getByTestId("home-dashboard")).toBeVisible();
     await expect(page.getByTestId("home-upcoming")).toBeVisible();
+    await expect(page.getByTestId("home-for-you")).toBeVisible();
     await expect(page.getByTestId("home-confirm")).toBeVisible();
     await expect(page.getByTestId("home-new")).toBeVisible();
 

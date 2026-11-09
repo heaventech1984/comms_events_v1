@@ -3,10 +3,11 @@ import { prisma } from "./db";
 import { writeAudit } from "./audit";
 import { LIMITS } from "./security";
 
-/** Same cascade as single-person delete: bookings, stars; null event/audit links; then user row. */
+/** Same cascade as single-person delete: bookings, stars, feedback; null event/audit links; then user row. */
 export async function purgeUserInTx(tx: Prisma.TransactionClient, id: string) {
   await tx.booking.deleteMany({ where: { OR: [{ userId: id }, { bookedById: id }] } });
   await tx.star.deleteMany({ where: { userId: id } });
+  await tx.eventFeedback.deleteMany({ where: { userId: id } });
   await tx.event.updateMany({ where: { createdById: id }, data: { createdById: null } });
   await tx.event.updateMany({ where: { reviewedById: id }, data: { reviewedById: null } });
   await tx.auditLog.updateMany({ where: { actorId: id }, data: { actorId: null } });

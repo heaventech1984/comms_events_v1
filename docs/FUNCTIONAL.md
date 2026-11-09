@@ -39,6 +39,8 @@ Applied: 17 October 2026, `experiment` branch. Live smoke on https://commsevents
 | What it does | Who | Agreed by | Why |
 | --- | --- | --- | --- |
 | Attend records intent. Confirm later that they went. Stars are a bookmark, dropped after the event. | Member | Reply [q] | Three different acts. |
+| Home **For you** suggests upcoming events from this person’s bookings and attended events, using neighbouring types and close title match. | Member | Awaiting sign-off | Personal taste without a cloud model. |
+| After marking they went: Loved it / It was fine / Not for me, optional private note. | Member | Awaiting sign-off | Shapes later suggestions. Comment is not shown to other members. |
 | Cell leader books a member of their own cell. Capacity is checked; last place is locked. | Cell leader | F04; review 17 Oct | One booking per person per event; no double-take of the last seat. |
 | Members see count, initials, or name + cell, as the admin sets. Default count only. | Member | Reply [e]; Guillaume 16 Oct G1 | Privacy toggle. Name + cell is a deliberate admin choice. |
 | Exports of one event’s attendees, or all published events in a date range (CSV or Excel). Admin everyone; cell leader own cell on attendee files; members 403. | Admin, cell leader | F07; tester 17 Oct evening | Reporting. |

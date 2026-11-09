@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { EventFeedbackBox } from "@/components/EventFeedbackBox";
 import { GatherMark } from "@/components/GatherMark";
 import { KindChooser } from "@/components/KindChooser";
 import { addDaysKey, dayKeyOf } from "@/lib/calendar";
+import { eventsNeedingFeedback } from "@/lib/feedback";
 import { prisma } from "@/lib/db";
+import { loadRecommendations } from "@/lib/recommend";
 import { formatDateTime, formatTime, londonDate, londonParts } from "@/lib/time";
 
 const monthShort = new Intl.DateTimeFormat("en-GB", {
@@ -86,6 +89,10 @@ export async function HomeDashboard({ userId }: { userId: string }) {
     orderBy: { event: { startsAt: "desc" } },
     take: 10
   });
+  const [picks, needingFeedback] = await Promise.all([
+    loadRecommendations(userId, now),
+    eventsNeedingFeedback(userId, now)
+  ]);
 
   const since = user.previousLoginAt;
   const newEvents = since
@@ -159,8 +166,38 @@ export async function HomeDashboard({ userId }: { userId: string }) {
         )}
       </section>
 
+      <section className="home-band home-rise home-rise-3" aria-labelledby="home-for-you" data-testid="home-for-you">
+        <p className="home-eyebrow">From what you book and go to</p>
+        <h2 id="home-for-you" className="home-band-title">
+          For you
+        </h2>
+        {picks.length === 0 ? (
+          <div className="home-empty">
+            <p>Book or go to an event — similar ones will land here.</p>
+          </div>
+        ) : (
+          <ul className="home-event-list">
+            {picks.map((event) => (
+              <li key={event.id}>
+                <Link className="home-event-row" href={`/events/${event.id}`}>
+                  <span className="home-event-date" aria-hidden="true">
+                    <span className="home-event-month">{monthShort.format(event.startsAt)}</span>
+                    <span className="home-event-day">{londonParts(event.startsAt).day}</span>
+                    <span className="home-event-weekday">{weekdayShort.format(event.startsAt)}</span>
+                  </span>
+                  <span className="home-event-body">
+                    <span className="home-event-title">{event.title}</span>
+                    <span className="home-event-meta">{event.reason}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section
-        className="home-band home-rise home-rise-3"
+        className="home-band home-rise home-rise-4"
         aria-labelledby="home-confirm-heading"
         data-testid="home-confirm"
         id="home-confirm"
@@ -169,25 +206,36 @@ export async function HomeDashboard({ userId }: { userId: string }) {
         <h2 id="home-confirm-heading" className="home-band-title">
           Confirm attendance
         </h2>
-        {toConfirm.length === 0 ? (
+        {toConfirm.length === 0 && needingFeedback.length === 0 ? (
           <div className="home-empty">
             <p>You’re all caught up.</p>
           </div>
         ) : (
-          <ul className="home-simple-list">
-            {toConfirm.map((b) => (
-              <li key={b.id}>
-                <Link href={`/events/${b.event.id}`}>
-                  <span className="home-simple-title">{b.event.title}</span>
-                  <span className="home-simple-meta">{formatDateTime(b.event.startsAt)}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <>
+            {toConfirm.length ? (
+              <ul className="home-simple-list">
+                {toConfirm.map((b) => (
+                  <li key={b.id}>
+                    <Link href={`/events/${b.event.id}`}>
+                      <span className="home-simple-title">{b.event.title}</span>
+                      <span className="home-simple-meta">{formatDateTime(b.event.startsAt)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {needingFeedback.length ? (
+              <div className="home-feedback-list" data-testid="home-feedback">
+                {needingFeedback.map((b) => (
+                  <EventFeedbackBox key={b.id} eventId={b.event.id} eventTitle={b.event.title} />
+                ))}
+              </div>
+            ) : null}
+          </>
         )}
       </section>
 
-      <section className="home-band home-rise home-rise-4" aria-labelledby="home-new" data-testid="home-new">
+      <section className="home-band home-rise home-rise-5" aria-labelledby="home-new" data-testid="home-new">
         <p className="home-eyebrow">Since you were last here</p>
         <h2 id="home-new" className="home-band-title">
           New on the calendar
@@ -214,7 +262,7 @@ export async function HomeDashboard({ userId }: { userId: string }) {
         )}
       </section>
 
-      <section className="home-kinds home-rise home-rise-5" aria-labelledby="home-kinds">
+      <section className="home-kinds home-rise home-rise-6" aria-labelledby="home-kinds">
         <p className="home-eyebrow">Explore</p>
         <h2 id="home-kinds" className="home-band-title">
           Browse by type

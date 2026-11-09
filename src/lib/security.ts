@@ -60,5 +60,6 @@ export const LIMITS = {
   titleLength: 200,
   placeLength: 200,
   textLength: 5000,
+  feedbackComment: 400,
   passwordMax: 128
 } as const;

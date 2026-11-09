@@ -2,6 +2,14 @@
 
 Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October are a closed community demo, not an NHS production system. The 28 October section is the later read.
 
+## 9 November 2026 — For you + after-event feedback
+
+| Sev | Item | Status |
+| --- | --- | --- |
+| — | Personal suggestions from booked + attended events, close types and spellings | **Shipped** — Home **For you**. Local matching only (no cloud AI). Loved / not-for-me ratings nudge the list. |
+| — | After-event note | **Shipped** — three-choice box after **I went** (dialog, Home, event page). Comment private; audit has the rating only. |
+| Med | True meaning-match (e.g. “quiet worship” ≈ Christian with no shared words) | **Open** — would need a paid embedding model. Current matcher uses types + words. |
+
 ## 7 November 2026 — Batch member delete + past pending
 
 | Sev | Item | Status |

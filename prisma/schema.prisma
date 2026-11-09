@@ -29,6 +29,7 @@ model User {
   stars        Star[]
   createdEvents Event[]  @relation("EventCreatedBy")
   reviewedEvents Event[] @relation("EventReviewedBy")
+  feedbacks    EventFeedback[]
   auditLogs    AuditLog[]
 
   @@index([cellNumber])
@@ -80,6 +81,7 @@ model Event {
   reviewedBy       User?     @relation("EventReviewedBy", fields: [reviewedById], references: [id])
   bookings         Booking[]
   stars            Star[]
+  feedbacks        EventFeedback[]
 }
 
 model Booking {
@@ -105,6 +107,22 @@ model Star {
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
+}
+
+/** Private after-event note. Rating is LOVED / OK / NOT_FOR_ME. Comment is never shown to other members. */
+model EventFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  rating    String
+  comment   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([userId])
 }
 
 model Settings {
