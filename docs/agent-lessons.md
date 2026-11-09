@@ -4,6 +4,7 @@ One mistake → one rule. Newest first. Keep lines short.
 
 | Date | Mistake | Rule to prevent it |
 | --- | --- | --- |
+| 2026-11-09 | Front-door notes assumed a programmer and used shortened jargon | Write the read-me for someone who has never made software. Define each specialist word in the same breath. Do not rely on acronyms. |
 | 2026-11-09 | Walked the critic on Railway after Oracle was already home | Product walks and UX critique go to https://132.145.68.166.sslip.io (`experiment`). Railway is a frozen Postgres spare until the Ubuntu gate says stop. |
 | 2026-11-09 | Stakeholder asked for “scrape the whole internet” like ChatGPT | Keep allowlist + discovery pack. Treat Priority URLs as extras on top of the pack. Say clearly we do not open-crawl; widen pack only with probe + ask. |
 | 2026-11-04 | Central GitHub password shared in Telegram/chat for demo transfer | Never write central account passwords, recovery codes, or private keys into the repo, tutorials, commits, or tool calls. Note only public `ORG` / username on the project card. Tell the owner to change the password if it was sent in chat. Agents do not log into that account. |

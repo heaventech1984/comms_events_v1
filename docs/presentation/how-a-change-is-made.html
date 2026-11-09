@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>How a Gather change is written down</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #3d2a2c; }
+    .slide {
+      width: 1280px;
+      height: 720px;
+      background: #fdf2f0;
+      color: #3d2a2c;
+      padding: 72px 88px 64px;
+      display: none;
+      flex-direction: column;
+      font-family: "Iowan Old Style", Palatino, Georgia, serif;
+    }
+    .slide.on { display: flex; }
+    .kicker {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 18px;
+      color: #a8434d;
+      font-weight: 600;
+    }
+    h1 {
+      font-size: 68px;
+      line-height: 1.08;
+      font-weight: 600;
+      margin-top: 28px;
+      max-width: 1040px;
+    }
+    ul {
+      margin-top: 36px;
+      list-style: none;
+      max-width: 1000px;
+    }
+    li {
+      font-size: 34px;
+      line-height: 1.35;
+      margin: 0 0 18px;
+      padding-left: 28px;
+      position: relative;
+    }
+    li::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #a8434d;
+      position: absolute;
+      left: 0;
+      top: 0.45em;
+    }
+    .foot {
+      margin-top: auto;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-size: 20px;
+      color: #7a6266;
+    }
+  </style>
+</head>
+<body>
+  <section class="slide" id="s1">
+    <p class="kicker">Gather</p>
+    <h1>How a change is written down</h1>
+    <ul>
+      <li>For anyone looking after this app.</li>
+      <li>You do not need to have made software before.</li>
+      <li>A private calendar for one Birmingham community.</li>
+    </ul>
+    <p class="foot">Read the project read-me next to this film.</p>
+  </section>
+  <section class="slide" id="s2">
+    <p class="kicker">First</p>
+    <h1>Words go on a board before anyone changes the program.</h1>
+    <ul>
+      <li>A wish is one piece of paper.</li>
+      <li>A broken thing today is a repair.</li>
+      <li>An agreed rule is a different board again.</li>
+    </ul>
+    <p class="foot">Put the words in the right note. Then stop, unless someone asked you to build.</p>
+  </section>
+  <section class="slide" id="s3">
+    <p class="kicker">Which board</p>
+    <h1>Four places new words can go.</h1>
+    <ul>
+      <li>An idea for later goes on the wish list.</li>
+      <li>Something broken today is a repair.</li>
+      <li>A change already being checked gets a comment.</li>
+      <li>A rule the team has agreed goes in the decisions note.</li>
+    </ul>
+    <p class="foot">The read-me names the file for each one.</p>
+  </section>
+  <section class="slide" id="s4">
+    <p class="kicker">When it ships</p>
+    <h1>Write what went out. Then move the wish.</h1>
+    <ul>
+      <li>The dated ship notes say what the demo gained.</li>
+      <li>Then the wish moves to the built list, with a link back.</li>
+      <li>The wish list is not a pile of work you start alone.</li>
+    </ul>
+    <p class="foot">Leaders can also type a note on the Feedback page. An admin copies the row that counts.</p>
+  </section>
+  <section class="slide" id="s5">
+    <p class="kicker">Making the change</p>
+    <h1>Small steps, on the working line.</h1>
+    <ul>
+      <li>Bring in other people’s latest pages first.</li>
+      <li>Stay on the line called experiment.</li>
+      <li>Change as little as you can. Run the two checks.</li>
+      <li>Save and share only when a person asks.</li>
+    </ul>
+    <p class="foot">Picture guides cover the first day, saving, and reading someone else’s change.</p>
+  </section>
+  <section class="slide" id="s6">
+    <p class="kicker">Ask first</p>
+    <h1>Some files need a yes before you touch them.</h1>
+    <ul>
+      <li>The private settings file, and real people’s details, stay off the shared shelf.</li>
+      <li>The shape of the database, and the version number, wait for a person.</li>
+      <li>The live walk is the Oracle address. Leave the Railway spare as it is.</li>
+    </ul>
+    <p class="foot">The full ask-first list is in the read-me.</p>
+  </section>
+  <section class="slide" id="s7">
+    <p class="kicker">You can stop</p>
+    <h1>Open one note. Do that one thing.</h1>
+    <ul>
+      <li>You do not have to learn the whole program today.</li>
+      <li>The read-me is the map. Each step has a link.</li>
+      <li>The film is the same path, spoken once.</li>
+    </ul>
+    <p class="foot">Gather · Birmingham community events</p>
+  </section>
+  <script>
+    const n = new URLSearchParams(location.search).get("slide") || "1";
+    const el = document.getElementById("s" + n);
+    if (el) el.classList.add("on");
+  </script>
+</body>
+</html>
