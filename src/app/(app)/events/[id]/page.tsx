@@ -12,12 +12,21 @@ import { prisma } from "@/lib/db";
 import { initialsFromName } from "@/lib/initials";
 import { getSettings } from "@/lib/settings";
 import { attendanceChipClass, attendanceLabel } from "@/lib/attendance-label";
+import { calendarBackHref } from "@/lib/calendar";
 import { formatWhereLine, tidyOrgName } from "@/lib/place";
 import { formatDateTimeRange } from "@/lib/time";
 
-export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EventPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
   const user = await requireUser();
   const { id } = await params;
+  const { from } = await searchParams;
+  const backHref = calendarBackHref(from);
   const settings = await getSettings();
   const event = await prisma.event.findUnique({
     where: { id },
@@ -66,7 +75,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   return (
     <main className="stack">
       <p>
-        <Link href="/calendar">Back to calendar</Link>
+        <Link href={backHref}>Back to calendar</Link>
       </p>
       <div
         className="page-head event-hero card"

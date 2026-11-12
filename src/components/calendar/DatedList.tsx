@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { CategoryThumb } from "@/components/CategoryThumb";
 import { categoryAccentStyle } from "@/lib/category-art";
-import { dayKeyOf, formatDayKey, formatDayLabel, sameDayKey, type CalendarView, type DayKey } from "@/lib/calendar";
+import {
+  dayKeyOf,
+  eventFromCalendarHref,
+  formatDayKey,
+  formatDayLabel,
+  sameDayKey,
+  type CalendarView,
+  type DayKey
+} from "@/lib/calendar";
 import { formatWhereLine } from "@/lib/place";
 import { formatTime } from "@/lib/time";
 
@@ -21,7 +29,8 @@ export function DatedList({
   colours,
   view,
   canAdd,
-  starredIds
+  starredIds,
+  returnTo
 }: {
   days: DayKey[];
   today: DayKey;
@@ -30,6 +39,7 @@ export function DatedList({
   view: CalendarView;
   canAdd?: boolean;
   starredIds?: Set<string>;
+  returnTo: string;
 }) {
   const hasAny = events.length > 0;
   const daysWithEvents = days.filter((day) => events.some((e) => sameDayKey(dayKeyOf(e.startsAt), day)));
@@ -62,7 +72,7 @@ export function DatedList({
                 <Link
                   key={event.id}
                   className="card event-card"
-                  href={`/events/${event.id}`}
+                  href={eventFromCalendarHref(event.id, returnTo)}
                   style={categoryAccentStyle(colours[event.category])}
                 >
                   <CategoryThumb category={event.category} size="md" />

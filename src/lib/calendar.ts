@@ -1,4 +1,5 @@
 import { CATEGORIES, type Category } from "./constants";
+import { safeNextPath } from "./security";
 import { londonDate, londonParts } from "./time";
 
 export type CalendarView = "month" | "week" | "day" | "list";
@@ -137,7 +138,7 @@ export function rangeFor(view: CalendarView, anchor: DayKey): CalendarRange {
     first = anchor;
     count = 1;
   } else if (view === "week" || view === "list") {
-    first = mondayOf(anchor);
+    first = anchor;
     count = 7;
   } else {
     first = mondayOf({ year: anchor.year, month: anchor.month, day: 1 });
@@ -174,6 +175,21 @@ export function calendarHref(state: CalendarState, overrides: CalendarOverrides 
   return `/calendar?${sp.toString()}`;
 }
 
+/** Event opened from the calendar. `from` is the calendar address to return to. */
+export function eventFromCalendarHref(eventId: string, calendarPath: string): string {
+  return `/events/${eventId}?from=${encodeURIComponent(calendarPath)}`;
+}
+
+/**
+ * Back to calendar. Only a same-site /calendar path is kept. Anything else
+ * (another page, a full web address) becomes the plain calendar.
+ */
+export function calendarBackHref(from: string | null | undefined): string {
+  const safe = safeNextPath(from, "/calendar");
+  if (safe === "/calendar" || safe.startsWith("/calendar?")) return safe;
+  return "/calendar";
+}
+
 const monthYear = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 const dayMonthYear = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const weekdayName = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" });
@@ -186,8 +202,7 @@ export function formatDayLabel(key: DayKey): string {
 export function rangeLabel(view: CalendarView, anchor: DayKey): string {
   if (view === "day") return formatDayLabel(anchor);
   if (view === "month") return monthYear.format(utcNoon(anchor));
-  // week and list share a Monday–Sunday window
-  const start = mondayOf(anchor);
+  const start = anchor;
   const end = addDaysKey(start, 6);
   if (start.year === end.year && start.month === end.month) {
     return `${start.day} to ${dayMonthYear.format(utcNoon(end))}`;

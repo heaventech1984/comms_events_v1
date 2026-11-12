@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { categoryAccentStyle } from "@/lib/category-art";
 import {
   dayKeyOf,
+  eventFromCalendarHref,
   formatDayKey,
   formatDayLabel,
   sameDayKey,
@@ -13,7 +14,7 @@ import {
 import { formatWhereLine } from "@/lib/place";
 import { formatTime, londonParts } from "@/lib/time";
 
-const HOUR_START = 7;
+const HOUR_START = 8;
 const HOUR_END = 21;
 const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
 /** Dense Apple-like rows — readable blocks without towering empty hours. */
@@ -95,7 +96,8 @@ export function WeekTimeGrid({
   events,
   colours,
   canAdd,
-  starredIds
+  starredIds,
+  returnTo
 }: {
   days: DayKey[];
   today: DayKey;
@@ -103,6 +105,7 @@ export function WeekTimeGrid({
   colours: Record<string, string>;
   canAdd?: boolean;
   starredIds?: Set<string>;
+  returnTo: string;
 }) {
   const router = useRouter();
   const weekdayShort = new Intl.DateTimeFormat("en-GB", {
@@ -184,7 +187,7 @@ export function WeekTimeGrid({
                   return (
                     <Link
                       key={event.id}
-                      href={`/events/${event.id}`}
+                      href={eventFromCalendarHref(event.id, returnTo)}
                       className="week-time-event"
                       title={`${startLabel}–${endLabel} ${event.title}`}
                       style={{

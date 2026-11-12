@@ -1,11 +1,13 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { GatherMark } from "@/components/GatherMark";
 import { requireUser, canReview } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { CATEGORIES } from "@/lib/constants";
-import { dayKeyOf, parseCalendarParams, rangeFor, type CalendarParams } from "@/lib/calendar";
+import { calendarHref, dayKeyOf, eventFromCalendarHref, parseCalendarParams, rangeFor, type CalendarParams } from "@/lib/calendar";
 import { CalendarMapSection } from "@/components/calendar/CalendarMapSection";
+import { CalendarScrollMemory } from "@/components/calendar/CalendarScrollMemory";
 import { FilterBar } from "@/components/calendar/FilterBar";
 import { RangeNav } from "@/components/calendar/RangeNav";
 import { MonthGrid } from "@/components/calendar/MonthGrid";
@@ -18,6 +20,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const settings = await getSettings();
   const today = dayKeyOf(new Date());
   const state = parseCalendarParams(await searchParams, today);
+  const returnTo = calendarHref(state);
   const range = rangeFor(state.view, state.anchor);
   const enabledCategories = CATEGORIES.filter((c) => settings.enabled[c]);
 
@@ -80,7 +83,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <p className="muted starred-strip-lede">Events you starred — open one to Attend.</p>
           <div className="list">
             {stars.map((star) => (
-              <Link key={star.id} href={`/events/${star.event.id}`}>
+              <Link key={star.id} href={eventFromCalendarHref(star.event.id, returnTo)}>
                 {star.event.title}
               </Link>
             ))}
@@ -109,6 +112,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               colours={settings.colours}
               canAdd={canReview(user)}
               starredIds={starredIds}
+              returnTo={returnTo}
             />
           </div>
         ) : state.view === "list" ? (
@@ -120,6 +124,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             view="list"
             canAdd={canReview(user)}
             starredIds={starredIds}
+            returnTo={returnTo}
           />
         ) : (
           <WeekTimeGrid
@@ -129,11 +134,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             starredIds={starredIds}
             colours={settings.colours}
             events={gridEvents}
+            returnTo={returnTo}
           />
         )}
       </section>
 
       <CalendarMapSection pins={pins} />
+      <Suspense fallback={null}>
+        <CalendarScrollMemory />
+      </Suspense>
     </main>
   );
 }

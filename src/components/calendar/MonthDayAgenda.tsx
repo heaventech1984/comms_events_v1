@@ -3,6 +3,7 @@ import { CategoryThumb } from "@/components/CategoryThumb";
 import { categoryAccentStyle } from "@/lib/category-art";
 import {
   dayKeyOf,
+  eventFromCalendarHref,
   formatDayKey,
   formatDayLabel,
   sameDayKey,
@@ -27,7 +28,8 @@ export function MonthDayAgenda({
   events,
   colours,
   canAdd,
-  starredIds
+  starredIds,
+  returnTo
 }: {
   day: DayKey;
   today: DayKey;
@@ -35,6 +37,7 @@ export function MonthDayAgenda({
   colours: Record<string, string>;
   canAdd?: boolean;
   starredIds?: Set<string>;
+  returnTo: string;
 }) {
   const dayEvents = events
     .filter((e) => sameDayKey(dayKeyOf(e.startsAt), day))
@@ -59,7 +62,7 @@ export function MonthDayAgenda({
             <Link
               key={event.id}
               className="card event-card"
-              href={`/events/${event.id}`}
+              href={eventFromCalendarHref(event.id, returnTo)}
               style={categoryAccentStyle(colours[event.category])}
             >
               <CategoryThumb category={event.category} size="md" />

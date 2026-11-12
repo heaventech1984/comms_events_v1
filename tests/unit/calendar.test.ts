@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   addDaysKey,
+  calendarBackHref,
   calendarHref,
   dayKeyOf,
+  eventFromCalendarHref,
   formatDayKey,
   parseCalendarParams,
   parseDayKey,
@@ -68,18 +70,19 @@ describe("rangeFor — regression: day and week views were pinned to the 1st of 
     expect(range.to.toISOString()).toBe("2026-10-17T23:00:00.000Z");
   });
 
-  it("week and list views are Monday to Sunday around the anchor", () => {
+  it("week and list views start on the anchor and run seven days", () => {
     const week = rangeFor("week", today);
     const list = rangeFor("list", today);
-    expect(week.days[0]).toEqual({ year: 2026, month: 10, day: 12 });
-    expect(week.days[6]).toEqual({ year: 2026, month: 10, day: 18 });
+    expect(week.days[0]).toEqual(today);
+    expect(week.days[6]).toEqual({ year: 2026, month: 10, day: 23 });
     expect(list.days).toEqual(week.days);
   });
 
   it("handles the clocks going back on Sunday 25 October 2026", () => {
     const week = rangeFor("week", { year: 2026, month: 10, day: 25 });
-    expect(week.from.toISOString()).toBe("2026-10-18T23:00:00.000Z");
-    expect(week.to.toISOString()).toBe("2026-10-26T00:00:00.000Z");
+    expect(week.days[0]).toEqual({ year: 2026, month: 10, day: 25 });
+    expect(week.from.toISOString()).toBe("2026-10-24T23:00:00.000Z");
+    expect(week.to.toISOString()).toBe("2026-11-01T00:00:00.000Z");
     const day = rangeFor("day", { year: 2026, month: 10, day: 25 });
     expect(day.to.getTime() - day.from.getTime()).toBe(25 * 60 * 60 * 1000);
   });
@@ -123,6 +126,16 @@ describe("calendarHref — regression: 'All types' kept the selected type", () =
     expect(calendarHref(state, { format: "" })).toBe("/calendar?view=week&types=Christian&d=2026-10-17");
   });
 
+  it("keeps a calendar return path and drops anything else", () => {
+    const back = "/calendar?view=list&d=2026-10-17";
+    expect(eventFromCalendarHref("evt-1", back)).toBe(`/events/evt-1?from=${encodeURIComponent(back)}`);
+    expect(calendarBackHref(back)).toBe(back);
+    expect(calendarBackHref("/calendar")).toBe("/calendar");
+    expect(calendarBackHref("https://example.com")).toBe("/calendar");
+    expect(calendarBackHref("/members")).toBe("/calendar");
+    expect(calendarBackHref(undefined)).toBe("/calendar");
+  });
+
   it("switching view keeps filters and date", () => {
     expect(calendarHref(state, { view: "day" })).toBe(
       "/calendar?view=day&types=Christian&format=online&d=2026-10-17"
@@ -160,9 +173,9 @@ describe("helpers", () => {
 
   it("labels ranges", () => {
     expect(rangeLabel("day", today)).toBe("Saturday 17 October 2026");
-    expect(rangeLabel("week", today)).toBe("12 to 18 October 2026");
-    expect(rangeLabel("list", today)).toBe("12 to 18 October 2026");
-    expect(rangeLabel("week", { year: 2026, month: 10, day: 28 })).toBe("26 October 2026 to 1 November 2026");
+    expect(rangeLabel("week", today)).toBe("17 to 23 October 2026");
+    expect(rangeLabel("list", today)).toBe("17 to 23 October 2026");
+    expect(rangeLabel("week", { year: 2026, month: 10, day: 28 })).toBe("28 October 2026 to 3 November 2026");
     expect(rangeLabel("month", today)).toBe("October 2026");
   });
 });
