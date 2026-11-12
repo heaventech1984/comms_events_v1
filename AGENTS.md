@@ -25,6 +25,7 @@ Branch for work: `experiment`. Ship notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.
 - Follow [`.cursor/rules/teach-an.mdc`](.cursor/rules/teach-an.mdc) (plain teaching) and [`.cursor/rules/karpathy-guidelines.mdc`](.cursor/rules/karpathy-guidelines.mdc) (simple, surgical, verify).
 - Prefer existing patterns in `src/`; soft blush / berry tokens in `src/app/globals.css` (`--paper`, `--accent-gradient`, `--accent` / `--terracotta` alias, `--sage` / `--gold`).
 - After non-trivial code changes: `npm test` and `npm run typecheck`.
+- The scraper’s type tool must not label an event Christian, or any other type, from a search page or feed URL alone. The title has to agree. Pending cards only have Approve and Discard. A doubtful type is a flag for the event page later.
 - On **auth**, **export**, or **import** changes: run Cursor **`/review-security`** before calling the work done.
 - After a human correction: add one line to [`docs/agent-lessons.md`](docs/agent-lessons.md).
 - Wishes with no request to build: append one Open row in [`docs/desirables.md`](docs/desirables.md) with the next **D-** id; bump **Next D** at the top. Use a pull-request comment if a change is already in flight. When a wish ships (human or explicit ask): move the row to [`docs/built_features.md`](docs/built_features.md) with a CHANGELOG **Proof** link; do not bulk-import CHANGELOG. Commits/PRs for wish work should reference **D-xxx** when implementing that wish. Do not implement from desirables unless asked.

@@ -123,7 +123,7 @@ function decorate(events: ScrapedEvent[], pageUrl: string): ScrapedEvent[] {
       placeName: tidyPlaceName(event.placeName),
       notes,
       fetchedFrom: event.fetchedFrom ?? pageUrl,
-      // Strong only skips human type review; weak/none stay pending for admin eyes.
+      // Strong skips the later flag. Weak and unknown stay flagged. The card still only has Approve and Discard.
       needsTypeReview: inferred.strength !== "strong"
     };
   });

@@ -209,7 +209,10 @@ function PendingTileCard({
 
       <Link className="pending-tile-link" href={`/events/${event.id}/edit`}>
         <div className="pending-tile-top">
-          <p className="pending-kicker muted">
+          <p
+            className="pending-kicker muted"
+            title={event.needsType ? "Type is not certain yet. Set it on the event page when you are ready." : undefined}
+          >
             {event.needsType ? "Needs type" : event.updated ? "Updated" : "New"}
           </p>
           <span className="pending-cat">
@@ -253,12 +256,7 @@ function PendingTileCard({
         {event.externalUrl ? <p className="muted">{eventLinkLabel(event.externalUrl)}</p> : null}
       </div>
 
-      <PendingTileActions
-        eventId={event.id}
-        title={event.title}
-        category={category}
-        needsTypeReview={event.needsType}
-      />
+      <PendingTileActions eventId={event.id} title={event.title} />
     </article>
   );
 }

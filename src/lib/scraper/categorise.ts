@@ -122,11 +122,17 @@ function keywordCategory(title: string, organisationName: string): Category | nu
   return null;
 }
 
+/** True when the title or organisation itself names this type. A search-page URL does not count. */
+export function textSupportsCategory(title: string, organisationName: string, category: Category): boolean {
+  if (keywordCategory(title, organisationName) === category) return true;
+  return nearestCategoryFromText(`${title} ${organisationName}`) === category;
+}
+
 /**
  * Infer Gather type.
- * - strong: primary host or title/org keyword (or page hint confirmed by keyword)
- * - weak: aggregator page slice only — keep as hint, flag for human review
- * - none: unknown — default Meetup + review
+ * - strong: primary host, title/org keyword, or a page hint the title agrees with
+ * - weak: title is only a near-match — flag for later, do not add card buttons
+ * - none: unknown — Meetup, and a flag for later
  */
 export function inferCategory(input: {
   host?: string | null;
@@ -152,20 +158,12 @@ export function inferCategory(input: {
 
   const fromApprox = nearestCategoryFromText(`${input.title} ${input.organisationName}`);
   if (fromApprox) {
-    // One-letter slips are a guess — keep them in the pending queue for a person to confirm.
+    // One-letter slips are a guess — flag them, but do not treat the search page as proof.
     return { category: fromApprox, inferred: true, strength: "weak" };
   }
 
-  // Aggregator *slice* alone (e.g. /christianity--events/) is a soft guess — human should confirm.
-  if (fromPage && AGGREGATOR_HOSTS.has(host)) {
-    return { category: fromPage, inferred: true, strength: "weak" };
-  }
-
-  if (fromPage) {
-    return { category: fromPage, inferred: true, strength: "weak" };
-  }
-
-  // Platform default (Meetup host → Meetup type) is trusted; only page-slice guesses stay weak.
+  // A search page never sets the type by itself. keywords=christian must not
+  // label a DevOps workshop Christian. Fall through to the host, or Meetup.
   if (host && HOST_CATEGORY[host]) {
     return { category: HOST_CATEGORY[host], inferred: true, strength: "strong" };
   }

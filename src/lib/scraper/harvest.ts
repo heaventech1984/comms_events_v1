@@ -30,7 +30,7 @@ export function isNearDuplicate(a: ScrapedEvent, b: ScrapedEvent): boolean {
   return Math.abs(a.startsAt.getTime() - b.startsAt.getTime()) <= NEAR_DEDUPE_MS;
 }
 
-/** Keep earlier rows (Christian-first pack order); drop later cross-host twins. */
+/** Keep the earlier row (pack order); drop a later cross-host twin. Type is not taken from that order. */
 export function collapseNearDuplicates(events: ScrapedEvent[]): {
   events: ScrapedEvent[];
   droppedNearDupe: number;

@@ -4,6 +4,7 @@ One mistake → one rule. Newest first. Keep lines short.
 
 | Date | Mistake | Rule to prevent it |
 | --- | --- | --- |
+| 2026-11-12 | A search page stamped Christian on a DevOps card, and Confirm buttons pushed Approve aside | Pending cards only Approve and Discard. A doubtful type is a flag for the event page later. A search URL never sets the type unless the title agrees. |
 | 2026-11-09 | Front-door notes assumed a programmer and used shortened jargon | Write the read-me for someone who has never made software. Define each specialist word in the same breath. Do not rely on acronyms. |
 | 2026-11-09 | Walked the critic on Railway after Oracle was already home | Product walks and UX critique go to https://132.145.68.166.sslip.io (`experiment`). Railway is a frozen Postgres spare until the Ubuntu gate says stop. |
 | 2026-11-09 | Stakeholder asked for “scrape the whole internet” like ChatGPT | Keep allowlist + discovery pack. Treat Priority URLs as extras on top of the pack. Say clearly we do not open-crawl; widen pack only with probe + ask. |

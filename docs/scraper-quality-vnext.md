@@ -7,7 +7,7 @@ Allowlist-only. No open crawl. Method: [`scraper-discovery.md`](scraper-discover
 | Gate | Target |
 | --- | --- |
 | Localness | Geo drops far trip titles even when the Meetup feed says Birmingham |
-| Type confidence | Weak share of new/updated live rows **&lt; 25%**, with Pending **Needs type** + Confirm |
+| Type confidence | Weak share of new/updated live rows **&lt; 25%**. Pending cards only Approve and Discard. **Needs type** is a flag. A search URL does not set the type unless the title agrees. |
 | Primaries | Cathedral what’s-on (JSON-LD); Guild MSL list (Student); pack keeps Christian-first order |
 | Dedupe | Cross-host near-dupes (same title + start ±15m) collapsed after sourceKey first-wins |
 | Fetch health | Eventbrite **429** retry; **405** soft-fails remaining EB URLs; Skiddle out of pack until WAF clears |
@@ -20,7 +20,7 @@ Allowlist-only. No open crawl. Method: [`scraper-discovery.md`](scraper-discover
 | Meetup distance | `tenMiles` in [`discovery-pack.ts`](../src/lib/scraper/discovery-pack.ts) |
 | Geo harden | Far titles drop even with a Brum org name — [`geo.ts`](../src/lib/scraper/geo.ts) |
 | Near-dedupe | [`harvest.ts`](../src/lib/scraper/harvest.ts) |
-| Type review UX | Pending filter + Confirm; [`type-review.ts`](../src/lib/scraper/type-review.ts) |
+| Type review UX | Pending **Needs type** flag only. Cards keep Approve and Discard. [`type-review.ts`](../src/lib/scraper/type-review.ts) |
 | Scorecard | Admin Scraper page weak / geo / near-dupe counts |
 | Student primary | MSL card parser [`msl.ts`](../src/lib/scraper/msl.ts) + Guild `/events/` |
 | Fetch resilience | 429 Retry-After; Eventbrite 405 soft-fail — [`live-adapter.ts`](../src/lib/scraper/live-adapter.ts) |
@@ -44,7 +44,7 @@ Meetup distance=tenMiles · Guild MSL events in coverage
 Nov live:* Christian 168 · Student 96 · Meetup 952 · total 1338
 ```
 
-Pending **Needs type** + Confirm clears the remaining weak page-slice backlog. Platform-default Meetup/Allevents hosts are **strong**; Eventbrite/Meetup *keyword/path slices* without title keywords stay **weak**.
+A search page does not set the type. Platform-default Meetup/Allevents hosts stay **strong**. A keyword or path slice counts only when the title agrees. Pending cards keep Approve and Discard. **Needs type** is a flag for the event page later.
 
 ## Score frame
 

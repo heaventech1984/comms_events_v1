@@ -17,6 +17,11 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-12 — Pending cards keep Approve and Discard
+
+- A search page no longer labels an event. `keywords=christian` does not make a DevOps workshop Christian. The title has to agree.
+- Pending cards always end with Approve and Discard. A doubtful type stays the **Needs type** flag, for the event page later. Opening Pending rewrites labels the title does not support.
+
 ## 2026-11-09 — Book people in your cell (F04)
 
 - Cell leaders see a **Book people in your cell** panel on the event page: a named list with Book, not a cramped dropdown.

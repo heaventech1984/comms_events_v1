@@ -12,7 +12,7 @@ import { filterLocalEvents, geoKeepEvent } from "@/lib/scraper/geo";
 import { fixtureEvents } from "@/lib/scraper/fixtures";
 import { buildCoverageReport, formatCoverageReport } from "@/lib/scraper/coverage-report";
 import { RUN_EVENT_CAP, collapseNearDuplicates, selectHarvestEvents } from "@/lib/scraper/harvest";
-import { notesNeedTypeReview, stripTypeReviewNotes } from "@/lib/scraper/type-review";
+import { notesNeedTypeReview, settleScrapedType, stripTypeReviewNotes } from "@/lib/scraper/type-review";
 import { parseIcsDate, parseIcsEvents } from "@/lib/scraper/ics";
 import { eventsFromJsonLd, extractJsonLdScripts } from "@/lib/scraper/jsonld";
 import { scrapeLockAcquired, scrapeLockUntil } from "@/lib/scraper/lock";
@@ -194,15 +194,23 @@ describe("inferCategory", () => {
     expect(inferCategory({ title: "Campus freshers fair", organisationName: "Guild" }).category).toBe("Student");
   });
 
-  it("uses Eventbrite / Meetup Priority URL slices for the five types", () => {
+  it("uses a search page only when the title agrees", () => {
     const pro = inferCategory({
       host: "www.eventbrite.co.uk",
       title: "Generic listing",
       organisationName: "Org",
       pageUrl: "https://www.eventbrite.co.uk/d/united-kingdom--birmingham/professional--events/"
     });
-    expect(pro.category).toBe("Professional");
-    expect(pro.strength).toBe("weak"); // page hint only — needs human review
+    expect(pro.category).toBe("Meetup");
+    expect(pro.strength).toBe("strong");
+    const stamped = inferCategory({
+      host: "www.meetup.com",
+      title: "DevOps Society - The Human API Workshop",
+      organisationName: "DevOps Society",
+      pageUrl: "https://www.meetup.com/find/?keywords=christian&location=gb--Birmingham"
+    });
+    expect(stamped.category).toBe("Meetup");
+    expect(stamped.strength).toBe("strong");
     const faith = inferCategory({
       host: "www.meetup.com",
       title: "Sunday prayer night",
@@ -210,7 +218,7 @@ describe("inferCategory", () => {
       pageUrl: "https://www.meetup.com/find/?keywords=christian&location=gb--Birmingham"
     });
     expect(faith.category).toBe("Christian");
-    expect(faith.strength).toBe("strong"); // keyword confirms page hint
+    expect(faith.strength).toBe("strong");
     expect(TYPE_WEAK_NOTE).toMatch(/confirm/i);
   });
 });
@@ -466,7 +474,6 @@ describe("live adapter", () => {
     expect(harvest.events[0].category).toBe("Meetup");
     expect(harvest.events[0].title).toMatch(/DevOps Society/i);
     expect(harvest.events[0].externalUrl).toContain("meetup.com/devops-society");
-    // Meetup platform default is strong; page-slice guesses (e.g. keywords=christian) stay weak.
     expect(harvest.events[0].needsTypeReview).toBe(false);
   });
 
@@ -592,6 +599,29 @@ describe("type review notes", () => {
     expect(stripTypeReviewNotes(notes)).toBe("Source feed: https://example.com");
     expect(notesNeedTypeReview(TYPE_REVIEW_NOTE)).toBe(true);
     expect(stripTypeReviewNotes(TYPE_REVIEW_NOTE)).toBeNull();
+  });
+
+  it("drops a search-page Christian label the title does not support, and keeps a real one", () => {
+    const devops = settleScrapedType({
+      title: "DevOps Society - The Human API Workshop",
+      organisationName: "DevOps Society",
+      category: "Christian",
+      notes: `${TYPE_WEAK_NOTE}\n\nSource feed: https://www.meetup.com/find/?keywords=christian`
+    });
+    expect(devops.changed).toBe(true);
+    expect(devops.category).toBe("Meetup");
+    expect(devops.notes).not.toMatch(/confirm/i);
+    expect(notesNeedTypeReview(devops.notes)).toBe(false);
+
+    const prayer = settleScrapedType({
+      title: "Sunday prayer night",
+      organisationName: "City Church",
+      category: "Christian",
+      notes: TYPE_WEAK_NOTE
+    });
+    expect(prayer.changed).toBe(false);
+    expect(prayer.category).toBe("Christian");
+    expect(notesNeedTypeReview(prayer.notes)).toBe(true);
   });
 });
 

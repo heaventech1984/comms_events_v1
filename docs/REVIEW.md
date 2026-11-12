@@ -2,6 +2,12 @@
 
 Dated ship notes: [`CHANGELOG.md`](CHANGELOG.md). Scores below from 17 October are a closed community demo, not an NHS production system. The 28 October section is the later read.
 
+## 12 November 2026 — Pending type label
+
+| Sev | Item | Status |
+| --- | --- | --- |
+| Med | DevOps workshop card said Confirm Christian and hid the normal Approve / Discard row | **Shipped** — cards only Approve and Discard. Needs type stays a flag. Search page cannot set the type alone. Re-check one Needs type card and one ordinary card on Pending. |
+
 ## 9 November 2026 — Book people in your cell (F04)
 
 | Sev | Item | Status |

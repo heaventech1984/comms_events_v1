@@ -14,6 +14,7 @@ import {
 import { loadOpenPendingEvents } from "@/lib/pending-time";
 import { tidyPlaceName } from "@/lib/place";
 import { isUpdatedScrapedRow } from "@/lib/scraper/apply";
+import { repairUnsupportedTypeStamps } from "@/lib/scraper/repair-types";
 import { notesNeedTypeReview } from "@/lib/scraper/type-review";
 import { getSettings } from "@/lib/settings";
 import { formatDate } from "@/lib/time";
@@ -27,6 +28,7 @@ export default async function PendingPage({
   const settings = await getSettings();
   const sp = await searchParams;
   const filters = parsePendingFilters(sp);
+  await repairUnsupportedTypeStamps();
   const allEvents = await loadOpenPendingEvents();
   const needsTypeCount = allEvents.filter((e) => notesNeedTypeReview(e.notes)).length;
   const events = allEvents.filter((event) =>

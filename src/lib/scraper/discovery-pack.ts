@@ -9,7 +9,8 @@ import {
 /**
  * Frozen Birmingham + West Midlands discovery pack (Nov 2026 stretch).
  * Probe before seeding; Priority URL cap is MAX_PRIORITY_URLS (90).
- * Christian slices are listed first so first-wins dedupe keeps faith categories.
+ * Christian calendars are listed first so a real church listing keeps its own source URL.
+ * The event type still comes from the title, not from the search page.
  */
 export type DiscoveryCandidate = {
   url: string;
