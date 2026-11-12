@@ -121,7 +121,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             Initials: {event.bookings.map((b) => initialsFromName(b.user.name)).join(", ") || "nobody yet"}
           </p>
         ) : null}
-        {user.role === "member" && settings.memberAttendeeView === "COUNT_AND_NAME_CELL" ? (
+        {(user.role === "member" || user.role === "cell leader") &&
+        settings.memberAttendeeView === "COUNT_AND_NAME_CELL" ? (
           event.bookings.length ? (
             <ul className="attendee-list">
               {event.bookings.map((b) => (
