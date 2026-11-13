@@ -37,13 +37,15 @@ export function EventForm({
   colours,
   event,
   defaultStartsAt,
-  defaultEndsAt
+  defaultEndsAt,
+  backHref
 }: {
   organisations: Org[];
   colours: Record<string, string>;
   event?: EventValue;
   defaultStartsAt?: string;
   defaultEndsAt?: string;
+  backHref?: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -279,7 +281,7 @@ export function EventForm({
             <button className="secondary" type="button" onClick={() => submit({ status: "DISCARDED" })}>
               Discard
             </button>
-            <Link className="button ghost" href="/pending">
+            <Link className="button ghost" href={backHref || "/pending"}>
               Back to pending
             </Link>
           </>

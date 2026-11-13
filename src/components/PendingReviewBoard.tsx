@@ -15,6 +15,7 @@ import {
   pendingClockLabel,
   pendingWhen
 } from "@/lib/pending-copy";
+import { pendingEditHref } from "@/lib/pending-filters";
 import { categoryAccentStyle } from "@/lib/category-art";
 
 export type PendingTileData = {
@@ -38,7 +39,7 @@ export type PendingDayGroup = {
   events: PendingTileData[];
 };
 
-export function PendingReviewBoard({ groups }: { groups: PendingDayGroup[] }) {
+export function PendingReviewBoard({ groups, returnTo }: { groups: PendingDayGroup[]; returnTo: string }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
@@ -130,6 +131,7 @@ export function PendingReviewBoard({ groups }: { groups: PendingDayGroup[] }) {
                 selected={selected.has(event.id)}
                 onSelect={(on) => toggleOne(event.id, on)}
                 busy={busy}
+                returnTo={returnTo}
               />
             ))}
           </div>
@@ -173,12 +175,14 @@ function PendingTileCard({
   event,
   selected,
   onSelect,
-  busy
+  busy,
+  returnTo
 }: {
   event: PendingTileData;
   selected: boolean;
   onSelect: (on: boolean) => void;
   busy: boolean;
+  returnTo: string;
 }) {
   const category = (CATEGORIES.includes(event.category as Category) ? event.category : "Meetup") as Category;
   const startsAt = new Date(event.startsAt);
@@ -207,7 +211,7 @@ function PendingTileCard({
         />
       </label>
 
-      <Link className="pending-tile-link" href={`/events/${event.id}/edit`}>
+      <Link className="pending-tile-link" href={pendingEditHref(event.id, returnTo)}>
         <div className="pending-tile-top">
           <p
             className="pending-kicker muted"

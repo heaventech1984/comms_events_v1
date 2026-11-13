@@ -1,5 +1,6 @@
 import { parseTypesParam, type CalendarFormat } from "./calendar";
 import { CATEGORIES, type Category } from "./constants";
+import { safeNextPath } from "./security";
 
 export type PendingFilterState = {
   types: Category[];
@@ -39,6 +40,18 @@ export function pendingHref(state: PendingFilterState, patch: Partial<PendingFil
   if (next.needsTypeOnly) sp.set("filter", "needs-type");
   const q = sp.toString();
   return q ? `/pending?${q}` : "/pending";
+}
+
+/** Back to pending. Only a same-site /pending path is kept. */
+export function pendingBackHref(from: string | null | undefined): string {
+  const safe = safeNextPath(from, "/pending");
+  if (safe === "/pending" || safe.startsWith("/pending?")) return safe;
+  return "/pending";
+}
+
+/** Open the review form and remember which pending list to return to. */
+export function pendingEditHref(eventId: string, returnTo: string): string {
+  return `/events/${eventId}/edit?from=${encodeURIComponent(returnTo)}`;
 }
 
 export function eventMatchesPendingFilters(

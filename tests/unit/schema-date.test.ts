@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSchemaInstant, resolveSchemaEnd } from "@/lib/scraper/schema-date";
+import { isDateOnlyStoredRange, parseSchemaInstant, resolveSchemaEnd } from "@/lib/scraper/schema-date";
 import { londonDate } from "@/lib/time";
 
 describe("parseSchemaInstant", () => {
@@ -27,6 +27,12 @@ describe("resolveSchemaEnd", () => {
     const start = parseSchemaInstant("2026-11-10")!;
     const end = resolveSchemaEnd(start, null);
     expect(end.getTime()).toBe(start.at.getTime());
+  });
+
+  it("treats next-midnight as a day with no clock", () => {
+    const start = londonDate(2026, 11, 13, 0, 0);
+    expect(isDateOnlyStoredRange(start, londonDate(2026, 11, 14, 0, 0))).toBe(true);
+    expect(isDateOnlyStoredRange(londonDate(2026, 11, 13, 18, 0), londonDate(2026, 11, 13, 20, 0))).toBe(false);
   });
 
   it("defaults +1h only for timed starts", () => {

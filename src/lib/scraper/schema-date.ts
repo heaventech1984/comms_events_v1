@@ -1,4 +1,4 @@
-import { londonDate } from "../time";
+import { londonDate, londonParts } from "../time";
 
 export type ParsedSchemaInstant = {
   at: Date;
@@ -61,4 +61,26 @@ export function resolveSchemaEnd(
     return start.at;
   }
   return new Date(start.at.getTime() + 60 * 60 * 1000);
+}
+
+function nextLondonMidnight(date: Date): Date {
+  const p = londonParts(date);
+  const noon = new Date(Date.UTC(p.year, p.month - 1, p.day, 12));
+  noon.setUTCDate(noon.getUTCDate() + 1);
+  return londonDate(noon.getUTCFullYear(), noon.getUTCMonth() + 1, noon.getUTCDate(), 0, 0);
+}
+
+/**
+ * True when the stored range is a calendar day with no real clock.
+ * Next-midnight ends (00:00 the following day) count too — they are not a timed event.
+ */
+export function isDateOnlyStoredRange(startsAt: Date, endsAt: Date | null | undefined): boolean {
+  const start = londonParts(startsAt);
+  if (start.hour !== 0 || start.minute !== 0) return false;
+  if (!endsAt) return true;
+  if (endsAt.getTime() === startsAt.getTime()) return true;
+  if (endsAt.getTime() === nextLondonMidnight(startsAt).getTime()) return true;
+  const end = londonParts(endsAt);
+  const sameDay = end.year === start.year && end.month === start.month && end.day === start.day;
+  return sameDay && end.hour === 1 && end.minute === 0;
 }

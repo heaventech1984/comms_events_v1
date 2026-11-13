@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   eventMatchesPendingFilters,
   parsePendingFilters,
+  pendingBackHref,
+  pendingEditHref,
   pendingHref,
   togglePendingType
 } from "@/lib/pending-filters";
@@ -38,6 +40,15 @@ describe("pending filters", () => {
     expect(
       eventMatchesPendingFilters({ category: "Christian", online: true, notes: null }, base, false)
     ).toBe(false);
+  });
+
+  it("keeps a pending return path and drops anything else", () => {
+    const back = "/pending?types=Meetup&format=online";
+    expect(pendingEditHref("evt-1", back)).toBe(`/events/evt-1/edit?from=${encodeURIComponent(back)}`);
+    expect(pendingBackHref(back)).toBe(back);
+    expect(pendingBackHref("/pending")).toBe("/pending");
+    expect(pendingBackHref("https://example.com")).toBe("/pending");
+    expect(pendingBackHref("/calendar")).toBe("/pending");
   });
 });
 

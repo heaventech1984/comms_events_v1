@@ -1,7 +1,7 @@
 import { isHttpUrl } from "../security";
 
 /** Listing / find pages — weaker than a single-event URL when refreshing details. */
-function looksLikeListingUrl(url: string): boolean {
+export function looksLikeListingUrl(url: string): boolean {
   try {
     const u = new URL(url);
     const path = u.pathname.toLowerCase();

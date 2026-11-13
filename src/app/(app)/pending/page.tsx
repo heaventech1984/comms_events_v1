@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { CategoryThumb } from "@/components/CategoryThumb";
+import { PendingScrollMemory } from "@/components/PendingScrollMemory";
 import { Chip } from "@/components/calendar/FilterBar";
 import { PendingReviewBoard, type PendingDayGroup } from "@/components/PendingReviewBoard";
 import { requireUser } from "@/lib/auth";
@@ -128,7 +130,12 @@ export default async function PendingPage({
             : "Nothing waiting. Run now on scraper settings if you are admin."}
         </p>
       ) : (
-        <PendingReviewBoard groups={groups} />
+        <>
+          <PendingReviewBoard groups={groups} returnTo={pendingHref(filters)} />
+          <Suspense fallback={null}>
+            <PendingScrollMemory />
+          </Suspense>
+        </>
       )}
     </main>
   );

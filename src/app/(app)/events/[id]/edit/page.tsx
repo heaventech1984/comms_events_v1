@@ -4,11 +4,20 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { EventForm } from "@/components/EventForm";
 import { getSettings } from "@/lib/settings";
+import { pendingBackHref } from "@/lib/pending-filters";
 import { toDatetimeLocalValue } from "@/lib/time";
 
-export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditEventPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
   await requireUser(["admin", "cell leader"]);
   const { id } = await params;
+  const { from } = await searchParams;
+  const backHref = pendingBackHref(from);
   const event = await prisma.event.findUnique({ where: { id } });
   if (!event) notFound();
   const orgs = await prisma.organisation.findMany({ orderBy: { name: "asc" } });
@@ -18,12 +27,13 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
       <h1>{event.status === "PENDING" ? "Review event" : "Edit event"}</h1>
       {event.status === "PENDING" ? (
         <p className="lede">
-          <Link href="/pending">Back to pending</Link>
+          <Link href={backHref}>Back to pending</Link>
         </p>
       ) : null}
       <EventForm
         organisations={orgs}
         colours={settings.colours}
+        backHref={event.status === "PENDING" ? backHref : undefined}
         event={{
           id: event.id,
           title: event.title,

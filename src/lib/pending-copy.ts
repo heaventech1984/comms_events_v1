@@ -1,4 +1,5 @@
-import { formatDate, formatDateTimeRange, formatTimeRange, londonParts } from "./time";
+import { isDateOnlyStoredRange } from "./scraper/schema-date";
+import { formatDate, formatDateTimeRange, formatTimeRange } from "./time";
 import type { Role } from "./constants";
 
 /**
@@ -70,20 +71,7 @@ export function eventLinkLabel(url: string): string {
  * show "Time not listed" instead of a fake 00:00–01:00.
  */
 export function pendingClockLabel(startsAt: Date, endsAt: Date | null | undefined): string {
-  const start = londonParts(startsAt);
-  const startMidnight = start.hour === 0 && start.minute === 0;
-  if (!startMidnight) {
-    return formatTimeRange(startsAt, endsAt);
-  }
-  if (!endsAt) return "Time not listed";
-  const end = londonParts(endsAt);
-  const sameDay = end.year === start.year && end.month === start.month && end.day === start.day;
-  const endEqualsStart = endsAt.getTime() === startsAt.getTime();
-  const endOneHour =
-    sameDay && end.hour === 1 && end.minute === 0 && startsAt.getTime() + 60 * 60 * 1000 === endsAt.getTime();
-  if (endEqualsStart || endOneHour || (sameDay && end.hour === 0 && end.minute === 0)) {
-    return "Time not listed";
-  }
+  if (isDateOnlyStoredRange(startsAt, endsAt)) return "Time not listed";
   return formatTimeRange(startsAt, endsAt);
 }
 

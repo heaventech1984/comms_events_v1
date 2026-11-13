@@ -64,6 +64,12 @@ describe("pending tile display", () => {
     expect(pendingClockLabel(start, end)).toBe("18:30–20:00");
   });
 
+  it("says Time not listed for a next-midnight range", () => {
+    const start = londonDate(2026, 11, 13, 0, 0);
+    const nextMidnight = londonDate(2026, 11, 14, 0, 0);
+    expect(pendingClockLabel(start, nextMidnight)).toBe("Time not listed");
+  });
+
   it("greets by first name and role tip", () => {
     expect(pendingReviewLede({ name: "An Te", role: "admin" })).toMatch(/^An —/);
     expect(pendingReviewLede({ name: "An Te", role: "admin" })).toMatch(/new tab/i);
