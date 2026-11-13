@@ -127,6 +127,44 @@ export function ScraperForm({
     router.refresh();
   }
 
+  async function filterOut(form: HTMLFormElement) {
+    if (running) return;
+    const confirmed = window.confirm(
+      "Discard pending events that are an unticked type or outside the miles on this form? Meetup events stay. They leave Pending and will not come back on the next scrape."
+    );
+    if (!confirmed) return;
+    setRunning(true);
+    setKind("info");
+    setRunSummary(null);
+    setMessage("Saving settings, then checking pending events…");
+    const saved = await requestJson<{ dropped?: { url: string; reason: string }[] }>("/api/settings", {
+      method: "POST",
+      body: settingsBody(new FormData(form))
+    });
+    if (!saved.ok) {
+      setRunning(false);
+      show(saved, "");
+      return;
+    }
+    const result = await requestJson<{ discarded?: number; stillPending?: number; pagesOpened?: number }>(
+      "/api/scraper/filter-pending",
+      { method: "POST" }
+    );
+    setRunning(false);
+    if (!result.ok) {
+      show(result, "");
+      return;
+    }
+    const discarded = result.data.discarded ?? 0;
+    const still = result.data.stillPending ?? 0;
+    const opened = result.data.pagesOpened ?? 0;
+    setKind("info");
+    setMessage(
+      `Discarded ${discarded} pending event${discarded === 1 ? "" : "s"}. ${still} still pending.${opened ? ` Opened ${opened} event page${opened === 1 ? "" : "s"} to read a city.` : ""}`
+    );
+    router.refresh();
+  }
+
   async function setOrg(id: string, status: string) {
     const result = await requestJson("/api/organisations", { method: "POST", body: { id, status } });
     show(result, "Organisation rule saved.");
@@ -258,6 +296,17 @@ export function ScraperForm({
             disabled={running}
           >
             {running ? "Running…" : "Run now"}
+          </button>
+          <button
+            className="secondary"
+            type="button"
+            onClick={(e) => {
+              const form = e.currentTarget.form;
+              if (form) void filterOut(form);
+            }}
+            disabled={running}
+          >
+            Filter Out from current settings
           </button>
         </div>
         <p className="muted">
