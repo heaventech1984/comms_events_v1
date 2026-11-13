@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  eventInPendingDates,
   eventMatchesPendingFilters,
   parsePendingFilters,
   pendingBackHref,
@@ -40,6 +41,27 @@ describe("pending filters", () => {
     expect(
       eventMatchesPendingFilters({ category: "Faith", tags: "|Online|", online: true, notes: null }, base, false)
     ).toBe(false);
+  });
+
+  it("defaults to today through the next 7 days, and can show every open card", () => {
+    const today = { year: 2026, month: 11, day: 13 };
+    const state = parsePendingFilters({}, today);
+    expect(state.dateMode).toBe("default");
+    expect(state.from).toEqual(today);
+    expect(state.to).toEqual({ year: 2026, month: 11, day: 20 });
+    expect(pendingHref(state)).toBe("/pending");
+    const start = (day: number) => new Date(Date.UTC(2026, 10, day, 12, 0, 0));
+    expect(eventInPendingDates(start(13), state)).toBe(true);
+    expect(eventInPendingDates(start(20), state)).toBe(true);
+    expect(eventInPendingDates(start(12), state)).toBe(false);
+    expect(eventInPendingDates(start(21), state)).toBe(false);
+    const custom = parsePendingFilters({ from: "2026-12-01", to: "2026-11-01" }, today);
+    expect(custom.rangeError).toBe(true);
+    expect(eventInPendingDates(start(13), custom)).toBe(false);
+    const all = parsePendingFilters({ dates: "all", types: "Faith" }, today);
+    expect(pendingHref(all)).toBe("/pending?types=Faith&dates=all");
+    expect(eventInPendingDates(start(12), all)).toBe(true);
+    expect(pendingHref(all, { dateMode: "default" })).toBe("/pending?types=Faith");
   });
 
   it("keeps a pending return path and drops anything else", () => {

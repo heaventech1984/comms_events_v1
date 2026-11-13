@@ -1,27 +1,51 @@
-import { parseTypesParam } from "./calendar";
+import { addDaysKey, dayKeyOf, formatDayKey, parseDayKey, parseTypesParam, type DayKey } from "./calendar";
 import { CATEGORIES, type Category, type Tag } from "./constants";
 import { safeNextPath } from "./security";
 import { hasAnyTag, parseTagsParam, toggleTag } from "./tags";
+
+/** default = next 7 days. custom = the from/to boxes. all = every open pending card. */
+export type PendingDateMode = "default" | "custom" | "all";
 
 export type PendingFilterState = {
   types: Category[];
   tags: Tag[];
   needsTypeOnly: boolean;
+  dateMode: PendingDateMode;
+  from: DayKey;
+  to: DayKey;
+  rangeError: boolean;
 };
 
-export function parsePendingFilters(params: {
-  types?: string;
-  tags?: string;
-  format?: string;
-  filter?: string;
-}): PendingFilterState {
+export function parsePendingFilters(
+  params: {
+    types?: string;
+    tags?: string;
+    format?: string;
+    filter?: string;
+    from?: string;
+    to?: string;
+    dates?: string;
+  },
+  today = dayKeyOf(new Date())
+): PendingFilterState {
   let tags = parseTagsParam(params.tags);
   if (!tags.length && params.format === "online") tags = ["Online"];
   if (!tags.length && params.format === "inperson") tags = ["In Person"];
+  const fromDefault = today;
+  const toDefault = addDaysKey(today, 7);
+  const all = params.dates === "all";
+  const asked = Boolean(params.from) || Boolean(params.to);
+  const from = parseDayKey(params.from) ?? fromDefault;
+  const to = parseDayKey(params.to) ?? (params.from ? addDaysKey(from, 7) : toDefault);
+  const dateMode: PendingDateMode = all ? "all" : asked ? "custom" : "default";
   return {
     types: parseTypesParam(params.types),
     tags,
-    needsTypeOnly: params.filter === "needs-type"
+    needsTypeOnly: params.filter === "needs-type",
+    dateMode,
+    from,
+    to,
+    rangeError: dateMode !== "all" && formatDayKey(to) < formatDayKey(from)
   };
 }
 
@@ -39,12 +63,21 @@ export function pendingHref(state: PendingFilterState, patch: Partial<PendingFil
   const next: PendingFilterState = {
     types: patch.types ?? state.types,
     tags: patch.tags !== undefined ? patch.tags : state.tags,
-    needsTypeOnly: patch.needsTypeOnly !== undefined ? patch.needsTypeOnly : state.needsTypeOnly
+    needsTypeOnly: patch.needsTypeOnly !== undefined ? patch.needsTypeOnly : state.needsTypeOnly,
+    dateMode: patch.dateMode ?? state.dateMode,
+    from: patch.from ?? state.from,
+    to: patch.to ?? state.to,
+    rangeError: false
   };
   const sp = new URLSearchParams();
   if (next.types.length) sp.set("types", next.types.join(","));
   if (next.tags.length) sp.set("tags", next.tags.join(","));
   if (next.needsTypeOnly) sp.set("filter", "needs-type");
+  if (next.dateMode === "all") sp.set("dates", "all");
+  if (next.dateMode === "custom") {
+    sp.set("from", formatDayKey(next.from));
+    sp.set("to", formatDayKey(next.to));
+  }
   const q = sp.toString();
   return q ? `/pending?${q}` : "/pending";
 }
@@ -61,13 +94,22 @@ export function pendingEditHref(eventId: string, returnTo: string): string {
   return `/events/${eventId}/edit?from=${encodeURIComponent(returnTo)}`;
 }
 
+/** True when the card's start day sits inside the chosen dates. All open dates skips this. */
+export function eventInPendingDates(startsAt: Date, state: PendingFilterState): boolean {
+  if (state.dateMode === "all") return true;
+  if (state.rangeError) return false;
+  const key = formatDayKey(dayKeyOf(startsAt));
+  return key >= formatDayKey(state.from) && key <= formatDayKey(state.to);
+}
+
 export function eventMatchesPendingFilters(
-  event: { category: string; tags?: string | null; online: boolean; notes: string | null },
+  event: { category: string; tags?: string | null; online: boolean; notes: string | null; startsAt?: Date },
   state: PendingFilterState,
   needsType: boolean
 ): boolean {
   if (state.needsTypeOnly && !needsType) return false;
   if (state.types.length && !state.types.includes(event.category as Category)) return false;
   if (!hasAnyTag(event.tags, state.tags)) return false;
+  if (event.startsAt && !eventInPendingDates(event.startsAt, state)) return false;
   return true;
 }

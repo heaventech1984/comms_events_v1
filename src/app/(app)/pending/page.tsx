@@ -8,6 +8,7 @@ import { dayKeyOf, formatDayKey } from "@/lib/calendar";
 import { CATEGORIES, TAGS, type Category } from "@/lib/constants";
 import { pendingReviewLede } from "@/lib/pending-copy";
 import {
+  eventInPendingDates,
   eventMatchesPendingFilters,
   parsePendingFilters,
   pendingHref,
@@ -26,16 +27,18 @@ import { formatDate } from "@/lib/time";
 export default async function PendingPage({
   searchParams
 }: {
-  searchParams: Promise<{ filter?: string; types?: string; tags?: string; format?: string }>;
+  searchParams: Promise<{ filter?: string; types?: string; tags?: string; format?: string; from?: string; to?: string; dates?: string }>;
 }) {
   const user = await requireUser(["admin", "cell leader"]);
   const settings = await getSettings();
   const sp = await searchParams;
-  const filters = parsePendingFilters(sp);
+  const today = dayKeyOf(new Date());
+  const filters = parsePendingFilters(sp, today);
   await repairUnsupportedTypeStamps();
   const allEvents = await loadOpenPendingEvents();
-  const needsTypeCount = allEvents.filter((e) => notesNeedTypeReview(e.notes)).length;
-  const events = allEvents.filter((event) =>
+  const inDates = allEvents.filter((event) => eventInPendingDates(event.startsAt, filters));
+  const needsTypeCount = inDates.filter((e) => notesNeedTypeReview(e.notes)).length;
+  const events = inDates.filter((event) =>
     eventMatchesPendingFilters(event, filters, notesNeedTypeReview(event.notes))
   );
   const groups: PendingDayGroup[] = [];
@@ -72,6 +75,26 @@ export default async function PendingPage({
         <h1>Pending review</h1>
         <p className="lede">{pendingReviewLede({ name: user.name, role: user.role })}</p>
         <div className="calendar-filters pending-calendar-filters">
+          <form className="filters" method="get" action="/pending" aria-label="Dates">
+            {filters.types.length ? <input type="hidden" name="types" value={filters.types.join(",")} /> : null}
+            {filters.tags.length ? <input type="hidden" name="tags" value={filters.tags.join(",")} /> : null}
+            {filters.needsTypeOnly ? <input type="hidden" name="filter" value="needs-type" /> : null}
+            <label>
+              From
+              <input type="date" name="from" defaultValue={filters.dateMode === "all" ? "" : formatDayKey(filters.from)} />
+            </label>
+            <label>
+              To
+              <input type="date" name="to" defaultValue={filters.dateMode === "all" ? "" : formatDayKey(filters.to)} />
+            </label>
+            <button type="submit">Show dates</button>
+            <Chip href={pendingHref(filters, { dateMode: "default" })} current={filters.dateMode === "default"} pressed={filters.dateMode === "default"}>
+              Next 7 days
+            </Chip>
+            <Chip href={pendingHref(filters, { dateMode: "all" })} current={filters.dateMode === "all"} pressed={filters.dateMode === "all"}>
+              All open dates
+            </Chip>
+          </form>
           <div className="filters" role="group" aria-label="Event type">
             <Chip href={pendingHref(filters, { types: [] })} current={filters.types.length === 0}>
               All types
@@ -107,7 +130,7 @@ export default async function PendingPage({
           </div>
           <div className="filters" role="group" aria-label="Type review">
             <Chip href={pendingHref(filters, { needsTypeOnly: false })} current={!filters.needsTypeOnly}>
-              All ({allEvents.length})
+              All ({inDates.length})
             </Chip>
             <Chip
               href={pendingHref(filters, { needsTypeOnly: true })}
@@ -122,9 +145,13 @@ export default async function PendingPage({
       </div>
       {events.length === 0 ? (
         <p className="muted">
-          {filters.needsTypeOnly || filters.types.length || filters.tags.length
-            ? "Nothing matches these filters. Try All categories or All tags."
-            : "Nothing waiting. Run now on scraper settings if you are admin."}
+          {filters.rangeError
+            ? "The end date is before the start date."
+            : filters.needsTypeOnly || filters.types.length || filters.tags.length
+              ? "Nothing matches these filters. Try All categories or All tags."
+              : filters.dateMode === "all"
+                ? "Nothing waiting. Run now on scraper settings if you are admin."
+                : "Nothing in these dates. Try All open dates, or move the end date."}
         </p>
       ) : (
         <>
