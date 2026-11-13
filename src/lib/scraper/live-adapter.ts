@@ -4,7 +4,7 @@ import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "./categorise";
 import { withOwnPageClock } from "./detail-time";
 import { inferTags } from "../tags";
 import { FETCH_BODY_MAX, URL_EVENT_CAP } from "./harvest";
-import { filterLocalEvents } from "./geo";
+import { filterLocalEvents, parseScrapeRadiusMiles } from "./geo";
 import { parseIcsEvents } from "./ics";
 import { eventsFromJsonLd, extractJsonLdScripts } from "./jsonld";
 import { discoverCalendarLinks, eventsFromMicrodata } from "./microdata";
@@ -173,7 +173,7 @@ function parseBody(url: string, contentType: string, body: string): ScrapedEvent
  */
 export async function fetchLiveEvents(
   urls: string[],
-  opts: { fetchFn?: FetchLike; pauseMs?: number } = {}
+  opts: { fetchFn?: FetchLike; pauseMs?: number; radiusMiles?: number } = {}
 ): Promise<LiveHarvest> {
   if (urls.length === 0 || process.env.SCRAPE_LIVE === "0") {
     return { events: [], sources: [], droppedGeo: 0 };
@@ -298,6 +298,6 @@ export async function fetchLiveEvents(
     if (pause) await sleep(pause);
   }
 
-  const local = filterLocalEvents(events);
+  const local = filterLocalEvents(events, parseScrapeRadiusMiles(opts.radiusMiles));
   return { events: local.kept, sources, droppedGeo: local.droppedGeo };
 }

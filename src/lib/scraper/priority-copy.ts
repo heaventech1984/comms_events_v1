@@ -77,7 +77,7 @@ export function runFinishedSummary(input: {
   const geoDrops = input.droppedGeo ?? 0;
   if (geoDrops > 0) {
     details.push(
-      `${geoDrops} listing(s) skipped — they did not look like Birmingham / West Midlands (or online).`
+      `${geoDrops} listing(s) skipped — the city on the page is outside the miles set on the scraper (online events are kept).`
     );
   }
   const nearDupes = input.droppedNearDupe ?? 0;

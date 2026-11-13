@@ -18,6 +18,7 @@ import {
   inReviewWeek,
   splitPendingSeriesSpans
 } from "./detail-time";
+import { parseScrapeRadiusMiles, urlWithinRadius } from "./geo";
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
 import { claimScrapeLock, releaseScrapeLock } from "./lock";
 import { clip, stripHtml } from "./text";
@@ -52,7 +53,10 @@ export async function runScraper(opts: {
     });
     runId = run.id;
     const settings = await prisma.settings.findUnique({ where: { id: "default" } });
-    const urls = (await persistCleanPriorityUrls(opts.actorId)).urls;
+    const radiusMiles = parseScrapeRadiusMiles(settings?.scrapeRadiusMiles);
+    const urls = (await persistCleanPriorityUrls(opts.actorId)).urls.filter((url) =>
+      urlWithinRadius(url, radiusMiles)
+    );
     await prisma.scraperRun.update({
       where: { id: runId },
       data: { priorityUrlsSnapshot: JSON.stringify(urls) }
@@ -67,7 +71,7 @@ export async function runScraper(opts: {
       CATEGORIES.forEach((c) => enabled.add(c));
     }
 
-    const live = await fetchLiveEvents(urls);
+    const live = await fetchLiveEvents(urls, { radiusMiles });
     sources = live.sources;
     const droppedGeo = live.droppedGeo;
     const harvest = selectHarvestEvents(live.events, fixtureEvents(), enabled);

@@ -14,6 +14,7 @@ import { StatusBanner } from "./StatusBanner";
 
 type Settings = {
   locationLabel: string;
+  scrapeRadiusMiles: number;
   memberAttendeeView: MemberAttendeeView;
   enabled: Record<Category, boolean>;
   colours: Record<string, string>;
@@ -55,6 +56,7 @@ export function ScraperForm({
   function settingsBody(form: FormData) {
     return {
       locationLabel: form.get("locationLabel"),
+      scrapeRadiusMiles: form.get("scrapeRadiusMiles"),
       memberAttendeeView: form.get("memberAttendeeView"),
       enabled: Object.fromEntries(CATEGORIES.map((c) => [c, form.get(`enabled-${c}`) === "on"])),
       colours: Object.fromEntries(CATEGORIES.map((c) => [c, form.get(`colour-${c}`)])),
@@ -189,6 +191,21 @@ export function ScraperForm({
         <label>
           Location label
           <input name="locationLabel" defaultValue={settings.locationLabel} />
+        </label>
+        <label>
+          Miles from Birmingham city centre
+          <input
+            name="scrapeRadiusMiles"
+            type="number"
+            min={1}
+            max={40}
+            step={1}
+            defaultValue={settings.scrapeRadiusMiles}
+          />
+          <span className="muted">
+            The city named on the event page is measured from the city centre. 10 miles is the starting point.
+            A town further out, such as Wolverhampton, is left out until this number is raised.
+          </span>
         </label>
         <label>
           What members see for attendees

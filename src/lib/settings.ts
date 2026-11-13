@@ -2,6 +2,7 @@ import { prisma } from "./db";
 import { writeAudit } from "./audit";
 import { CATEGORIES, DEFAULT_COLOURS, parseMemberAttendeeView, type Category } from "./constants";
 import { parsePriorityUrls } from "./scraper/allowlist";
+import { parseScrapeRadiusMiles } from "./scraper/geo";
 import {
   extrasOnlyPriorityUrls,
   frozenDiscoveryUrls,
@@ -88,6 +89,7 @@ export async function getSettings() {
   const partitioned = parsePriorityUrls(readPriorityUrlList(row?.priorityUrls));
   return {
     locationLabel: row?.locationLabel ?? "Birmingham",
+    scrapeRadiusMiles: parseScrapeRadiusMiles(row?.scrapeRadiusMiles),
     memberAttendeeView: parseMemberAttendeeView(row?.memberAttendeeView),
     colours: { ...DEFAULT_COLOURS, ...colours },
     enabled,

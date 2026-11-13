@@ -142,6 +142,7 @@ model Settings {
   activitiesEnabled    Boolean @default(true)
   categoryColours      String
   priorityUrls         String  @default("[]")
+  scrapeRadiusMiles    Int     @default(10)
 }
 
 model ScraperRun {

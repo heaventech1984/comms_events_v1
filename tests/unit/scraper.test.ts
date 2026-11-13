@@ -8,7 +8,7 @@ import {
 } from "@/lib/scraper/allowlist";
 import { droppedPriorityUrlMessage, runFinishedMessage } from "@/lib/scraper/priority-copy";
 import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "@/lib/scraper/categorise";
-import { filterLocalEvents, geoKeepEvent } from "@/lib/scraper/geo";
+import { filterLocalEvents, geoKeepEvent, urlWithinRadius } from "@/lib/scraper/geo";
 import { fixtureEvents } from "@/lib/scraper/fixtures";
 import { buildCoverageReport, formatCoverageReport } from "@/lib/scraper/coverage-report";
 import { RUN_EVENT_CAP, collapseNearDuplicates, selectHarvestEvents } from "@/lib/scraper/harvest";
@@ -291,6 +291,51 @@ describe("geo filter", () => {
         fetchedFrom: "https://www.meetup.com/find/?location=gb--Birmingham&distance=tenMiles"
       })
     ).toEqual({ keep: false, reason: "far-title" });
+    expect(
+      geoKeepEvent({
+        online: false,
+        placeName: "KK's Steel Mill, Wolverhampton",
+        title: "Currents + Erra",
+        organisationName: "KK's Steel Mill",
+        fetchedFrom: "https://allevents.in/wolverhampton/all"
+      }).keep
+    ).toBe(false);
+    expect(
+      geoKeepEvent(
+        {
+          online: false,
+          placeName: "KK's Steel Mill, Wolverhampton",
+          title: "Currents + Erra",
+          organisationName: "KK's Steel Mill",
+          fetchedFrom: "https://allevents.in/wolverhampton/all"
+        },
+        15
+      ).keep
+    ).toBe(true);
+    expect(
+      geoKeepEvent({
+        online: false,
+        placeName: "HMV Empire, Coventry",
+        title: "Gig",
+        organisationName: "Empire",
+        fetchedFrom: "https://allevents.in/coventry/all"
+      }).keep
+    ).toBe(false);
+    expect(
+      geoKeepEvent(
+        {
+          online: false,
+          placeName: "HMV Empire, Coventry",
+          title: "Gig",
+          organisationName: "Empire",
+          fetchedFrom: "https://allevents.in/coventry/all"
+        },
+        20
+      ).keep
+    ).toBe(true);
+    expect(urlWithinRadius("https://allevents.in/wolverhampton/all", 10)).toBe(false);
+    expect(urlWithinRadius("https://allevents.in/birmingham-uk/all", 10)).toBe(true);
+    expect(urlWithinRadius("https://allevents.in/coventry/all", 20)).toBe(true);
   });
 });
 
@@ -448,7 +493,8 @@ describe("live adapter", () => {
       startDate: "2026-11-12T18:00:00.000Z",
       endDate: "2026-11-12T20:00:00.000Z",
       url: "https://www.meetup.com/devops-society/events/316811039/",
-      organizer: { name: "DevOps Society" }
+      organizer: { name: "DevOps Society" },
+      location: { name: "The Exchange", address: { addressLocality: "Birmingham" } }
     })}</script></html>`;
     const fetchFn: FetchLike = async (input) => {
       if (input.endsWith("/robots.txt")) {

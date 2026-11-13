@@ -6,6 +6,7 @@ import { CATEGORIES, DEFAULT_COLOURS, parseMemberAttendeeView } from "@/lib/cons
 import { isHexColour } from "@/lib/security";
 import { parsePriorityUrls } from "@/lib/scraper/allowlist";
 import { extrasOnlyPriorityUrls } from "@/lib/scraper/discovery-pack";
+import { parseScrapeRadiusMiles } from "@/lib/scraper/geo";
 import { writeAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
@@ -25,12 +26,14 @@ export async function POST(request: NextRequest) {
   // Store gap-fillers only — every Run merges the frozen Birmingham pack automatically.
   const priorityUrls = extrasOnlyPriorityUrls(parsedUrls.urls);
   const locationLabel = String(body.locationLabel ?? "Birmingham").trim().slice(0, 80) || "Birmingham";
+  const scrapeRadiusMiles = parseScrapeRadiusMiles(body.scrapeRadiusMiles);
   const previous = await prisma.settings.findUnique({ where: { id: "default" } });
   const previousView = parseMemberAttendeeView(previous?.memberAttendeeView);
   await prisma.settings.upsert({
     where: { id: "default" },
     update: {
       locationLabel,
+      scrapeRadiusMiles,
       memberAttendeeView,
       socialEnabled: !!enabled.Social,
       professionalEnabled: !!enabled.Professional,
@@ -42,6 +45,7 @@ export async function POST(request: NextRequest) {
     create: {
       id: "default",
       locationLabel,
+      scrapeRadiusMiles,
       memberAttendeeView,
       categoryColours: JSON.stringify(colours),
       priorityUrls: JSON.stringify(priorityUrls)
