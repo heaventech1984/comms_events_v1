@@ -1,8 +1,13 @@
-import { backfillPendingDateOnlyTimes } from "../src/lib/scraper/detail-time";
+import { DETAIL_TIME_CAP, backfillPendingDateOnlyTimes, splitPendingSeriesSpans } from "../src/lib/scraper/detail-time";
 
 async function main() {
-  const result = await backfillPendingDateOnlyTimes({ pauseMs: Number(process.env.SCRAPE_PAUSE_MS ?? "1500") || 1500 });
-  console.log(`Pending clocks updated ${result.updated}, pages opened ${result.fetched}.`);
+  const pauseMs = Number(process.env.SCRAPE_PAUSE_MS ?? "1500") || 1500;
+  const budget = { left: DETAIL_TIME_CAP };
+  const clocks = await backfillPendingDateOnlyTimes({ pauseMs, budget });
+  const series = await splitPendingSeriesSpans({ pauseMs, budget });
+  console.log(
+    `Pending clocks updated ${clocks.updated}, series sittings created ${series.created}, old series rows discarded ${series.discarded}, pages opened ${clocks.fetched + series.fetched}.`
+  );
 }
 
 main().catch((error: unknown) => {

@@ -8,7 +8,14 @@ import { scrapeDecision } from "./apply";
 import { preferExternalUrl, preferNotes, preferPlace } from "./enrich";
 import { fixtureEvents } from "./fixtures";
 import { selectHarvestEvents } from "./harvest";
-import { backfillPendingDateOnlyTimes, DETAIL_TIME_CAP, enrichDateOnlyEvents } from "./detail-time";
+import {
+  backfillPendingDateOnlyTimes,
+  DETAIL_TIME_CAP,
+  discardPendingSpans,
+  enrichDateOnlyEvents,
+  expandSeriesEvents,
+  splitPendingSeriesSpans
+} from "./detail-time";
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
 import { claimScrapeLock, releaseScrapeLock } from "./lock";
 import { clip, stripHtml } from "./text";
@@ -67,11 +74,15 @@ export async function runScraper(opts: {
       const pauseMs = Number(process.env.SCRAPE_PAUSE_MS ?? "1500") || 1500;
       const enriched = await enrichDateOnlyEvents(events, { budget, pauseMs });
       events = enriched.events;
+      const series = await expandSeriesEvents(events, { budget, pauseMs });
+      events = series.events;
+      await discardPendingSpans(series.retiredKeys);
       await backfillPendingDateOnlyTimes({
         budget,
         pauseMs,
         skipSourceKeys: new Set(events.map((event) => event.sourceKey))
       });
+      await splitPendingSeriesSpans({ budget, pauseMs, skipUrls: new Set(series.splitUrls) });
     }
     const droppedDisabledCategory = harvest.droppedDisabledCategory;
     const droppedNearDupe = harvest.droppedNearDupe;

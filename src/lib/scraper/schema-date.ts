@@ -84,3 +84,20 @@ export function isDateOnlyStoredRange(startsAt: Date, endsAt: Date | null | unde
   const sameDay = end.year === start.year && end.month === start.month && end.day === start.day;
   return sameDay && end.hour === 1 && end.minute === 0;
 }
+
+/** Start and end fall on different days, and this is not a date-only midnight range. */
+export function isSeriesSpan(startsAt: Date, endsAt: Date | null | undefined): boolean {
+  if (!endsAt || isDateOnlyStoredRange(startsAt, endsAt)) return false;
+  const start = londonParts(startsAt);
+  const end = londonParts(endsAt);
+  return start.year !== end.year || start.month !== end.month || start.day !== end.day;
+}
+
+/** Length of one sitting, taken from the clocks, ignoring the series end date. */
+export function sessionLengthMs(startsAt: Date, endsAt: Date): number {
+  const start = londonParts(startsAt);
+  const end = londonParts(endsAt);
+  const diff = end.hour * 60 + end.minute - (start.hour * 60 + start.minute);
+  if (diff > 0 && diff <= 8 * 60) return diff * 60 * 1000;
+  return 60 * 60 * 1000;
+}

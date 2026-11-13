@@ -1,5 +1,5 @@
 import { LIMITS, isHttpUrl } from "../security";
-import { parseSchemaInstant, resolveSchemaEnd } from "./schema-date";
+import { isSeriesSpan, parseSchemaInstant, resolveSchemaEnd } from "./schema-date";
 import { cleanText, clip, joinNotes, looksOnline, stripHtml } from "./text";
 import type { ScrapedEvent } from "./types";
 
@@ -212,5 +212,39 @@ export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEv
       needsTypeReview: false
     });
   }
-  return events;
+  return keyEachSlot(dropSpanningParents(events));
+}
+
+/** A series parent shares its page with real one-off slots. Keep the slots. */
+function dropSpanningParents(events: ScrapedEvent[]): ScrapedEvent[] {
+  const spans = events.filter((event) => isSeriesSpan(event.startsAt, event.endsAt));
+  if (!spans.length) return events;
+  const singles = events.filter((event) => !isSeriesSpan(event.startsAt, event.endsAt));
+  for (const span of spans) {
+    for (const single of singles) {
+      if (single.externalUrl !== span.externalUrl) continue;
+      if (single.title === "Untitled event") single.title = span.title;
+      if (!single.placeName && span.placeName) single.placeName = span.placeName;
+      if (!single.organisationName && span.organisationName) single.organisationName = span.organisationName;
+    }
+  }
+  return events.filter((event) => {
+    if (!isSeriesSpan(event.startsAt, event.endsAt)) return true;
+    const siblings = singles.filter(
+      (single) =>
+        (single.externalUrl && single.externalUrl === event.externalUrl) ||
+        single.title.toLowerCase() === event.title.toLowerCase()
+    );
+    return siblings.length < 2;
+  });
+}
+
+/** Slots that shared one id become separate rows, keyed by their start. */
+function keyEachSlot(events: ScrapedEvent[]): ScrapedEvent[] {
+  const counts = new Map<string, number>();
+  for (const event of events) counts.set(event.sourceKey, (counts.get(event.sourceKey) ?? 0) + 1);
+  return events.map((event) => {
+    if ((counts.get(event.sourceKey) ?? 0) < 2) return event;
+    return { ...event, sourceKey: clip(`${event.sourceKey}#${event.startsAt.toISOString()}`, 240) };
+  });
 }

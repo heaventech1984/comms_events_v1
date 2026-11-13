@@ -6,7 +6,8 @@ import { FETCH_BODY_MAX } from "./harvest";
 import { eventsFromJsonLd, extractJsonLdScripts } from "./jsonld";
 import { SCRAPE_USER_AGENT, type FetchLike } from "./live-adapter";
 import { eventsFromMicrodata } from "./microdata";
-import { isDateOnlyStoredRange } from "./schema-date";
+import { occurrencesFromDetailHtml } from "./series-slots";
+import { isDateOnlyStoredRange, isSeriesSpan } from "./schema-date";
 import type { ScrapedEvent } from "./types";
 
 /** How many event pages one scrape may open to recover a missing clock. */
@@ -215,6 +216,171 @@ export async function enrichDateOnlyEvents<T extends DetailRow>(
     }
   }
   return { events: out, fetched };
+}
+
+function shouldFetchSeriesPage(event: DetailRow): boolean {
+  if (!isSeriesSpan(event.startsAt, event.endsAt)) return false;
+  const url = event.externalUrl?.trim();
+  if (!url || !scrapeUrlAllowed(url).ok) return false;
+  if (looksLikeListingUrl(url)) return false;
+  if (event.fetchedFrom && sameUrl(url, event.fetchedFrom)) return false;
+  return true;
+}
+
+/**
+ * A row that runs from the first sitting to the last becomes one row per upcoming sitting.
+ * The old source key is returned so the pending span can be discarded.
+ */
+export async function expandSeriesEvents(
+  events: ScrapedEvent[],
+  opts: { fetchFn?: FetchLike; pauseMs?: number; budget?: DetailBudget; now?: Date } = {}
+): Promise<{ events: ScrapedEvent[]; fetched: number; retiredKeys: string[]; splitUrls: string[] }> {
+  const budget = opts.budget ?? { left: DETAIL_TIME_CAP };
+  const fetchFn = opts.fetchFn ?? (globalThis.fetch as FetchLike);
+  const pause = opts.pauseMs ?? 0;
+  const now = opts.now ?? new Date();
+  const cache = new Map<string, ScrapedEvent[] | null>();
+  const robotsCache = new Map<string, string | null>();
+  let fetched = 0;
+  const retiredKeys: string[] = [];
+  const splitUrls: string[] = [];
+  const out: ScrapedEvent[] = [];
+
+  for (const event of events) {
+    if (!shouldFetchSeriesPage(event) || budget.left <= 0) {
+      out.push(event);
+      continue;
+    }
+    const url = event.externalUrl!.trim();
+    let slots = cache.get(url);
+    if (slots === undefined) {
+      const allowed = scrapeUrlAllowed(url);
+      if (!allowed.ok || budget.left <= 0 || !(await robotsAllow(fetchFn, allowed.url, robotsCache))) {
+        cache.set(url, null);
+        out.push(event);
+        continue;
+      }
+      budget.left -= 1;
+      fetched += 1;
+      const page = await readBody(fetchFn, allowed.url.toString());
+      const parsed = page?.ok ? occurrencesFromDetailHtml(page.body, event, now) : [event];
+      slots = parsed.length >= 2 && parsed.some((row) => row.sourceKey !== event.sourceKey) ? parsed : null;
+      cache.set(url, slots);
+      if (pause && budget.left > 0) await sleep(pause);
+    }
+    if (slots && slots.length >= 2) {
+      retiredKeys.push(event.sourceKey);
+      if (!splitUrls.includes(url)) splitUrls.push(url);
+      out.push(...slots.map((slot) => ({ ...slot, fetchedFrom: event.fetchedFrom, needsTypeReview: event.needsTypeReview, category: event.category })));
+    } else {
+      out.push(event);
+    }
+  }
+  return { events: out, fetched, retiredKeys, splitUrls };
+}
+
+/** Discard pending span rows that have been replaced by one-off sittings. */
+export async function discardPendingSpans(sourceKeys: string[]): Promise<number> {
+  const keys = [...new Set(sourceKeys.filter(Boolean))];
+  if (!keys.length) return 0;
+  const result = await prisma.event.updateMany({
+    where: { sourceKey: { in: keys }, status: "PENDING", humanEditedAt: null },
+    data: { status: "DISCARDED" }
+  });
+  return result.count;
+}
+
+/**
+ * Pending rows already saved as one long series. Opens the event page and writes one row per upcoming sitting.
+ */
+export async function splitPendingSeriesSpans(opts: {
+  fetchFn?: FetchLike;
+  pauseMs?: number;
+  budget?: DetailBudget;
+  skipUrls?: Set<string>;
+  now?: Date;
+} = {}): Promise<{ created: number; discarded: number; fetched: number }> {
+  const budget = opts.budget ?? { left: DETAIL_TIME_CAP };
+  if (budget.left <= 0 || process.env.SCRAPE_LIVE === "0") return { created: 0, discarded: 0, fetched: 0 };
+  const now = opts.now ?? new Date();
+  const fetchFn = opts.fetchFn ?? (globalThis.fetch as FetchLike);
+  const pause = opts.pauseMs ?? 0;
+  const rows = await prisma.event.findMany({
+    where: { status: "PENDING", humanEditedAt: null, externalUrl: { not: null } },
+    orderBy: { startsAt: "asc" }
+  });
+  const groups = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (!row.externalUrl || !isSeriesSpan(row.startsAt, row.endsAt)) continue;
+    if (opts.skipUrls?.has(row.externalUrl)) continue;
+    if (!shouldFetchSeriesPage({ title: row.title, startsAt: row.startsAt, endsAt: row.endsAt, externalUrl: row.externalUrl, fetchedFrom: null })) {
+      continue;
+    }
+    const list = groups.get(row.externalUrl) ?? [];
+    list.push(row);
+    groups.set(row.externalUrl, list);
+  }
+  const robotsCache = new Map<string, string | null>();
+  let created = 0;
+  let discarded = 0;
+  let fetched = 0;
+  for (const [url, group] of groups) {
+    if (budget.left <= 0) break;
+    const allowed = scrapeUrlAllowed(url);
+    if (!allowed.ok || !(await robotsAllow(fetchFn, allowed.url, robotsCache))) continue;
+    budget.left -= 1;
+    fetched += 1;
+    const page = await readBody(fetchFn, allowed.url.toString());
+    const parent = group[0]!;
+    const template: ScrapedEvent = {
+      sourceKey: parent.sourceKey ?? url,
+      title: parent.title,
+      organisationName: parent.organisationName,
+      category: parent.category as ScrapedEvent["category"],
+      startsAt: parent.startsAt,
+      endsAt: parent.endsAt,
+      online: parent.online,
+      placeName: parent.placeName,
+      lat: parent.lat,
+      lng: parent.lng,
+      externalUrl: parent.externalUrl,
+      notes: parent.notes,
+      needsTypeReview: false
+    };
+    const slots = page?.ok ? occurrencesFromDetailHtml(page.body, template, now) : [template];
+    if (slots.length < 2 || slots.every((slot) => slot.sourceKey === template.sourceKey)) {
+      if (pause && budget.left > 0) await sleep(pause);
+      continue;
+    }
+    for (const slot of slots) {
+      const existing = await prisma.event.findUnique({ where: { sourceKey: slot.sourceKey } });
+      if (existing) continue;
+      await prisma.event.create({
+        data: {
+          sourceKey: slot.sourceKey,
+          title: slot.title,
+          organisationName: parent.organisationName,
+          organisationId: parent.organisationId,
+          category: parent.category,
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          online: parent.online,
+          placeName: parent.placeName,
+          lat: parent.lat,
+          lng: parent.lng,
+          externalUrl: parent.externalUrl,
+          notes: parent.notes,
+          status: "PENDING",
+          recurrence: "NONE"
+        }
+      });
+      created += 1;
+    }
+    const gone = await discardPendingSpans(group.map((row) => row.sourceKey ?? "").filter(Boolean));
+    discarded += gone;
+    if (pause && budget.left > 0) await sleep(pause);
+  }
+  return { created, discarded, fetched };
 }
 
 /**

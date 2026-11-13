@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Pending clocks from the event page* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *One card per series date* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,11 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-13 — One card per series date
+
+- A page with many dates, such as Book Magic every Sunday, becomes one pending event per sitting. Each sitting keeps that day's clock (11:30–12:00), not a span from the first date to the last.
+- The old spanning pending row is discarded when those sittings are saved. Past sittings are not added.
 
 ## 2026-11-13 — Pending clocks from the event page
 
