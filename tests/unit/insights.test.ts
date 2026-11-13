@@ -14,7 +14,7 @@ const raw: RawInsights = {
     {
       id: "e1",
       title: "Choir",
-      category: "Christian",
+      category: "Faith",
       online: false,
       startsAt: new Date("2026-10-10T18:00:00Z"),
       endsAt: new Date("2026-10-10T20:00:00Z"),
@@ -26,7 +26,7 @@ const raw: RawInsights = {
     {
       id: "e2",
       title: "Meetup",
-      category: "Meetup",
+      category: "Social",
       online: true,
       startsAt: new Date("2026-10-12T18:00:00Z"),
       endsAt: new Date("2026-10-12T19:00:00Z"),
@@ -126,8 +126,8 @@ describe("aggregateInsights", () => {
   });
 
   it("splits by type and format", () => {
-    expect(data.byCategory.find((r) => r.key === "Christian")?.count).toBe(2);
-    expect(data.byCategory.find((r) => r.key === "Meetup")?.count).toBe(1);
+    expect(data.byCategory.find((r) => r.key === "Faith")?.count).toBe(2);
+    expect(data.byCategory.find((r) => r.key === "Social")?.count).toBe(1);
     expect(data.byFormat.find((r) => r.key === "online")?.count).toBe(1);
     expect(data.byFormat.find((r) => r.key === "inperson")?.count).toBe(2);
   });

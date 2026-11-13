@@ -40,6 +40,7 @@ export default async function EditEventPage({
           organisationName: event.organisationName,
           organisationId: event.organisationId,
           category: event.category,
+          tags: event.tags,
           startsAt: toDatetimeLocalValue(event.startsAt),
           endsAt: toDatetimeLocalValue(event.endsAt),
           online: event.online,

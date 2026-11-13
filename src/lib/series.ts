@@ -10,6 +10,7 @@ export async function createWeeklySeries(input: {
   organisationName: string;
   organisationId?: string | null;
   category: Category;
+  tags?: string;
   startsAt: Date;
   endsAt: Date;
   online: boolean;
@@ -31,6 +32,7 @@ export async function createWeeklySeries(input: {
       organisationName: input.organisationName,
       organisationId: input.organisationId ?? null,
       category: input.category,
+      tags: input.tags ?? "",
       startsAt,
       endsAt: new Date(startsAt.getTime() + duration),
       online: input.online,

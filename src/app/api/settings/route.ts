@@ -32,11 +32,10 @@ export async function POST(request: NextRequest) {
     update: {
       locationLabel,
       memberAttendeeView,
-      christianEnabled: !!enabled.Christian,
-      networkingEnabled: !!enabled.Networking,
+      socialEnabled: !!enabled.Social,
       professionalEnabled: !!enabled.Professional,
-      studentEnabled: !!enabled.Student,
-      meetupEnabled: !!enabled.Meetup,
+      faithEnabled: !!enabled.Faith,
+      activitiesEnabled: !!enabled.Activities,
       categoryColours: JSON.stringify(colours),
       priorityUrls: JSON.stringify(priorityUrls)
     },

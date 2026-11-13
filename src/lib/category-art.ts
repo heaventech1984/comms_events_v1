@@ -3,18 +3,17 @@ import type { Category } from "./constants";
 import { CATEGORIES } from "./constants";
 
 const ART: Record<Category, { src: string; label: string }> = {
-  Christian: { src: "/categories/christian.svg", label: "Christian" },
-  Networking: { src: "/categories/networking.svg", label: "Networking" },
+  Social: { src: "/categories/meetup.svg", label: "Social" },
   Professional: { src: "/categories/professional.svg", label: "Professional" },
-  Student: { src: "/categories/student.svg", label: "Student" },
-  Meetup: { src: "/categories/meetup.svg", label: "Meetup" }
+  Faith: { src: "/categories/christian.svg", label: "Faith" },
+  Activities: { src: "/categories/student.svg", label: "Activities" }
 };
 
 export function categoryArt(category: string): { src: string; label: string } {
   if ((CATEGORIES as readonly string[]).includes(category)) {
     return ART[category as Category];
   }
-  return { src: "/categories/meetup.svg", label: category || "Event" };
+  return { src: "/categories/meetup.svg", label: category || "Social" };
 }
 
 /** Soft wash for inline style — gentle tint of the category colour. */

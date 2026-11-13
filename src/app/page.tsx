@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function Home({
   searchParams
 }: {
-  searchParams: Promise<{ types?: string; format?: string }>;
+  searchParams: Promise<{ types?: string; tags?: string; format?: string }>;
 }) {
   const params = await searchParams;
   const user = await getCurrentUser();
@@ -18,7 +18,7 @@ export default async function Home({
     await dropEndedStars();
     return (
       <AppChrome user={user}>
-        <HomeBrowse userId={user.id} typesParam={params.types} formatParam={params.format} />
+        <HomeBrowse userId={user.id} typesParam={params.types} tagsParam={params.tags} formatParam={params.format} />
       </AppChrome>
     );
   }

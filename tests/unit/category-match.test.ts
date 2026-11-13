@@ -9,9 +9,9 @@ import {
 
 describe("categoryAffinity", () => {
   it("treats the same type as a perfect match and neighbours as close", () => {
-    expect(categoryAffinity("Networking", "Networking")).toBe(1);
-    expect(categoryAffinity("Networking", "Professional")).toBeGreaterThan(0.6);
-    expect(categoryAffinity("Christian", "Professional")).toBeLessThan(0.2);
+    expect(categoryAffinity("Faith", "Faith")).toBe(1);
+    expect(categoryAffinity("Social", "Activities")).toBeGreaterThan(0.4);
+    expect(categoryAffinity("Faith", "Professional")).toBeLessThan(0.2);
   });
 });
 
@@ -32,9 +32,9 @@ describe("tokenize / tokenOverlap", () => {
 
 describe("nearestCategoryFromText", () => {
   it("maps synonyms and near-miss spellings onto a Gather type", () => {
-    expect(nearestCategoryFromText("Christain prayer night")).toBe("Christian");
+    expect(nearestCategoryFromText("Christain prayer night")).toBe("Faith");
     expect(nearestCategoryFromText("Profesional board lunch")).toBe("Professional");
-    expect(nearestCategoryFromText("Campus freshers social")).toBe("Student");
+    expect(nearestCategoryFromText("Campus freshers social")).toBe("Social");
     expect(nearestCategoryFromText("Community gathering")).toBeNull();
   });
 });

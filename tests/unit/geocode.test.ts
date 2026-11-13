@@ -31,7 +31,8 @@ describe("events export table", () => {
       {
         title: "=HYPERLINK()",
         organisationName: "Org",
-        category: "Christian",
+        category: "Faith",
+        tags: "Christian, In Person",
         startsAt: new Date("2026-10-20T10:00:00Z"),
         endsAt: new Date("2026-10-20T11:00:00Z"),
         online: false,

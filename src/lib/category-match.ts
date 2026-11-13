@@ -6,16 +6,30 @@ import { CATEGORIES, parseCategory, type Category } from "./constants";
  * Like putting similar recipe cards next to each other in a kitchen drawer.
  */
 const AFFINITY: Record<Category, Record<Category, number>> = {
-  Christian: { Christian: 1, Networking: 0.05, Professional: 0.05, Student: 0.15, Meetup: 0.35 },
-  Networking: { Christian: 0.05, Networking: 1, Professional: 0.7, Student: 0.25, Meetup: 0.4 },
-  Professional: { Christian: 0.05, Networking: 0.7, Professional: 1, Student: 0.3, Meetup: 0.2 },
-  Student: { Christian: 0.15, Networking: 0.25, Professional: 0.3, Student: 1, Meetup: 0.5 },
-  Meetup: { Christian: 0.35, Networking: 0.4, Professional: 0.2, Student: 0.5, Meetup: 1 }
+  Social: { Social: 1, Professional: 0.25, Faith: 0.35, Activities: 0.5 },
+  Professional: { Social: 0.25, Professional: 1, Faith: 0.05, Activities: 0.2 },
+  Faith: { Social: 0.35, Professional: 0.05, Faith: 1, Activities: 0.15 },
+  Activities: { Social: 0.5, Professional: 0.2, Faith: 0.15, Activities: 1 }
 };
 
 /** Words that mean a Gather type, including near-synonyms. */
 const ALIASES: Record<Category, string[]> = {
-  Christian: [
+  Social: ["social", "student", "students", "university", "campus", "freshers", "mixer", "family"],
+  Professional: [
+    "professional",
+    "career",
+    "careers",
+    "business",
+    "director",
+    "chamber",
+    "cpd",
+    "leadership",
+    "networking",
+    "founders",
+    "startup",
+    "coworking"
+  ],
+  Faith: [
     "christian",
     "church",
     "cathedral",
@@ -35,10 +49,7 @@ const ALIASES: Record<Category, string[]> = {
     "liturgy",
     "mass"
   ],
-  Networking: ["networking", "network", "founders", "startup", "startups", "coworking", "breakfast"],
-  Professional: ["professional", "career", "careers", "business", "director", "chamber", "cpd", "leadership"],
-  Student: ["student", "students", "university", "campus", "freshers", "undergraduate", "guild"],
-  Meetup: ["meetup", "mixer", "social", "walk"]
+  Activities: ["music", "fitness", "sport", "yoga", "walk", "dance", "creative", "art"]
 };
 
 const STOP = new Set(["at", "the", "a", "an", "of", "in", "and", "for", "to", "on", "with", "by"]);

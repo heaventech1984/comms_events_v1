@@ -12,7 +12,7 @@ function spanEvent(): ScrapedEvent {
     sourceKey: "live:allevents.in:book-magic",
     title: "Book Magic",
     organisationName: "Nuneaton Library",
-    category: "Meetup",
+    category: "Social",
     startsAt: londonDate(2023, 10, 15, 11, 30),
     endsAt: londonDate(2026, 12, 6, 12, 0),
     online: false,

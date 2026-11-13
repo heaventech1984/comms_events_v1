@@ -23,6 +23,7 @@ export type PendingTileData = {
   title: string;
   organisationName: string;
   category: string;
+  tags?: string;
   startsAt: string;
   endsAt: string | null;
   online: boolean;
@@ -184,7 +185,7 @@ function PendingTileCard({
   busy: boolean;
   returnTo: string;
 }) {
-  const category = (CATEGORIES.includes(event.category as Category) ? event.category : "Meetup") as Category;
+  const category = (CATEGORIES.includes(event.category as Category) ? event.category : "Social") as Category;
   const startsAt = new Date(event.startsAt);
   const endsAt = event.endsAt ? new Date(event.endsAt) : null;
   const clock = pendingClockLabel(startsAt, endsAt);
@@ -222,6 +223,7 @@ function PendingTileCard({
           <span className="pending-cat">
             <CategoryThumb category={category} size="sm" />
             {CATEGORIES.includes(category) ? category : event.category}
+            {event.tags ? ` · ${event.tags}` : ""}
           </span>
         </div>
         <h3>{event.title}</h3>

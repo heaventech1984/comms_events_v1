@@ -128,7 +128,7 @@ export function parseIcsEvents(raw: string, sourceUrl: string): ScrapedEvent[] {
         sourceKey: `live:${host}:${uid}`,
         title,
         organisationName: clip(organiser, LIMITS.titleLength),
-        category: "Meetup",
+        category: "Social",
         startsAt,
         endsAt,
         online: looksOnline(title, location, description),

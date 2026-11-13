@@ -16,29 +16,29 @@ import { preferExternalUrl, preferPlace } from "@/lib/scraper/enrich";
 import { STARTER_PRIORITY_URL } from "@/lib/scraper/allowlist";
 
 describe("pending filters", () => {
-  it("builds hrefs that keep type and format together", () => {
-    const state = parsePendingFilters({ types: "Christian", format: "online" });
-    expect(pendingHref(state)).toBe("/pending?types=Christian&format=online");
+  it("builds hrefs that keep category and tags together", () => {
+    const state = parsePendingFilters({ types: "Faith", tags: "Online" });
+    expect(pendingHref(state)).toBe("/pending?types=Faith&tags=Online");
     expect(pendingHref(state, { needsTypeOnly: true })).toBe(
-      "/pending?types=Christian&format=online&filter=needs-type"
+      "/pending?types=Faith&tags=Online&filter=needs-type"
     );
-    expect(togglePendingType(["Christian"], "Meetup")).toEqual(["Christian", "Meetup"]);
+    expect(togglePendingType(["Faith"], "Social")).toEqual(["Social", "Faith"]);
   });
 
-  it("filters by type, format, and needs-type", () => {
-    const base = parsePendingFilters({ types: "Christian", format: "inperson" });
+  it("filters by category and tags", () => {
+    const base = parsePendingFilters({ types: "Faith", tags: "In Person" });
     expect(
       eventMatchesPendingFilters(
-        { category: "Christian", online: false, notes: null },
+        { category: "Faith", tags: "|Christian|In Person|", online: false, notes: null },
         base,
         false
       )
     ).toBe(true);
     expect(
-      eventMatchesPendingFilters({ category: "Meetup", online: false, notes: null }, base, false)
+      eventMatchesPendingFilters({ category: "Social", tags: "|In Person|", online: false, notes: null }, base, false)
     ).toBe(false);
     expect(
-      eventMatchesPendingFilters({ category: "Christian", online: true, notes: null }, base, false)
+      eventMatchesPendingFilters({ category: "Faith", tags: "|Online|", online: true, notes: null }, base, false)
     ).toBe(false);
   });
 

@@ -8,48 +8,48 @@ export const TYPE_WEAK_NOTE =
   "Gather guessed this type from the feed page (not the event title). Please confirm before publishing.";
 
 const HOST_CATEGORY: Record<string, Category> = {
-  "birminghamcathedral.com": "Christian",
-  "www.birminghamcathedral.com": "Christian",
-  "carrslane.co.uk": "Christian",
-  "www.carrslane.co.uk": "Christian",
-  "meetup.com": "Meetup",
-  "www.meetup.com": "Meetup",
-  "birmingham.ac.uk": "Student",
-  "www.birmingham.ac.uk": "Student",
-  "bcu.ac.uk": "Student",
-  "www.bcu.ac.uk": "Student",
-  "bcusu.com": "Student",
-  "www.bcusu.com": "Student",
-  "guildofstudents.com": "Student",
-  "www.guildofstudents.com": "Student",
+  "birminghamcathedral.com": "Faith",
+  "www.birminghamcathedral.com": "Faith",
+  "carrslane.co.uk": "Faith",
+  "www.carrslane.co.uk": "Faith",
+  "meetup.com": "Social",
+  "www.meetup.com": "Social",
+  "birmingham.ac.uk": "Social",
+  "www.birmingham.ac.uk": "Social",
+  "bcu.ac.uk": "Social",
+  "www.bcu.ac.uk": "Social",
+  "bcusu.com": "Social",
+  "www.bcusu.com": "Social",
+  "guildofstudents.com": "Social",
+  "www.guildofstudents.com": "Social",
   "iod.com": "Professional",
   "www.iod.com": "Professional",
   "greaterbirminghamchambers.com": "Professional",
   "www.greaterbirminghamchambers.com": "Professional",
-  "birmingham.impacthub.net": "Networking",
-  "digbethdiningclub.com": "Meetup",
-  "www.digbethdiningclub.com": "Meetup",
-  "aston.ac.uk": "Student",
-  "www.aston.ac.uk": "Student",
-  "astonsu.com": "Student",
-  "www.astonsu.com": "Student",
-  "eventbrite.co.uk": "Meetup",
-  "www.eventbrite.co.uk": "Meetup",
-  "eventbrite.com": "Meetup",
-  "www.eventbrite.com": "Meetup",
-  "luma.com": "Networking",
-  "www.luma.com": "Networking",
-  "lu.ma": "Networking",
-  "visitbirmingham.com": "Meetup",
-  "www.visitbirmingham.com": "Meetup",
-  "skiddle.com": "Meetup",
-  "www.skiddle.com": "Meetup",
-  "allevents.in": "Meetup",
-  "www.allevents.in": "Meetup",
-  "ticketmaster.co.uk": "Meetup",
-  "www.ticketmaster.co.uk": "Meetup",
-  "achurchnearyou.com": "Christian",
-  "www.achurchnearyou.com": "Christian"
+  "birmingham.impacthub.net": "Professional",
+  "digbethdiningclub.com": "Social",
+  "www.digbethdiningclub.com": "Social",
+  "aston.ac.uk": "Social",
+  "www.aston.ac.uk": "Social",
+  "astonsu.com": "Social",
+  "www.astonsu.com": "Social",
+  "eventbrite.co.uk": "Social",
+  "www.eventbrite.co.uk": "Social",
+  "eventbrite.com": "Social",
+  "www.eventbrite.com": "Social",
+  "luma.com": "Professional",
+  "www.luma.com": "Professional",
+  "lu.ma": "Professional",
+  "visitbirmingham.com": "Social",
+  "www.visitbirmingham.com": "Social",
+  "skiddle.com": "Social",
+  "www.skiddle.com": "Social",
+  "allevents.in": "Social",
+  "www.allevents.in": "Social",
+  "ticketmaster.co.uk": "Social",
+  "www.ticketmaster.co.uk": "Social",
+  "achurchnearyou.com": "Faith",
+  "www.achurchnearyou.com": "Faith"
 };
 
 /** Aggregators whose host alone is too coarse — prefer the Priority URL path/query. */
@@ -74,26 +74,32 @@ const KEYWORDS: { pattern: RegExp; category: Category }[] = [
   {
     pattern:
       /\b(church|cathedral|eucharist|prayer|worship|mass|gospel|christian|jesus|catholic|baptist|bible|fellowship|alpha course|chapel|parish|sermon|anglican|liturgy|faith)\b/i,
-    category: "Christian"
+    category: "Faith"
   },
-  { pattern: /\b(student|university|freshers|careers fair|su\b|guild of students|campus|undergraduate)\b/i, category: "Student" },
   {
-    pattern: /\b(iod|chamber|director|export|professional|career|surveyor|licensed property|cpd|leadership)\b/i,
+    pattern: /\b(music|choir|concert|gig|yoga|fitness|gym|sport|run|walk|hike|hiking|dance|football|art|creative|poetry|theatre)\b/i,
+    category: "Activities"
+  },
+  {
+    pattern:
+      /\b(iod|chamber|director|export|professional|careers?|surveyor|licensed property|cpd|leadership|founders|networking|breakfast|impact hub|startup|start-up|coworking)\b/i,
     category: "Professional"
   },
-  { pattern: /\b(founders|networking|breakfast|impact hub|startup|start-up|coworking)\b/i, category: "Networking" },
-  { pattern: /\b(meetup|open mic|walk|mixer|social)\b/i, category: "Meetup" }
+  {
+    pattern: /\b(student|university|freshers|su\b|guild of students|campus|undergraduate|mixer|social|family)\b/i,
+    category: "Social"
+  }
 ];
 
 const PAGE_HINTS: { pattern: RegExp; category: Category }[] = [
   {
     pattern:
       /religion|spiritual|christian|church|cathedral|worship|gospel|religious|jesus|catholic|baptist|pentecostal|evangelical|bible|praise|fellowship|alpha|anglican/i,
-    category: "Christian"
+    category: "Faith"
   },
-  { pattern: /network|startup|start-up|founders|coworking/i, category: "Networking" },
-  { pattern: /professional|career|business|director|chamber|export|government/i, category: "Professional" },
-  { pattern: /student|school|education|university|freshers|family-and-education/i, category: "Student" }
+  { pattern: /sport|fitness|music|art|yoga|health/i, category: "Activities" },
+  { pattern: /network|startup|start-up|founders|coworking|professional|career|business|director|chamber|export|government/i, category: "Professional" },
+  { pattern: /student|school|education|university|freshers|family-and-education|social/i, category: "Social" }
 ];
 
 export type InferStrength = "strong" | "weak" | "none";
@@ -132,7 +138,8 @@ export function textSupportsCategory(title: string, organisationName: string, ca
  * Infer Gather type.
  * - strong: primary host, title/org keyword, or a page hint the title agrees with
  * - weak: title is only a near-match — flag for later, do not add card buttons
- * - none: unknown — Meetup, and a flag for later
+ * - none: unknown — Social, and a flag for later
+ * A search page never sets Faith, or any shelf, unless the title agrees.
  */
 export function inferCategory(input: {
   host?: string | null;
@@ -158,15 +165,12 @@ export function inferCategory(input: {
 
   const fromApprox = nearestCategoryFromText(`${input.title} ${input.organisationName}`);
   if (fromApprox) {
-    // One-letter slips are a guess — flag them, but do not treat the search page as proof.
     return { category: fromApprox, inferred: true, strength: "weak" };
   }
 
-  // A search page never sets the type by itself. keywords=christian must not
-  // label a DevOps workshop Christian. Fall through to the host, or Meetup.
   if (host && HOST_CATEGORY[host]) {
     return { category: HOST_CATEGORY[host], inferred: true, strength: "strong" };
   }
 
-  return { category: CATEGORIES[4], inferred: false, strength: "none" };
+  return { category: CATEGORIES[0], inferred: false, strength: "none" };
 }

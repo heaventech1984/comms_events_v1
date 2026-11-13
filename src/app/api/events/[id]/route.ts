@@ -6,6 +6,7 @@ import { fromDatetimeLocalValue } from "@/lib/time";
 import { writeAudit } from "@/lib/audit";
 import { deleteOccurrence } from "@/lib/series";
 import { CATEGORIES, type Category } from "@/lib/constants";
+import { encodeTags, parseTagsParam, withAttendance } from "@/lib/tags";
 import { stripTypeReviewNotes } from "@/lib/scraper/type-review";
 import { eventInputProblem } from "@/lib/security";
 
@@ -92,6 +93,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       startsAt,
       endsAt,
       online: body.online === true || body.online === "on" || (body.online === undefined && event.online),
+      tags:
+        body.tags === undefined
+          ? event.tags
+          : encodeTags(
+              withAttendance(
+                parseTagsParam((Array.isArray(body.tags) ? body.tags.map(String) : String(body.tags).split(",")).join(",")),
+                body.online === true || body.online === "on" || (body.online === undefined && event.online)
+              )
+            ),
       placeName,
       lat: Number.isFinite(lat) ? lat : event.lat,
       lng: Number.isFinite(lng) ? lng : event.lng,

@@ -81,7 +81,7 @@ export function eventsFromMicrodata(html: string, sourceUrl: string): ScrapedEve
       sourceKey: `live:${host}:${uid}`,
       title,
       organisationName: clip(cleanText(organiser), LIMITS.titleLength),
-      category: "Meetup",
+      category: "Social",
       startsAt,
       endsAt,
       online: looksOnline(title, placeName, description),

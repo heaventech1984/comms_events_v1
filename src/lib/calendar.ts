@@ -1,5 +1,6 @@
-import { CATEGORIES, type Category } from "./constants";
+import { CATEGORIES, type Category, type Tag } from "./constants";
 import { safeNextPath } from "./security";
+import { parseTagsParam } from "./tags";
 import { londonDate, londonParts } from "./time";
 
 export type CalendarView = "month" | "week" | "day" | "list";
@@ -11,7 +12,7 @@ export type DayKey = { year: number; month: number; day: number };
 export type CalendarState = {
   view: CalendarView;
   categories: Category[];
-  format: CalendarFormat;
+  tags: Tag[];
   anchor: DayKey;
 };
 
@@ -19,6 +20,7 @@ export type CalendarParams = {
   view?: string;
   category?: string;
   types?: string;
+  tags?: string;
   format?: string;
   d?: string;
   y?: string;
@@ -114,7 +116,9 @@ export function parseCalendarParams(params: CalendarParams, today: DayKey): Cale
   if (!categories.length && CATEGORIES.includes(params.category as Category)) {
     categories = [params.category as Category];
   }
-  const format: CalendarFormat = params.format === "online" || params.format === "inperson" ? params.format : "";
+  let tags = parseTagsParam(params.tags);
+  if (!tags.length && params.format === "online") tags = ["Online"];
+  if (!tags.length && params.format === "inperson") tags = ["In Person"];
 
   let anchor = parseDayKey(params.d);
   if (!anchor && params.y !== undefined && params.m !== undefined) {
@@ -125,7 +129,7 @@ export function parseCalendarParams(params: CalendarParams, today: DayKey): Cale
       anchor = year === today.year && month === today.month ? today : legacy;
     }
   }
-  return { view, categories, format, anchor: anchor ?? today };
+  return { view, categories, tags, anchor: anchor ?? today };
 }
 
 export type CalendarRange = { from: Date; to: Date; days: DayKey[] };
@@ -164,13 +168,13 @@ export function stepAnchor(view: CalendarView, anchor: DayKey, direction: 1 | -1
 
 export type CalendarOverrides = Partial<CalendarState>;
 
-/** Builds a calendar link. An empty categories or format in the overrides removes that filter. */
+/** Builds a calendar link. Empty categories or tags in the overrides remove that filter. */
 export function calendarHref(state: CalendarState, overrides: CalendarOverrides = {}): string {
   const next = { ...state, ...overrides };
   const sp = new URLSearchParams();
   sp.set("view", next.view);
   if (next.categories.length) sp.set("types", next.categories.join(","));
-  if (next.format) sp.set("format", next.format);
+  if (next.tags.length) sp.set("tags", next.tags.join(","));
   sp.set("d", formatDayKey(next.anchor));
   return `/calendar?${sp.toString()}`;
 }

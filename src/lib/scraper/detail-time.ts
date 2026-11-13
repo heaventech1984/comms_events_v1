@@ -362,6 +362,7 @@ export async function splitPendingSeriesSpans(opts: {
           organisationName: parent.organisationName,
           organisationId: parent.organisationId,
           category: parent.category,
+          tags: parent.tags,
           startsAt: slot.startsAt,
           endsAt: slot.endsAt,
           online: parent.online,

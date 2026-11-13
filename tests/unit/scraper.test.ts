@@ -181,7 +181,7 @@ describe("allowlist", () => {
 describe("inferCategory", () => {
   it("uses the host when known and leaves a review note when not", () => {
     expect(inferCategory({ host: "birminghamcathedral.com", title: "Talk", organisationName: "X" })).toEqual({
-      category: "Christian",
+      category: "Faith",
       inferred: true,
       strength: "strong"
     });
@@ -189,9 +189,9 @@ describe("inferCategory", () => {
     expect(unknown.inferred).toBe(false);
     expect(unknown.strength).toBe("none");
     expect(TYPE_REVIEW_NOTE.length).toBeGreaterThan(10);
-    expect(inferCategory({ title: "University careers fair", organisationName: "UoB" }).category).toBe("Student");
-    expect(inferCategory({ title: "Christain night", organisationName: "X" }).category).toBe("Christian");
-    expect(inferCategory({ title: "Campus freshers fair", organisationName: "Guild" }).category).toBe("Student");
+    expect(inferCategory({ title: "University careers fair", organisationName: "UoB" }).category).toBe("Professional");
+    expect(inferCategory({ title: "Christain night", organisationName: "X" }).category).toBe("Faith");
+    expect(inferCategory({ title: "Campus freshers fair", organisationName: "Guild" }).category).toBe("Social");
   });
 
   it("uses a search page only when the title agrees", () => {
@@ -201,7 +201,7 @@ describe("inferCategory", () => {
       organisationName: "Org",
       pageUrl: "https://www.eventbrite.co.uk/d/united-kingdom--birmingham/professional--events/"
     });
-    expect(pro.category).toBe("Meetup");
+    expect(pro.category).toBe("Social");
     expect(pro.strength).toBe("strong");
     const stamped = inferCategory({
       host: "www.meetup.com",
@@ -209,7 +209,7 @@ describe("inferCategory", () => {
       organisationName: "DevOps Society",
       pageUrl: "https://www.meetup.com/find/?keywords=christian&location=gb--Birmingham"
     });
-    expect(stamped.category).toBe("Meetup");
+    expect(stamped.category).toBe("Social");
     expect(stamped.strength).toBe("strong");
     const faith = inferCategory({
       host: "www.meetup.com",
@@ -217,7 +217,7 @@ describe("inferCategory", () => {
       organisationName: "City Church",
       pageUrl: "https://www.meetup.com/find/?keywords=christian&location=gb--Birmingham"
     });
-    expect(faith.category).toBe("Christian");
+    expect(faith.category).toBe("Faith");
     expect(faith.strength).toBe("strong");
     expect(TYPE_WEAK_NOTE).toMatch(/confirm/i);
   });
@@ -266,14 +266,14 @@ describe("geo filter", () => {
     const filtered = filterLocalEvents([
       sampleEvent({
         sourceKey: "live:a",
-        category: "Meetup",
+        category: "Social",
         placeName: "London Bridge",
         title: "Far",
         fetchedFrom: "https://allevents.in/london/all"
       }),
       sampleEvent({
         sourceKey: "live:b",
-        category: "Christian",
+        category: "Faith",
         placeName: "St Philip’s Cathedral, Birmingham",
         title: "Eucharist",
         fetchedFrom: "https://www.birminghamcathedral.com/whats-on/"
@@ -471,7 +471,9 @@ describe("live adapter", () => {
       expect.objectContaining({ url: MEETUP_BIRMINGHAM_FIND_URL, ok: true, eventCount: 1 })
     ]);
     expect(harvest.events).toHaveLength(1);
-    expect(harvest.events[0].category).toBe("Meetup");
+    expect(harvest.events[0].category).toBe("Social");
+    expect(harvest.events[0].tags).toContain("Meetup");
+    expect(harvest.events[0].tags).not.toContain("Christian");
     expect(harvest.events[0].title).toMatch(/DevOps Society/i);
     expect(harvest.events[0].externalUrl).toContain("meetup.com/devops-society");
     expect(harvest.events[0].needsTypeReview).toBe(false);
@@ -535,24 +537,24 @@ function sampleEvent(overrides: Partial<ScrapedEvent> & Pick<ScrapedEvent, "sour
 
 describe("harvest select", () => {
   it("keeps unclassified events when Meetup is disabled and caps the run", () => {
-    const enabled = new Set<Category>(["Christian"]);
+    const enabled = new Set<Category>(["Faith"]);
     const unclassified = sampleEvent({
       sourceKey: "live:calendar.google.com:anon",
-      category: "Meetup",
+      category: "Social",
       needsTypeReview: true
     });
-    const droppedMeetup = sampleEvent({ sourceKey: "live:meetup.com:known", category: "Meetup" });
+    const droppedMeetup = sampleEvent({ sourceKey: "live:meetup.com:known", category: "Social" });
     const kept = selectHarvestEvents([unclassified, droppedMeetup], [], enabled);
     expect(kept.events.map((e) => e.sourceKey)).toEqual(["live:calendar.google.com:anon"]);
     expect(kept.droppedDisabledCategory).toBe(1);
   });
 
   it("slices combined live and fixture events to the run cap", () => {
-    const enabled = new Set<Category>(["Meetup"]);
+    const enabled = new Set<Category>(["Social"]);
     const live = Array.from({ length: RUN_EVENT_CAP + 10 }, (_, i) =>
       sampleEvent({
         sourceKey: `live:n:${i}`,
-        category: "Meetup",
+        category: "Social",
         title: `Sample event ${i}`,
         startsAt: new Date(Date.UTC(2026, 10, 1, 12, 0) + i * 60 * 60 * 1000)
       })
@@ -564,19 +566,19 @@ describe("harvest select", () => {
     const start = new Date("2026-11-12T18:00:00+00:00");
     const faith = sampleEvent({
       sourceKey: "live:eventbrite.co.uk:faith",
-      category: "Christian",
+      category: "Faith",
       title: "Praise and Worship Night",
       startsAt: start
     });
     const twin = sampleEvent({
       sourceKey: "live:meetup.com:twin",
-      category: "Meetup",
+      category: "Social",
       title: "Praise and Worship Night!!!",
       startsAt: new Date(start.getTime() + 5 * 60 * 1000)
     });
     const other = sampleEvent({
       sourceKey: "live:meetup.com:other",
-      category: "Meetup",
+      category: "Social",
       title: "Board Games",
       startsAt: start
     });
@@ -605,22 +607,22 @@ describe("type review notes", () => {
     const devops = settleScrapedType({
       title: "DevOps Society - The Human API Workshop",
       organisationName: "DevOps Society",
-      category: "Christian",
+      category: "Faith",
       notes: `${TYPE_WEAK_NOTE}\n\nSource feed: https://www.meetup.com/find/?keywords=christian`
     });
     expect(devops.changed).toBe(true);
-    expect(devops.category).toBe("Meetup");
+    expect(devops.category).toBe("Social");
     expect(devops.notes).not.toMatch(/confirm/i);
     expect(notesNeedTypeReview(devops.notes)).toBe(false);
 
     const prayer = settleScrapedType({
       title: "Sunday prayer night",
       organisationName: "City Church",
-      category: "Christian",
+      category: "Faith",
       notes: TYPE_WEAK_NOTE
     });
     expect(prayer.changed).toBe(false);
-    expect(prayer.category).toBe("Christian");
+    expect(prayer.category).toBe("Faith");
     expect(notesNeedTypeReview(prayer.notes)).toBe(true);
   });
 });
@@ -641,7 +643,7 @@ describe("MSL SU event list", () => {
     const events = eventsFromMslHtml(html, "https://www.guildofstudents.com/events/");
     expect(events).toHaveLength(1);
     expect(events[0].title).toMatch(/University Challenge/i);
-    expect(events[0].category).toBe("Student");
+    expect(events[0].category).toBe("Social");
     expect(events[0].placeName).toMatch(/Guild Council/i);
     expect(events[0].externalUrl).toContain("/ents/event/14934/");
   });
@@ -889,7 +891,7 @@ END:VCALENDAR`
     const events: ScrapedEvent[] = [
       sampleEvent({
         sourceKey: "live:birminghamcathedral.com:a",
-        category: "Christian",
+        category: "Faith",
         title: "Past service",
         startsAt: londonDate(2026, 11, 5, 11, 0),
         endsAt: londonDate(2026, 11, 5, 12, 0),
@@ -897,7 +899,7 @@ END:VCALENDAR`
       }),
       sampleEvent({
         sourceKey: "live:meetup.com:b",
-        category: "Meetup",
+        category: "Social",
         title: "Tomorrow walk",
         startsAt: londonDate(2026, 11, 9, 12, 0),
         endsAt: londonDate(2026, 11, 9, 15, 0),
@@ -905,7 +907,7 @@ END:VCALENDAR`
       }),
       sampleEvent({
         sourceKey: "fixture-x",
-        category: "Meetup",
+        category: "Social",
         title: "Demo tonight",
         startsAt: londonDate(2026, 11, 8, 19, 0),
         endsAt: londonDate(2026, 11, 8, 21, 0)
@@ -920,7 +922,7 @@ END:VCALENDAR`
     expect(report.thisWeek.from).toBe("2026-11-02");
     expect(report.thisWeek.to).toBe("2026-11-08");
     expect(report.thisWeek.total).toBe(2); // past service + demo tonight
-    expect(report.thisWeek.byCategory.Christian).toBe(1);
+    expect(report.thisWeek.byCategory.Faith).toBe(1);
     expect(report.thisMonth.days).toHaveLength(30); // November
     expect(report.thisMonth.days[7]?.total).toBe(1); // day 8
     const text = formatCoverageReport(report);

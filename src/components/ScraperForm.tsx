@@ -176,11 +176,11 @@ export function ScraperForm({
             <a className="button" href="/pending">
               Open Pending
             </a>
-            <a className="button secondary" href="/pending?format=inperson">
+            <a className="button secondary" href="/pending?tags=In%20Person">
               In person only
             </a>
-            <a className="button secondary" href="/pending?types=Christian">
-              Christian only
+            <a className="button secondary" href="/pending?types=Faith">
+              Faith only
             </a>
           </p>
         </section>

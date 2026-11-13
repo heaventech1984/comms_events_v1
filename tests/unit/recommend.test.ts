@@ -18,7 +18,7 @@ describe("scoreRecommendations", () => {
     id: "prayer",
     title: "Lunchtime prayer at Carrs Lane",
     organisationName: "Carrs Lane Church",
-    category: "Christian"
+    category: "Faith"
   });
   const iod = candidate({
     id: "iod",
@@ -31,7 +31,7 @@ describe("scoreRecommendations", () => {
     id: "mixer",
     title: "Birmingham Tech Meetup — lightning talks",
     organisationName: "Birmingham Tech Meetup",
-    category: "Meetup"
+    category: "Social"
   });
 
   it("recommends the same type after someone booked, with a because-you-booked reason", () => {
@@ -40,7 +40,7 @@ describe("scoreRecommendations", () => {
         eventId: "sunday",
         title: "Sunday gathering at St Philip’s",
         organisationName: "St Philip’s Cathedral",
-        category: "Christian",
+        category: "Faith",
         kind: "committed"
       }
     ];
@@ -56,7 +56,7 @@ describe("scoreRecommendations", () => {
         eventId: "breakfast",
         title: "Jewellery Quarter founders’ breakfast",
         organisationName: "Impact Hub Birmingham",
-        category: "Networking",
+        category: "Professional",
         kind: "attended"
       }
     ];
@@ -71,15 +71,15 @@ describe("scoreRecommendations", () => {
         eventId: "sunday",
         title: "Sunday gathering at St Philip’s",
         organisationName: "St Philip’s Cathedral",
-        category: "Christian",
+        category: "Faith",
         kind: "committed"
       }
     ];
-    const week1 = candidate({ id: "p1", title: "Lunchtime prayer", category: "Christian", seriesId: "seed-weekly-prayer" });
+    const week1 = candidate({ id: "p1", title: "Lunchtime prayer", category: "Faith", seriesId: "seed-weekly-prayer" });
     const week2 = candidate({
       id: "p2",
       title: "Lunchtime prayer",
-      category: "Christian",
+      category: "Faith",
       seriesId: "seed-weekly-prayer",
       startsAt: new Date("2026-11-27T12:00:00Z")
     });
@@ -94,14 +94,14 @@ describe("scoreRecommendations", () => {
         eventId: "sunday",
         title: "Sunday gathering at St Philip’s",
         organisationName: "St Philip’s Cathedral",
-        category: "Christian",
+        category: "Faith",
         kind: "committed"
       },
       {
         eventId: "open-mic",
         title: "Open mic at BCU",
         organisationName: "Birmingham City University",
-        category: "Student",
+        category: "Social",
         kind: "attended"
       }
     ];
@@ -115,7 +115,7 @@ describe("scoreRecommendations", () => {
         eventId: "open-mic",
         title: "Open mic at BCU",
         organisationName: "Birmingham City University",
-        category: "Student",
+        category: "Social",
         kind: "loved"
       }
     ];

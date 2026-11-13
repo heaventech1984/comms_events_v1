@@ -19,6 +19,7 @@ import {
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
 import { claimScrapeLock, releaseScrapeLock } from "./lock";
 import { clip, stripHtml } from "./text";
+import { encodeTags } from "../tags";
 
 function nameKey(name: string) {
   return name.trim().toLowerCase();
@@ -119,6 +120,7 @@ export async function runScraper(opts: {
         organisationName: incoming.organisationName,
         organisationId: org.id,
         category: incoming.category,
+        tags: encodeTags(incoming.tags ?? []),
         startsAt: incoming.startsAt,
         endsAt: incoming.endsAt,
         online: incoming.online,

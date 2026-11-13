@@ -1,6 +1,7 @@
 import { tidyPlaceName } from "../place";
 import { scrapeUrlAllowed } from "./allowlist";
 import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "./categorise";
+import { inferTags } from "../tags";
 import { FETCH_BODY_MAX, URL_EVENT_CAP } from "./harvest";
 import { filterLocalEvents } from "./geo";
 import { parseIcsEvents } from "./ics";
@@ -117,9 +118,18 @@ function decorate(events: ScrapedEvent[], pageUrl: string): ScrapedEvent[] {
       inferred.strength === "none" ? TYPE_REVIEW_NOTE : inferred.strength === "weak" ? TYPE_WEAK_NOTE : null;
     const baseNotes = reviewNote ? [reviewNote, event.notes].filter(Boolean).join("\n\n") : event.notes;
     const notes = [baseNotes, sourceLine].filter(Boolean).join("\n\n");
+    const tags = inferTags({
+      host,
+      externalUrl: event.externalUrl,
+      title: event.title,
+      organisationName: event.organisationName,
+      notes,
+      online: event.online
+    });
     return {
       ...event,
       category: inferred.category,
+      tags,
       placeName: tidyPlaceName(event.placeName),
       notes,
       fetchedFrom: event.fetchedFrom ?? pageUrl,

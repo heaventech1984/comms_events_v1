@@ -1,10 +1,11 @@
-import type { Category } from "../constants";
+import type { Category, Tag } from "../constants";
 
 export type ScrapedEvent = {
   sourceKey: string;
   title: string;
   organisationName: string;
   category: Category;
+  tags?: Tag[];
   startsAt: Date;
   endsAt: Date;
   online: boolean;

@@ -3,8 +3,8 @@ import { categoryArt, categoryAccentStyle } from "@/lib/category-art";
 
 describe("categoryArt", () => {
   it("maps known types to local SVG art", () => {
-    expect(categoryArt("Christian").src).toContain("/categories/christian.svg");
-    expect(categoryArt("Meetup").src).toContain("/categories/meetup.svg");
+    expect(categoryArt("Faith").src).toContain("/categories/christian.svg");
+    expect(categoryArt("Social").src).toContain("/categories/meetup.svg");
   });
 
   it("falls back safely for unknown types", () => {

@@ -8,6 +8,7 @@ import { EventMap } from "@/components/EventMap";
 import { requireUser, canReview } from "@/lib/auth";
 import { canDelegateBooking } from "@/lib/policy";
 import { categoryAccentStyle } from "@/lib/category-art";
+import { decodeTags } from "@/lib/tags";
 import { prisma } from "@/lib/db";
 import { initialsFromName } from "@/lib/initials";
 import { getSettings } from "@/lib/settings";
@@ -87,6 +88,7 @@ export default async function EventPage({
           <p className="lede">
             <span className="swatch" style={{ background: settings.colours[event.category as keyof typeof settings.colours] }} />{" "}
             {event.category}
+            {decodeTags(event.tags).length ? ` · ${decodeTags(event.tags).join(" · ")}` : ""}
           </p>
         </div>
       </div>

@@ -6,7 +6,9 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { CATEGORIES } from "@/lib/constants";
 import { calendarHref, dayKeyOf, eventFromCalendarHref, parseCalendarParams, rangeFor, type CalendarParams } from "@/lib/calendar";
+import { tagsWhere } from "@/lib/tags";
 import { CalendarMapSection } from "@/components/calendar/CalendarMapSection";
+import { CalendarFilterMemory } from "@/components/calendar/CalendarFilterMemory";
 import { CalendarScrollMemory } from "@/components/calendar/CalendarScrollMemory";
 import { FilterBar } from "@/components/calendar/FilterBar";
 import { RangeNav } from "@/components/calendar/RangeNav";
@@ -29,8 +31,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       status: "PUBLISHED",
       startsAt: { gte: range.from, lt: range.to },
       category: state.categories.length ? { in: state.categories } : { in: enabledCategories },
-      ...(state.format === "online" ? { online: true } : {}),
-      ...(state.format === "inperson" ? { online: false } : {})
+      ...tagsWhere(state.tags)
     },
     orderBy: { startsAt: "asc" }
   });
@@ -93,6 +94,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
       <section className="card calendar-stage">
         <FilterBar state={state} categories={enabledCategories} colours={settings.colours} />
+        <Suspense fallback={null}>
+          <CalendarFilterMemory />
+        </Suspense>
         <RangeNav state={state} today={today} />
 
         {state.view === "month" ? (

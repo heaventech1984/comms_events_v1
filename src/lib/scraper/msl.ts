@@ -53,7 +53,7 @@ export function eventsFromMslHtml(html: string, sourceUrl: string): ScrapedEvent
       sourceKey: `live:${host}:${uid}`,
       title: clip(name, LIMITS.titleLength),
       organisationName: clip(host.replace(/^www\./, ""), LIMITS.titleLength),
-      category: "Student",
+      category: "Social",
       startsAt: range.startsAt,
       endsAt: range.endsAt,
       online: looksOnline(name, place, description),

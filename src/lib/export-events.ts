@@ -3,11 +3,13 @@ import { writeAudit } from "./audit";
 import { formatDateTime } from "./time";
 import { toCsv as tableToCsv, toXlsx, type Table } from "./export-format";
 import type { SessionUser } from "./session";
+import { decodeTags } from "./tags";
 
 const COLUMNS = [
   "title",
   "organisation",
   "type",
+  "tags",
   "starts",
   "ends",
   "online",
@@ -23,6 +25,7 @@ export function eventsTable(rows: {
   title: string;
   organisationName: string;
   category: string;
+  tags: string;
   startsAt: Date;
   endsAt: Date;
   online: boolean;
@@ -40,6 +43,7 @@ export function eventsTable(rows: {
       r.title,
       r.organisationName,
       r.category,
+      r.tags,
       formatDateTime(r.startsAt),
       formatDateTime(r.endsAt),
       r.online ? "online" : "in person",
@@ -77,6 +81,7 @@ export async function eventsForRange(actor: SessionUser, from: Date, to: Date) {
       title: e.title,
       organisationName: e.organisationName,
       category: e.category,
+      tags: decodeTags(e.tags).join(", "),
       startsAt: e.startsAt,
       endsAt: e.endsAt,
       online: e.online,

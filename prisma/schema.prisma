@@ -61,6 +61,8 @@ model Event {
   organisationName String
   organisationId   String?
   category         String
+  /// Stickers such as |Christian|In Person|. Empty until a scrape or a person sets them.
+  tags             String    @default("")
   startsAt         DateTime
   endsAt           DateTime
   online           Boolean   @default(false)
@@ -135,6 +137,9 @@ model Settings {
   professionalEnabled  Boolean @default(true)
   studentEnabled       Boolean @default(true)
   meetupEnabled        Boolean @default(true)
+  socialEnabled        Boolean @default(true)
+  faithEnabled         Boolean @default(true)
+  activitiesEnabled    Boolean @default(true)
   categoryColours      String
   priorityUrls         String  @default("[]")
 }

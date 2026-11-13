@@ -3,7 +3,8 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, TAGS, type Tag } from "@/lib/constants";
+import { decodeTags, withAttendance } from "@/lib/tags";
 import { requestJson } from "@/lib/fetch-json";
 import { LIMITS } from "@/lib/security";
 import { StatusBanner } from "./StatusBanner";
@@ -18,6 +19,7 @@ type EventValue = {
   organisationName: string;
   organisationId: string | null;
   category: string;
+  tags?: string;
   startsAt: string;
   endsAt: string;
   online: boolean;
@@ -53,6 +55,7 @@ export function EventForm({
   const [kind, setKind] = useState<"info" | "error">("info");
   const [dialog, confirm] = useConfirm();
   const [online, setOnline] = useState(event?.online ?? false);
+  const [tags, setTags] = useState<Tag[]>(() => withAttendance(decodeTags(event?.tags), event?.online ?? false));
   const [placeName, setPlaceName] = useState(event?.placeName ?? "");
   const [lat, setLat] = useState(event?.lat != null ? String(event.lat) : "");
   const [lng, setLng] = useState(event?.lng != null ? String(event.lng) : "");
@@ -84,7 +87,7 @@ export function EventForm({
     const payload = Object.fromEntries(new FormData(formRef.current).entries());
     const result = await requestJson<{ id?: string }>(event ? `/api/events/${event.id}` : "/api/events", {
       method: event ? "PATCH" : "POST",
-      body: { ...payload, online: online ? "on" : "off", ...extra }
+      body: { ...payload, tags, online: online ? "on" : "off", ...extra }
     });
     if (!result.ok) {
       setKind("error");
@@ -178,7 +181,7 @@ export function EventForm({
       </label>
       <label>
         Type
-        <select name="category" defaultValue={event?.category ?? "Christian"}>
+        <select name="category" defaultValue={event?.category ?? "Social"}>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -186,6 +189,35 @@ export function EventForm({
           ))}
         </select>
       </label>
+      <fieldset>
+        <legend>Tags</legend>
+        <div className="filters">
+          {TAGS.map((tag) => (
+            <label key={tag} className="chip">
+              <input
+                type="checkbox"
+                checked={tags.includes(tag)}
+                onChange={() => {
+                  if (tag === "Online") {
+                    setOnline(true);
+                    setTags((current) => withAttendance(current, true));
+                    return;
+                  }
+                  if (tag === "In Person") {
+                    setOnline(false);
+                    setTags((current) => withAttendance(current, false));
+                    return;
+                  }
+                  setTags((current) =>
+                    current.includes(tag) ? current.filter((item) => item !== tag) : withAttendance([...current, tag], online)
+                  );
+                }}
+              />
+              {tag}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div className="row">
         <label>
           Starts
@@ -250,7 +282,16 @@ export function EventForm({
           />
         </label>
         <label className="online-check">
-          <input type="checkbox" name="online" checked={online} onChange={(e) => setOnline(e.target.checked)} />
+          <input
+            type="checkbox"
+            name="online"
+            checked={online}
+            onChange={(e) => {
+              const on = e.target.checked;
+              setOnline(on);
+              setTags((current) => withAttendance(current, on));
+            }}
+          />
           Online
         </label>
       </div>

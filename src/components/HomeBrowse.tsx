@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { HomeDashboard } from "@/components/HomeDashboard";
-import { parseTypesParam, type CalendarFormat } from "@/lib/calendar";
-import { CATEGORIES, type Category } from "@/lib/constants";
+import { parseTypesParam } from "@/lib/calendar";
+import { CATEGORIES, TAGS, type Category, type Tag } from "@/lib/constants";
+import { parseTagsParam, tagsWhere, toggleTag } from "@/lib/tags";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
@@ -10,10 +11,10 @@ import { formatTime } from "@/lib/time";
 
 const LIST_CAP = 50;
 
-function browseHref(types: Category[], format: CalendarFormat): string {
+function browseHref(types: Category[], tags: Tag[]): string {
   const sp = new URLSearchParams();
   if (types.length) sp.set("types", types.join(","));
-  if (format) sp.set("format", format);
+  if (tags.length) sp.set("tags", tags.join(","));
   const q = sp.toString();
   return q ? `/?${q}` : "/";
 }
@@ -22,15 +23,18 @@ function browseHref(types: Category[], format: CalendarFormat): string {
 export async function HomeBrowse({
   userId,
   typesParam,
+  tagsParam,
   formatParam
 }: {
   userId: string;
   typesParam?: string;
+  tagsParam?: string;
   formatParam?: string;
 }) {
   const categories = parseTypesParam(typesParam);
-  const format: CalendarFormat =
-    formatParam === "online" || formatParam === "inperson" ? formatParam : "";
+  let tags = parseTagsParam(tagsParam);
+  if (!tags.length && formatParam === "online") tags = ["Online"];
+  if (!tags.length && formatParam === "inperson") tags = ["In Person"];
   const selected = categories.length === 1 ? categories[0] : null;
 
   if (!categories.length) {
@@ -50,8 +54,7 @@ export async function HomeBrowse({
             status: "PUBLISHED",
             startsAt: { gte: new Date() },
             category: { in: allowed },
-            ...(format === "online" ? { online: true } : {}),
-            ...(format === "inperson" ? { online: false } : {})
+            ...tagsWhere(tags)
           },
           orderBy: { startsAt: "asc" },
           take: LIST_CAP
@@ -80,31 +83,24 @@ export async function HomeBrowse({
         <p className="lede">Tap a row to open the event. Attend is on the next screen.</p>
       </div>
 
-      <div className="format-pills" role="group" aria-label="Online or in person">
-        <Link
-          className="chip"
-          href={browseHref(categories, "")}
-          aria-current={format === "" ? "true" : undefined}
-          data-on={format === "" ? "true" : undefined}
-        >
-          All
+      <div className="filters" role="group" aria-label="Tags">
+        <Link className="chip" href={browseHref(categories, [])} aria-current={tags.length === 0 ? "true" : undefined}>
+          All tags
         </Link>
-        <Link
-          className="chip"
-          href={browseHref(categories, "online")}
-          aria-current={format === "online" ? "true" : undefined}
-          data-on={format === "online" ? "true" : undefined}
-        >
-          Online
-        </Link>
-        <Link
-          className="chip"
-          href={browseHref(categories, "inperson")}
-          aria-current={format === "inperson" ? "true" : undefined}
-          data-on={format === "inperson" ? "true" : undefined}
-        >
-          In person
-        </Link>
+        {TAGS.map((tag) => {
+          const on = tags.includes(tag);
+          return (
+            <Link
+              key={tag}
+              className="chip"
+              href={browseHref(categories, toggleTag(tags, tag))}
+              aria-current={on ? "true" : undefined}
+              aria-pressed={on}
+            >
+              {tag}
+            </Link>
+          );
+        })}
       </div>
 
       {kindOff ? (

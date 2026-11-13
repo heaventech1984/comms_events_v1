@@ -30,14 +30,14 @@ export function settleScrapedType(input: {
   category: string;
   notes: string | null | undefined;
 }): { category: Category; notes: string | null; changed: boolean } {
-  const stored = parseCategory(input.category) ?? "Meetup";
+  const stored = parseCategory(input.category) ?? "Social";
   const notes = input.notes ?? null;
   if (!notesNeedTypeReview(notes)) return { category: stored, notes, changed: false };
   if (textSupportsCategory(input.title, input.organisationName, stored)) {
     return { category: stored, notes, changed: false };
   }
   const inferred = inferCategory({ title: input.title, organisationName: input.organisationName });
-  const category = inferred.strength === "strong" ? inferred.category : "Meetup";
+  const category = inferred.strength === "strong" ? inferred.category : "Social";
   const nextNotes = stripTypeReviewNotes(notes);
   return { category, notes: nextNotes, changed: category !== stored || nextNotes !== notes };
 }

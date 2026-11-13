@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { CategoryThumb } from "@/components/CategoryThumb";
 import { calendarHref, toggleCategory, type CalendarState } from "@/lib/calendar";
-import type { Category } from "@/lib/constants";
+import { TAGS, type Category } from "@/lib/constants";
+import { toggleTag } from "@/lib/tags";
 
 export function FilterBar({
   state,
@@ -13,11 +14,12 @@ export function FilterBar({
   colours: Record<string, string>;
 }) {
   const none = state.categories.length === 0;
+  const noTags = state.tags.length === 0;
   return (
     <div className="calendar-filters">
-      <div className="filters" role="group" aria-label="Event type">
+      <div className="filters" role="group" aria-label="Category">
         <Chip href={calendarHref(state, { categories: [] })} current={none} pressed={none}>
-          All types
+          All categories
         </Chip>
         {categories.map((c) => {
           const on = state.categories.includes(c);
@@ -35,16 +37,18 @@ export function FilterBar({
           );
         })}
       </div>
-      <div className="filters" role="group" aria-label="Online or in person">
-        <Chip href={calendarHref(state, { format: "" })} current={!state.format} pressed={!state.format}>
-          Any format
+      <div className="filters" role="group" aria-label="Tags">
+        <Chip href={calendarHref(state, { tags: [] })} current={noTags} pressed={noTags}>
+          All tags
         </Chip>
-        <Chip href={calendarHref(state, { format: "inperson" })} current={state.format === "inperson"} pressed={state.format === "inperson"}>
-          In person
-        </Chip>
-        <Chip href={calendarHref(state, { format: "online" })} current={state.format === "online"} pressed={state.format === "online"}>
-          Online
-        </Chip>
+        {TAGS.map((tag) => {
+          const on = state.tags.includes(tag);
+          return (
+            <Chip key={tag} href={calendarHref(state, { tags: toggleTag(state.tags, tag) })} current={on} pressed={on}>
+              {tag}
+            </Chip>
+          );
+        })}
       </div>
     </div>
   );

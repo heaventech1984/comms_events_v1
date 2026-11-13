@@ -33,21 +33,15 @@ export async function ensureFrozenDiscoveryPack(actorId?: string | null) {
   }
   if (current.length === 0 && !force) {
     // Empty extras is the happy path — pack still runs via mergeDiscoveryWithExtras.
-    const enabledAll =
-      row.christianEnabled &&
-      row.networkingEnabled &&
-      row.professionalEnabled &&
-      row.studentEnabled &&
-      row.meetupEnabled;
+    const enabledAll = row.socialEnabled && row.professionalEnabled && row.faithEnabled && row.activitiesEnabled;
     if (enabledAll) return { urls: mergeDiscoveryWithExtras([]), applied: false };
     await prisma.settings.update({
       where: { id: "default" },
       data: {
-        christianEnabled: true,
-        networkingEnabled: true,
+        socialEnabled: true,
         professionalEnabled: true,
-        studentEnabled: true,
-        meetupEnabled: true
+        faithEnabled: true,
+        activitiesEnabled: true
       }
     });
     await writeAudit({
@@ -55,7 +49,7 @@ export async function ensureFrozenDiscoveryPack(actorId?: string | null) {
       action: "settings.discoveryPack.applied",
       entityType: "Settings",
       entityId: "default",
-      summary: `Enabled all five types for the frozen Birmingham discovery pack (${frozenDiscoveryUrls().length} feeds at Run).`
+      summary: `Enabled all four categories for the frozen Birmingham discovery pack (${frozenDiscoveryUrls().length} feeds at Run).`
     });
     return { urls: mergeDiscoveryWithExtras([]), applied: true };
   }
@@ -64,11 +58,10 @@ export async function ensureFrozenDiscoveryPack(actorId?: string | null) {
     where: { id: "default" },
     data: {
       priorityUrls: JSON.stringify(force ? [] : extras),
-      christianEnabled: true,
-      networkingEnabled: true,
+      socialEnabled: true,
       professionalEnabled: true,
-      studentEnabled: true,
-      meetupEnabled: true
+      faithEnabled: true,
+      activitiesEnabled: true
     }
   });
   await writeAudit({
@@ -87,11 +80,10 @@ export async function getSettings() {
   const row = await prisma.settings.findUnique({ where: { id: "default" } });
   const colours = row ? (JSON.parse(row.categoryColours) as Record<string, string>) : DEFAULT_COLOURS;
   const enabled: Record<Category, boolean> = {
-    Christian: row?.christianEnabled ?? true,
-    Networking: row?.networkingEnabled ?? true,
+    Social: row?.socialEnabled ?? true,
     Professional: row?.professionalEnabled ?? true,
-    Student: row?.studentEnabled ?? true,
-    Meetup: row?.meetupEnabled ?? true
+    Faith: row?.faithEnabled ?? true,
+    Activities: row?.activitiesEnabled ?? true
   };
   const partitioned = parsePriorityUrls(readPriorityUrlList(row?.priorityUrls));
   return {

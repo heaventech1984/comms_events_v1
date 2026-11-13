@@ -1,23 +1,26 @@
-import { parseTypesParam, type CalendarFormat } from "./calendar";
-import { CATEGORIES, type Category } from "./constants";
+import { parseTypesParam } from "./calendar";
+import { CATEGORIES, type Category, type Tag } from "./constants";
 import { safeNextPath } from "./security";
+import { hasAnyTag, parseTagsParam, toggleTag } from "./tags";
 
 export type PendingFilterState = {
   types: Category[];
-  format: CalendarFormat;
+  tags: Tag[];
   needsTypeOnly: boolean;
 };
 
 export function parsePendingFilters(params: {
   types?: string;
+  tags?: string;
   format?: string;
   filter?: string;
 }): PendingFilterState {
-  const format: CalendarFormat =
-    params.format === "online" || params.format === "inperson" ? params.format : "";
+  let tags = parseTagsParam(params.tags);
+  if (!tags.length && params.format === "online") tags = ["Online"];
+  if (!tags.length && params.format === "inperson") tags = ["In Person"];
   return {
     types: parseTypesParam(params.types),
-    format,
+    tags,
     needsTypeOnly: params.filter === "needs-type"
   };
 }
@@ -27,16 +30,20 @@ export function togglePendingType(current: Category[], category: Category): Cate
   return CATEGORIES.filter((c) => current.includes(c) || c === category);
 }
 
+export function togglePendingTag(current: Tag[], tag: Tag): Tag[] {
+  return toggleTag(current, tag);
+}
+
 /** Build /pending?... keeping other filters when one chip changes. */
 export function pendingHref(state: PendingFilterState, patch: Partial<PendingFilterState> = {}): string {
   const next: PendingFilterState = {
     types: patch.types ?? state.types,
-    format: patch.format !== undefined ? patch.format : state.format,
+    tags: patch.tags !== undefined ? patch.tags : state.tags,
     needsTypeOnly: patch.needsTypeOnly !== undefined ? patch.needsTypeOnly : state.needsTypeOnly
   };
   const sp = new URLSearchParams();
   if (next.types.length) sp.set("types", next.types.join(","));
-  if (next.format) sp.set("format", next.format);
+  if (next.tags.length) sp.set("tags", next.tags.join(","));
   if (next.needsTypeOnly) sp.set("filter", "needs-type");
   const q = sp.toString();
   return q ? `/pending?${q}` : "/pending";
@@ -55,13 +62,12 @@ export function pendingEditHref(eventId: string, returnTo: string): string {
 }
 
 export function eventMatchesPendingFilters(
-  event: { category: string; online: boolean; notes: string | null },
+  event: { category: string; tags?: string | null; online: boolean; notes: string | null },
   state: PendingFilterState,
   needsType: boolean
 ): boolean {
   if (state.needsTypeOnly && !needsType) return false;
   if (state.types.length && !state.types.includes(event.category as Category)) return false;
-  if (state.format === "online" && !event.online) return false;
-  if (state.format === "inperson" && event.online) return false;
+  if (!hasAnyTag(event.tags, state.tags)) return false;
   return true;
 }

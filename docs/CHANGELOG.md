@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *One card per series date* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Four categories and tags* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,12 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-13 — Four categories and tags
+
+- Categories are Social, Professional, Faith, and Activities. An event has one. Tags such as Christian, University, Meetup, In Person, and Online can be several.
+- Calendar, Home, and Pending can select more than one category and more than one tag. The old Any format row is gone. The Calendar tab remembers the last categories and tags in this browser.
+- The scraper sets the shelf and the tags from the title it already has. A search-page address cannot set Faith or the Christian tag unless the title agrees. The Meetup tag is only for meetup.com.
 
 ## 2026-11-13 — One card per series date
 

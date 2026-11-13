@@ -196,7 +196,7 @@ export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEv
       sourceKey: `live:${host}:${uid}`,
       title,
       organisationName,
-      category: "Meetup",
+      category: "Social",
       startsAt,
       endsAt,
       online:

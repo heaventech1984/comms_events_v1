@@ -5,14 +5,16 @@ import { Chip } from "@/components/calendar/FilterBar";
 import { PendingReviewBoard, type PendingDayGroup } from "@/components/PendingReviewBoard";
 import { requireUser } from "@/lib/auth";
 import { dayKeyOf, formatDayKey } from "@/lib/calendar";
-import { CATEGORIES, type Category } from "@/lib/constants";
+import { CATEGORIES, TAGS, type Category } from "@/lib/constants";
 import { pendingReviewLede } from "@/lib/pending-copy";
 import {
   eventMatchesPendingFilters,
   parsePendingFilters,
   pendingHref,
+  togglePendingTag,
   togglePendingType
 } from "@/lib/pending-filters";
+import { decodeTags } from "@/lib/tags";
 import { loadOpenPendingEvents } from "@/lib/pending-time";
 import { tidyPlaceName } from "@/lib/place";
 import { isUpdatedScrapedRow } from "@/lib/scraper/apply";
@@ -24,7 +26,7 @@ import { formatDate } from "@/lib/time";
 export default async function PendingPage({
   searchParams
 }: {
-  searchParams: Promise<{ filter?: string; types?: string; format?: string }>;
+  searchParams: Promise<{ filter?: string; types?: string; tags?: string; format?: string }>;
 }) {
   const user = await requireUser(["admin", "cell leader"]);
   const settings = await getSettings();
@@ -53,7 +55,8 @@ export default async function PendingPage({
       externalUrl: event.externalUrl,
       needsType: notesNeedTypeReview(event.notes),
       updated: isUpdatedScrapedRow(event.createdAt, event.updatedAt),
-      colour: settings.colours[CATEGORIES.includes(category) ? category : "Meetup"]
+      tags: decodeTags(event.tags).join(" · "),
+      colour: settings.colours[CATEGORIES.includes(category) ? category : "Social"]
     };
     if (!last || last.key !== key) {
       groups.push({ key, label: formatDate(event.startsAt), events: [tile] });
@@ -89,24 +92,18 @@ export default async function PendingPage({
               );
             })}
           </div>
-          <div className="filters" role="group" aria-label="Online or in person">
-            <Chip href={pendingHref(filters, { format: "" })} current={!filters.format}>
-              Any format
+          <div className="filters" role="group" aria-label="Tags">
+            <Chip href={pendingHref(filters, { tags: [] })} current={filters.tags.length === 0}>
+              All tags
             </Chip>
-            <Chip
-              href={pendingHref(filters, { format: "inperson" })}
-              current={filters.format === "inperson"}
-              pressed={filters.format === "inperson"}
-            >
-              In person
-            </Chip>
-            <Chip
-              href={pendingHref(filters, { format: "online" })}
-              current={filters.format === "online"}
-              pressed={filters.format === "online"}
-            >
-              Online
-            </Chip>
+            {TAGS.map((tag) => {
+              const on = filters.tags.includes(tag);
+              return (
+                <Chip key={tag} href={pendingHref(filters, { tags: togglePendingTag(filters.tags, tag) })} current={on} pressed={on}>
+                  {tag}
+                </Chip>
+              );
+            })}
           </div>
           <div className="filters" role="group" aria-label="Type review">
             <Chip href={pendingHref(filters, { needsTypeOnly: false })} current={!filters.needsTypeOnly}>
@@ -125,8 +122,8 @@ export default async function PendingPage({
       </div>
       {events.length === 0 ? (
         <p className="muted">
-          {filters.needsTypeOnly || filters.types.length || filters.format
-            ? "Nothing matches these filters. Try All types or Any format."
+          {filters.needsTypeOnly || filters.types.length || filters.tags.length
+            ? "Nothing matches these filters. Try All categories or All tags."
             : "Nothing waiting. Run now on scraper settings if you are admin."}
         </p>
       ) : (

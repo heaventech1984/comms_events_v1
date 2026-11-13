@@ -1,22 +1,36 @@
 export const ROLES = ["admin", "cell leader", "member"] as const;
 export type Role = (typeof ROLES)[number];
 
-export const CATEGORIES = [
-  "Christian",
-  "Networking",
-  "Professional",
-  "Student",
-  "Meetup"
-] as const;
+export const CATEGORIES = ["Social", "Professional", "Faith", "Activities"] as const;
 export type Category = (typeof CATEGORIES)[number];
+
+/** Stickers on an event. An event has one category and any number of these. */
+export const TAGS = [
+  "Christian",
+  "University",
+  "Family-Friendly",
+  "Networking",
+  "Meetup",
+  "Free",
+  "Fee",
+  "In Person",
+  "Online",
+  "Spirituality",
+  "Philosophy",
+  "Music",
+  "Fitness",
+  "Learning",
+  "Church",
+  "Creative"
+] as const;
+export type Tag = (typeof TAGS)[number];
 
 /** Soft but distinct accents — berry / sage / gold family to match the blush UI. */
 export const DEFAULT_COLOURS: Record<Category, string> = {
-  Christian: "#7d9b78",
-  Networking: "#5a9ea8",
+  Social: "#c48b9f",
   Professional: "#a8434d",
-  Student: "#c48b9f",
-  Meetup: "#c4a574"
+  Faith: "#7d9b78",
+  Activities: "#c4a574"
 };
 
 // COUNT_AND_NAME_CELL lets every member read the name and cell number of everyone booked
@@ -56,15 +70,13 @@ export function parseRole(value: string): Role | null {
 
 export function categoryEnabledKey(category: Category) {
   switch (category) {
-    case "Christian":
-      return "christianEnabled" as const;
-    case "Networking":
-      return "networkingEnabled" as const;
+    case "Social":
+      return "socialEnabled" as const;
     case "Professional":
       return "professionalEnabled" as const;
-    case "Student":
-      return "studentEnabled" as const;
-    case "Meetup":
-      return "meetupEnabled" as const;
+    case "Faith":
+      return "faithEnabled" as const;
+    case "Activities":
+      return "activitiesEnabled" as const;
   }
 }
