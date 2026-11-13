@@ -25,6 +25,30 @@ export const TAGS = [
 ] as const;
 export type Tag = (typeof TAGS)[number];
 
+/** The mark drawn in front of a tag button. The stored tag is still the word. */
+export const TAG_MARK: Record<Tag, string> = {
+  Christian: "✝️",
+  University: "🎓",
+  "Family-Friendly": "👨‍👩‍👧",
+  Networking: "🔗",
+  Meetup: "🤝",
+  Free: "🎫",
+  Fee: "💵",
+  "In Person": "📍",
+  Online: "💻",
+  Spirituality: "🪷",
+  Philosophy: "🧠",
+  Music: "🎵",
+  Fitness: "🏋️",
+  Learning: "📖",
+  Church: "⛪",
+  Creative: "🎨"
+};
+
+export function tagChipLabel(tag: Tag): string {
+  return `${TAG_MARK[tag]} ${tag}`;
+}
+
 /** Soft but distinct accents — berry / sage / gold family to match the blush UI. */
 export const DEFAULT_COLOURS: Record<Category, string> = {
   Social: "#c48b9f",

@@ -5,7 +5,7 @@ import { Chip } from "@/components/calendar/FilterBar";
 import { PendingReviewBoard, type PendingDayGroup } from "@/components/PendingReviewBoard";
 import { requireUser } from "@/lib/auth";
 import { dayKeyOf, formatDayKey } from "@/lib/calendar";
-import { CATEGORIES, TAGS, type Category } from "@/lib/constants";
+import { CATEGORIES, TAGS, tagChipLabel, type Category } from "@/lib/constants";
 import { pendingReviewLede } from "@/lib/pending-copy";
 import {
   eventInPendingDates,
@@ -123,7 +123,7 @@ export default async function PendingPage({
               const on = filters.tags.includes(tag);
               return (
                 <Chip key={tag} href={pendingHref(filters, { tags: togglePendingTag(filters.tags, tag) })} current={on} pressed={on}>
-                  {tag}
+                  {tagChipLabel(tag)}
                 </Chip>
               );
             })}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CategoryThumb } from "@/components/CategoryThumb";
 import { calendarHref, toggleCategory, type CalendarState } from "@/lib/calendar";
-import { TAGS, type Category } from "@/lib/constants";
+import { TAGS, tagChipLabel, type Category } from "@/lib/constants";
 import { toggleTag } from "@/lib/tags";
 
 export function FilterBar({
@@ -45,7 +45,7 @@ export function FilterBar({
           const on = state.tags.includes(tag);
           return (
             <Chip key={tag} href={calendarHref(state, { tags: toggleTag(state.tags, tag) })} current={on} pressed={on}>
-              {tag}
+              {tagChipLabel(tag)}
             </Chip>
           );
         })}

@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { TAGS, tagChipLabel } from "@/lib/constants";
 import { inferCategory } from "@/lib/scraper/categorise";
 import { encodeTags, inferTags, shelfForStoredCategory } from "@/lib/tags";
+
+describe("tag chips", () => {
+  it("draws a mark in front of every tag word", () => {
+    for (const tag of TAGS) {
+      const label = tagChipLabel(tag);
+      expect(label.endsWith(tag)).toBe(true);
+      expect(label.length).toBeGreaterThan(tag.length + 1);
+    }
+  });
+});
 
 describe("inferTags", () => {
   it("adds Meetup only for the Meetup site, and keeps a search word off the shelf", () => {

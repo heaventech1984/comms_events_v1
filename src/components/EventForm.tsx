@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CATEGORIES, TAGS, type Tag } from "@/lib/constants";
+import { CATEGORIES, TAGS, tagChipLabel, type Tag } from "@/lib/constants";
 import { decodeTags, withAttendance } from "@/lib/tags";
 import { requestJson } from "@/lib/fetch-json";
 import { LIMITS } from "@/lib/security";
@@ -213,7 +213,7 @@ export function EventForm({
                   );
                 }}
               />
-              {tag}
+              {tagChipLabel(tag)}
             </label>
           ))}
         </div>

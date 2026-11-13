@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { HomeDashboard } from "@/components/HomeDashboard";
 import { parseTypesParam } from "@/lib/calendar";
-import { CATEGORIES, TAGS, type Category, type Tag } from "@/lib/constants";
+import { CATEGORIES, TAGS, tagChipLabel, type Category, type Tag } from "@/lib/constants";
 import { parseTagsParam, tagsWhere, toggleTag } from "@/lib/tags";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -97,7 +97,7 @@ export async function HomeBrowse({
               aria-current={on ? "true" : undefined}
               aria-pressed={on}
             >
-              {tag}
+              {tagChipLabel(tag)}
             </Link>
           );
         })}
