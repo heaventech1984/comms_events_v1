@@ -8,12 +8,14 @@ import { scrapeDecision } from "./apply";
 import { preferExternalUrl, preferNotes, preferPlace } from "./enrich";
 import { fixtureEvents } from "./fixtures";
 import { selectHarvestEvents } from "./harvest";
+import { loadClockMisses, saveClockMisses } from "./clock-misses";
 import {
   backfillPendingDateOnlyTimes,
   DETAIL_TIME_CAP,
   discardPendingSpans,
   enrichDateOnlyEvents,
   expandSeriesEvents,
+  inReviewWeek,
   splitPendingSeriesSpans
 } from "./detail-time";
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
@@ -73,17 +75,30 @@ export async function runScraper(opts: {
     if (process.env.SCRAPE_LIVE !== "0") {
       const budget = { left: DETAIL_TIME_CAP };
       const pauseMs = Number(process.env.SCRAPE_PAUSE_MS ?? "1500") || 1500;
-      const enriched = await enrichDateOnlyEvents(events, { budget, pauseMs });
-      events = enriched.events;
+      const missedUrls = loadClockMisses();
+      // The week on the Pending screen is opened before a large new harvest spends the allowance.
+      await backfillPendingDateOnlyTimes({ budget, pauseMs, missedUrls, week: "only" });
+      const weekFirst = [...events].sort((a, b) => {
+        const aw = inReviewWeek(a.startsAt) ? 0 : 1;
+        const bw = inReviewWeek(b.startsAt) ? 0 : 1;
+        if (aw !== bw) return aw - bw;
+        return a.startsAt.getTime() - b.startsAt.getTime();
+      });
+      const enriched = await enrichDateOnlyEvents(weekFirst, { budget, pauseMs, missedUrls });
+      const byKey = new Map(enriched.events.map((event) => [event.sourceKey, event]));
+      events = events.map((event) => byKey.get(event.sourceKey) ?? event);
       const series = await expandSeriesEvents(events, { budget, pauseMs });
       events = series.events;
       await discardPendingSpans(series.retiredKeys);
       await backfillPendingDateOnlyTimes({
         budget,
         pauseMs,
+        missedUrls,
+        week: "outside",
         skipSourceKeys: new Set(events.map((event) => event.sourceKey))
       });
       await splitPendingSeriesSpans({ budget, pauseMs, skipUrls: new Set(series.splitUrls) });
+      saveClockMisses(missedUrls);
     }
     const droppedDisabledCategory = harvest.droppedDisabledCategory;
     const droppedNearDupe = harvest.droppedNearDupe;

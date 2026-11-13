@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Tag buttons show a mark* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Clocks for this week's pending cards* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,10 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-13 — Clocks for this week's pending cards
+
+- The 120 event-page openings go to pending cards in the next 7 days first. A page that had no clock is not opened again. A single event page uses a clock already in that download, such as 7:30 PM, even when the hidden data is only midnight.
 
 ## 2026-11-13 — Tag buttons show a mark
 

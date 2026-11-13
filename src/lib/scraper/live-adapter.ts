@@ -1,6 +1,7 @@
 import { tidyPlaceName } from "../place";
 import { scrapeUrlAllowed } from "./allowlist";
 import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "./categorise";
+import { withOwnPageClock } from "./detail-time";
 import { inferTags } from "../tags";
 import { FETCH_BODY_MAX, URL_EVENT_CAP } from "./harvest";
 import { filterLocalEvents } from "./geo";
@@ -159,10 +160,10 @@ function parseBody(url: string, contentType: string, body: string): ScrapedEvent
     }
   }
   const fromScripts = extractJsonLdScripts(body).flatMap((block) => eventsFromJsonLd(block, url));
-  if (fromScripts.length) return fromScripts;
+  if (fromScripts.length) return withOwnPageClock(fromScripts, url, body);
   const micro = eventsFromMicrodata(body, url);
-  if (micro.length) return micro;
-  return eventsFromMslHtml(body, url);
+  if (micro.length) return withOwnPageClock(micro, url, body);
+  return withOwnPageClock(eventsFromMslHtml(body, url), url, body);
 }
 
 /**

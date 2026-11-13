@@ -1,3 +1,4 @@
+import { addDaysKey, dayKeyOf, formatDayKey } from "../calendar";
 import { prisma } from "../db";
 import { londonDate, londonParts } from "../time";
 import { scrapeUrlAllowed } from "./allowlist";
@@ -128,13 +129,35 @@ function pickTimed(events: ScrapedEvent[], listing: DetailRow, pageUrl: string):
   return null;
 }
 
-/** Clock from an event page. JSON-LD or microdata first, then one visible clock. */
+/**
+ * Clock from an event page.
+ * A real clock in the hidden data wins. A midnight-only value does not hide "7:30 PM" in the text.
+ */
 export function timeFromDetailHtml(html: string, pageUrl: string, listing: DetailRow): Timed | null {
   const fromScripts = extractJsonLdScripts(html).flatMap((block) => eventsFromJsonLd(block, pageUrl));
   const parsed = fromScripts.length ? fromScripts : eventsFromMicrodata(html, pageUrl);
   const structured = pickTimed(parsed, listing, pageUrl);
-  if (structured) return structured;
+  if (structured && !isDateOnlyStoredRange(structured.startsAt, structured.endsAt)) return structured;
   return clockFromVisibleText(html, listing.startsAt);
+}
+
+/**
+ * One event taken from its own page can use the clock in that same download.
+ * A list page is left alone — the first clock on the page would belong to a different event.
+ */
+export function withOwnPageClock(events: ScrapedEvent[], pageUrl: string, html: string): ScrapedEvent[] {
+  if (events.length !== 1 || looksLikeListingUrl(pageUrl)) return events;
+  const event = events[0]!;
+  if (!isDateOnlyStoredRange(event.startsAt, event.endsAt)) return events;
+  const timing = timeFromDetailHtml(html, pageUrl, event);
+  if (!timing || isDateOnlyStoredRange(timing.startsAt, timing.endsAt)) return events;
+  return [{ ...event, startsAt: timing.startsAt, endsAt: timing.endsAt }];
+}
+
+/** Today through the next 7 days, London dates, both ends included. */
+export function inReviewWeek(startsAt: Date, today = dayKeyOf(new Date())): boolean {
+  const key = formatDayKey(dayKeyOf(startsAt));
+  return key >= formatDayKey(today) && key <= formatDayKey(addDaysKey(today, 7));
 }
 
 async function readBody(fetchFn: FetchLike, url: string): Promise<{ ok: boolean; body: string } | null> {
@@ -173,7 +196,7 @@ async function robotsAllow(fetchFn: FetchLike, url: URL, cache: Map<string, stri
  */
 export async function enrichDateOnlyEvents<T extends DetailRow>(
   events: T[],
-  opts: { fetchFn?: FetchLike; pauseMs?: number; budget?: DetailBudget } = {}
+  opts: { fetchFn?: FetchLike; pauseMs?: number; budget?: DetailBudget; missedUrls?: Set<string> } = {}
 ): Promise<{ events: T[]; fetched: number }> {
   const budget = opts.budget ?? { left: DETAIL_TIME_CAP };
   const fetchFn = opts.fetchFn ?? (globalThis.fetch as FetchLike);
@@ -184,11 +207,11 @@ export async function enrichDateOnlyEvents<T extends DetailRow>(
   const out: T[] = [];
 
   for (const event of events) {
-    if (!shouldFetchDetailTime(event) || budget.left <= 0) {
+    const url = event.externalUrl?.trim() ?? "";
+    if (!shouldFetchDetailTime(event) || budget.left <= 0 || (url && opts.missedUrls?.has(url))) {
       out.push(event);
       continue;
     }
-    const url = event.externalUrl!.trim();
     let timing = cache.get(url);
     if (timing === undefined) {
       const allowed = scrapeUrlAllowed(url);
@@ -206,6 +229,10 @@ export async function enrichDateOnlyEvents<T extends DetailRow>(
       fetched += 1;
       const page = await readBody(fetchFn, allowedUrl);
       timing = page?.ok ? timeFromDetailHtml(page.body, allowedUrl, event) : null;
+      if (page?.ok && (!timing || isDateOnlyStoredRange(timing.startsAt, timing.endsAt))) {
+        opts.missedUrls?.add(url);
+        timing = null;
+      }
       cache.set(url, timing);
       if (pause && budget.left > 0) await sleep(pause);
     }
@@ -393,6 +420,10 @@ export async function backfillPendingDateOnlyTimes(opts: {
   pauseMs?: number;
   budget?: DetailBudget;
   skipSourceKeys?: Set<string>;
+  missedUrls?: Set<string>;
+  /** When set, only the review week, or only cards outside it. */
+  week?: "only" | "outside";
+  today?: Date;
 } = {}): Promise<{ updated: number; fetched: number }> {
   const budget = opts.budget ?? { left: DETAIL_TIME_CAP };
   if (budget.left <= 0 || process.env.SCRAPE_LIVE === "0") return { updated: 0, fetched: 0 };
@@ -407,12 +438,20 @@ export async function backfillPendingDateOnlyTimes(opts: {
     orderBy: { startsAt: "asc" },
     select: { id: true, title: true, startsAt: true, endsAt: true, externalUrl: true, sourceKey: true }
   });
-  const targets = rows.filter(
-    (row) =>
-      isDateOnlyStoredRange(row.startsAt, row.endsAt) &&
-      !(row.sourceKey && opts.skipSourceKeys?.has(row.sourceKey)) &&
-      Boolean(row.externalUrl)
-  );
+  const today = dayKeyOf(opts.today ?? new Date());
+  const targets = rows
+    .filter(
+      (row) =>
+        isDateOnlyStoredRange(row.startsAt, row.endsAt) &&
+        !(row.sourceKey && opts.skipSourceKeys?.has(row.sourceKey)) &&
+        Boolean(row.externalUrl) &&
+        (opts.week === "only"
+          ? inReviewWeek(row.startsAt, today)
+          : opts.week === "outside"
+            ? !inReviewWeek(row.startsAt, today)
+            : true)
+    )
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
   const enriched = await enrichDateOnlyEvents(
     targets.map((row) => ({
       title: row.title,
@@ -421,7 +460,7 @@ export async function backfillPendingDateOnlyTimes(opts: {
       externalUrl: row.externalUrl ?? undefined,
       fetchedFrom: null
     })),
-    { fetchFn: opts.fetchFn, pauseMs: opts.pauseMs, budget }
+    { fetchFn: opts.fetchFn, pauseMs: opts.pauseMs, budget, missedUrls: opts.missedUrls }
   );
   let updated = 0;
   for (let i = 0; i < enriched.events.length; i += 1) {
