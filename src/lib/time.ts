@@ -76,6 +76,40 @@ export function addDays(date: Date, days: number): Date {
   return next;
 }
 
+function londonWallMinute(date: Date): number {
+  const parts = londonParts(date);
+  return Math.floor(Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute) / 60000);
+}
+
+/** Minute difference between local London clock readings, independent of DST offset changes. */
+export function londonWallMinuteOffset(from: Date, to: Date): number {
+  return londonWallMinute(to) - londonWallMinute(from);
+}
+
+/** Shift a London date and clock by wall time, retaining the intended local time across DST. */
+export function shiftLondonWallMinutes(date: Date, minutes: number): Date {
+  if (!Number.isInteger(minutes)) throw new RangeError("London wall-time shift must be whole minutes.");
+  const shifted = new Date((londonWallMinute(date) + minutes) * 60000);
+  const result = londonDate(
+    shifted.getUTCFullYear(),
+    shifted.getUTCMonth() + 1,
+    shifted.getUTCDate(),
+    shifted.getUTCHours(),
+    shifted.getUTCMinutes()
+  );
+  const actual = londonParts(result);
+  if (
+    actual.year !== shifted.getUTCFullYear() ||
+    actual.month !== shifted.getUTCMonth() + 1 ||
+    actual.day !== shifted.getUTCDate() ||
+    actual.hour !== shifted.getUTCHours() ||
+    actual.minute !== shifted.getUTCMinutes()
+  ) {
+    throw new RangeError("That recurring clock time does not exist in London because of a clock change.");
+  }
+  return result;
+}
+
 export function londonParts(date: Date): {
   year: number;
   month: number;

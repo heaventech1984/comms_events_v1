@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { isDateOnlyStoredRange, parseSchemaInstant, resolveSchemaEnd } from "@/lib/scraper/schema-date";
-import { londonDate } from "@/lib/time";
+import { londonDate, londonParts, londonWallMinuteOffset, shiftLondonWallMinutes } from "@/lib/time";
+
+describe("London wall-time shifts", () => {
+  it("applies date and clock offsets without changing a weekly local time across spring DST", () => {
+    const first = londonDate(2026, 3, 22, 19, 0);
+    const nextWeek = shiftLondonWallMinutes(first, 7 * 24 * 60);
+    expect(londonParts(nextWeek)).toEqual({ year: 2026, month: 3, day: 29, hour: 19, minute: 0 });
+    expect(nextWeek.getTime() - first.getTime()).toBe(6 * 24 * 60 * 60 * 1000 + 23 * 60 * 60 * 1000);
+  });
+
+  it("measures selected schedule changes in London wall minutes", () => {
+    const oldStart = londonDate(2026, 10, 18, 19, 0);
+    const newStart = londonDate(2026, 10, 20, 20, 30);
+    expect(londonWallMinuteOffset(oldStart, newStart)).toBe(2 * 24 * 60 + 90);
+    expect(londonParts(shiftLondonWallMinutes(oldStart, 2 * 24 * 60 + 90))).toEqual({
+      year: 2026,
+      month: 10,
+      day: 20,
+      hour: 20,
+      minute: 30
+    });
+  });
+
+  it("rejects a shifted occurrence at a local clock time skipped by DST", () => {
+    const beforeClockChange = londonDate(2026, 3, 22, 1, 30);
+    expect(() => shiftLondonWallMinutes(beforeClockChange, 7 * 24 * 60)).toThrow(/does not exist/i);
+  });
+});
 
 describe("parseSchemaInstant", () => {
   it("marks date-only and midnight-local strings as dateOnly", () => {

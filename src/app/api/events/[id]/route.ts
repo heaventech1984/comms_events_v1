@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, canReview } from "@/lib/auth";
 import { originAllowed, rejectOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/db";
-import { fromDatetimeLocalValue } from "@/lib/time";
+import { fromDatetimeLocalValue, londonWallMinuteOffset, shiftLondonWallMinutes, toDatetimeLocalValue } from "@/lib/time";
 import { writeAudit } from "@/lib/audit";
 import { deleteOccurrence } from "@/lib/series";
 import { CATEGORIES, type Category } from "@/lib/constants";
@@ -76,6 +76,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     body.placeName !== undefined ? String(body.placeName).trim() || null : event.placeName;
   const startsAt = body.startsAt ? fromDatetimeLocalValue(String(body.startsAt)) : event.startsAt;
   const endsAt = body.endsAt ? fromDatetimeLocalValue(String(body.endsAt)) : event.endsAt;
+  if (
+    body.seriesMode === "future" &&
+    ((body.startsAt !== undefined && toDatetimeLocalValue(startsAt) !== String(body.startsAt)) ||
+      (body.endsAt !== undefined && toDatetimeLocalValue(endsAt) !== String(body.endsAt)))
+  ) {
+    return NextResponse.json({ error: "Choose start and end times that exist in London local time." }, { status: 400 });
+  }
   const lat = body.lat !== undefined && String(body.lat) ? Number(body.lat) : event.lat;
   const lng = body.lng !== undefined && String(body.lng) ? Number(body.lng) : event.lng;
   const problem =
@@ -109,7 +116,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const where = { seriesId: event.seriesId!, startsAt: { gte: event.startsAt } };
       const occurrences = await tx.event.findMany({
         where,
-        select: { id: true, _count: { select: { bookings: true } } }
+        orderBy: { startsAt: "asc" },
+        select: { id: true, startsAt: true, _count: { select: { bookings: true } } }
       });
       if (capacity !== null && occurrences.some((occurrence) => occurrence._count.bookings > capacity)) {
         return { error: "Capacity cannot be below the booking count for any event in this series." };
@@ -117,30 +125,51 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (!occurrences.some((occurrence) => occurrence.id === event.id)) {
         return { error: "This event is no longer part of the series." };
       }
-      await tx.event.updateMany({
-        where,
-        data: {
-          title,
-          organisationName,
-          category,
-          online,
-          tags,
-          placeName,
-          lat: Number.isFinite(lat) ? lat : event.lat,
-          lng: Number.isFinite(lng) ? lng : event.lng,
-          externalUrl,
-          notes,
-          capacity,
-          humanEditedAt: editedAt
+      const startOffsetMinutes = londonWallMinuteOffset(event.startsAt, startsAt);
+      const durationMs = endsAt.getTime() - startsAt.getTime();
+      const shiftedStarts: { id: string; startsAt: Date }[] = [];
+      try {
+        for (const occurrence of occurrences) {
+          const shiftedStart = shiftLondonWallMinutes(occurrence.startsAt, startOffsetMinutes);
+          if (occurrence.id === event.id && shiftedStart.getTime() !== startsAt.getTime()) {
+            return { error: "Choose a valid London local start time for this occurrence." };
+          }
+          shiftedStarts.push({ id: occurrence.id, startsAt: shiftedStart });
         }
-      });
+      } catch (error) {
+        if (error instanceof RangeError) {
+          return { error: "The shifted series would include a London clock time that does not exist. Choose a different start time." };
+        }
+        throw error;
+      }
+      for (const shifted of shiftedStarts) {
+        await tx.event.update({
+          where: { id: shifted.id },
+          data: {
+            title,
+            organisationName,
+            category,
+            startsAt: shifted.startsAt,
+            endsAt: new Date(shifted.startsAt.getTime() + durationMs),
+            online,
+            tags,
+            placeName,
+            lat: Number.isFinite(lat) ? lat : event.lat,
+            lng: Number.isFinite(lng) ? lng : event.lng,
+            externalUrl,
+            notes,
+            capacity,
+            humanEditedAt: editedAt
+          }
+        });
+      }
       await tx.auditLog.create({
         data: {
           actorId: user.id,
           action: "event.series.edit",
           entityType: "Event",
           entityId: event.seriesId,
-          summary: `${user.name} edited ${title} for this and ${occurrences.length - 1} later series occurrence${occurrences.length === 2 ? "" : "s"}`
+          summary: `${user.name} edited ${title} and its schedule for this and ${occurrences.length - 1} later series occurrence${occurrences.length === 2 ? "" : "s"}`
         }
       });
       return { id: event.id };

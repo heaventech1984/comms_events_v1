@@ -11,7 +11,7 @@ Picture: a **fridge noticeboard** for ideas we may explore later. Not a bug list
 | [`FUNCTIONAL.md`](FUNCTIONAL.md) | What the app does today |
 | [`visuals.md`](visuals.md) | Where optional pictures live |
 
-**Counters:** Next **D:** `024` · Next **T:** `001` (bump when you assign ids; never reuse a number).
+**Counters:** Next **D:** `025` · Next **T:** `001` (bump when you assign ids; never reuse a number).
 
 **Park** → pull `experiment` → new row at bottom → assign `D-id` → bump Next D  
 **Work** → branch / PR / commit use `D-xxx`; tasks as `T-xxx` in PR (Level A — see [maintenance README](tutorials/maintenance/README.md#tracking-work-d--and-t--ids))  

@@ -6,6 +6,7 @@ When something ships: copy from [`desirables.md`](desirables.md) Open (keeping t
 
 | Id | Date done | Area | Wish (one sentence) | Proof | Visual (optional) |
 | --- | --- | --- | --- | --- | --- |
+| D-024 | 2026-11-17 | Events | Edit a recurring series schedule by shifting the selected and later dates/times together. | [CHANGELOG — Shift recurring event schedules](CHANGELOG.md#2026-11-17--shift-recurring-event-schedules) | — |
 | D-023 | 2026-11-17 | Calendar | Return to the same calendar view and day after adding or editing an event; default to Day at sign-in. | [CHANGELOG — Return to the same calendar place](CHANGELOG.md#2026-11-17--return-to-the-same-calendar-place) | — |
 | D-022 | 2026-11-17 | Events | Edit a recurring event either for one occurrence or for that occurrence and later dates in its series. | [CHANGELOG — Edit one event or its series](CHANGELOG.md#2026-11-17--edit-one-event-or-its-series) | — |
 | D-R11 | 2026-11-09 | Booking | Cell leaders can book people from their own cell onto an event (named list + Book on the event page). | [CHANGELOG — Book people in your cell](CHANGELOG.md) | — |

@@ -182,7 +182,7 @@ export function EventForm({
     >
       <StatusBanner message={message} kind={kind} />
       {editScope === "future" ? (
-        <p className="muted">Shared details apply to this and later events. Each event keeps its scheduled date and time.</p>
+        <p className="muted">Shared details and the weekly schedule apply to this and later events. Their dates and times shift with the values you choose; earlier events stay unchanged.</p>
       ) : null}
       <label>
         Title
@@ -239,11 +239,11 @@ export function EventForm({
       <div className="row">
         <label>
           Starts
-          <input type="datetime-local" name="startsAt" required defaultValue={event?.startsAt ?? defaultStartsAt} readOnly={editScope === "future"} />
+          <input type="datetime-local" name="startsAt" required defaultValue={event?.startsAt ?? defaultStartsAt} />
         </label>
         <label>
           Ends
-          <input type="datetime-local" name="endsAt" required defaultValue={event?.endsAt ?? defaultEndsAt} readOnly={editScope === "future"} />
+          <input type="datetime-local" name="endsAt" required defaultValue={event?.endsAt ?? defaultEndsAt} />
         </label>
       </div>
       <label>
