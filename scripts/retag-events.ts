@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { TAGS, type Tag } from "../src/lib/constants";
-import { decodeTags, encodeTags, inferTags } from "../src/lib/tags";
+import { decodeTags, encodeTags, inferTags, withCostDefault } from "../src/lib/tags";
 
 const prisma = new PrismaClient();
 
@@ -46,13 +46,15 @@ async function main() {
 
   const changes = rows.flatMap((row) => {
     const before = decodeTags(row.tags);
-    const after = inferTags({
+    const inferred = inferTags({
       title: row.title,
       organisationName: row.organisationName,
       externalUrl: row.externalUrl,
       notes: row.notes,
       online: row.online
     });
+    // A stored Fee is already an explicit Paid label; keep it unless a future human changes it.
+    const after = before.includes("Fee") ? withCostDefault([...inferred, "Fee"], `${row.title}\n${row.notes ?? ""}`) : inferred;
     const encoded = encodeTags(after);
     return encoded === row.tags ? [] : [{ row, before, after, encoded }];
   });

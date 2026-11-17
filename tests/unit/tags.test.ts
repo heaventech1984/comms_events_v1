@@ -132,6 +132,7 @@ describe("inferTags", () => {
     expect(optional).not.toContain("Fee");
     expect(zeroPrice).toContain("Free");
     expect(withCostDefault(["Free", "In Person"], "Cost: $20 per session")).toEqual(["In Person", "Fee"]);
+    expect(withCostDefault(["Fee", "In Person"], "")).toEqual(["In Person", "Fee"]);
   });
 
   it("does not tag a campaign walk as fitness", () => {
