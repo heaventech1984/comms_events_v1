@@ -233,13 +233,13 @@ export default async function ScraperPage() {
                           {sources.map((source) => (
                             <li key={`${run.id}-${source.url}`}>
                               <span className="muted">
-                                {source.ok ? `${source.eventCount} events` : source.error ?? "failed"}
+                                {source.ok ? `${source.eventCount} ${source.label ? "links" : "events"}` : source.error ?? "failed"}
                               </span>
                               {" · "}
                               <a href={source.url} target="_blank" rel="noreferrer">
                                 {(() => {
                                   try {
-                                    return new URL(source.url).hostname.replace(/^www\./, "");
+                                    return source.label ?? new URL(source.url).hostname.replace(/^www\./, "");
                                   } catch {
                                     return source.url;
                                   }

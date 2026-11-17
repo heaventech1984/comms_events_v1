@@ -3,11 +3,13 @@ export type ScrapeAction = "create" | "update" | "skip-discarded" | "skip-human-
 export function scrapeDecision(
   existingStatus: string | null | undefined,
   orgStatus: string,
-  opts: { humanEditedAt?: Date | null; needsTypeReview?: boolean } = {}
+  opts: { humanEditedAt?: Date | null; needsTypeReview?: boolean; forcePending?: boolean } = {}
 ): { action: ScrapeAction; status?: "PENDING" | "PUBLISHED" | "DISCARDED" } {
   if (existingStatus === "DISCARDED") return { action: "skip-discarded" };
   if (opts.humanEditedAt) return { action: "skip-human-edited" };
   if (existingStatus) return { action: "update" };
+  // Auxiliary search results require review, but a blacklist still takes precedence.
+  if (opts.forcePending && orgStatus !== "BLACKLIST") return { action: "create", status: "PENDING" };
   // Unclassified live events stay in pending even when the organisation is whitelisted.
   if (opts.needsTypeReview) return { action: "create", status: "PENDING" };
   if (orgStatus === "WHITELIST") return { action: "create", status: "PUBLISHED" };

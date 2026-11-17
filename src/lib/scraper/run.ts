@@ -20,6 +20,7 @@ import {
 } from "./detail-time";
 import { parseScrapeRadiusMiles, urlWithinRadius } from "./geo";
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
+import { discoverEventbriteUrls, forceEventbritePending, upcomingEventbriteEvents } from "./eventbrite-search";
 import { claimScrapeLock, releaseScrapeLock } from "./lock";
 import { clip, stripHtml } from "./text";
 import { encodeTags, inferTags, withAttendance, withCostDefault } from "../tags";
@@ -72,9 +73,17 @@ export async function runScraper(opts: {
     }
 
     const live = await fetchLiveEvents(urls, { radiusMiles });
-    sources = live.sources;
-    const droppedGeo = live.droppedGeo;
-    const harvest = selectHarvestEvents(live.events, fixtureEvents(), enabled);
+    const eventbriteDiscovery = process.env.SCRAPE_LIVE === "0"
+      ? { urls: [], sources: [] as SourceResult[] }
+      : await discoverEventbriteUrls();
+    const eventbriteLive = eventbriteDiscovery.urls.length
+      ? await fetchLiveEvents(eventbriteDiscovery.urls, { radiusMiles })
+      : { events: [], sources: [], droppedGeo: 0 };
+    // Search-discovered Eventbrite pages always enter Pending for a human check.
+    const eventbriteEvents = forceEventbritePending(upcomingEventbriteEvents(eventbriteLive.events));
+    sources = [...live.sources, ...eventbriteDiscovery.sources, ...eventbriteLive.sources];
+    const droppedGeo = live.droppedGeo + eventbriteLive.droppedGeo;
+    const harvest = selectHarvestEvents([...live.events, ...eventbriteEvents], fixtureEvents(), enabled);
     let events = harvest.events;
     if (process.env.SCRAPE_LIVE !== "0") {
       const budget = { left: DETAIL_TIME_CAP };
@@ -128,7 +137,8 @@ export async function runScraper(opts: {
       });
       const decision = scrapeDecision(existingEvent?.status, org.status, {
         humanEditedAt: existingEvent?.humanEditedAt,
-        needsTypeReview: incoming.needsTypeReview
+        needsTypeReview: incoming.needsTypeReview,
+        forcePending: incoming.forcePending
       });
       const incomingUrl = safeExternalUrl(incoming.externalUrl);
       const incomingNotes = incoming.notes

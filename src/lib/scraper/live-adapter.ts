@@ -18,6 +18,7 @@ const GAP_MS = Number(process.env.SCRAPE_PAUSE_MS ?? "1500") || 1500;
 
 export type SourceResult = {
   url: string;
+  label?: string;
   ok: boolean;
   eventCount: number;
   error?: string;

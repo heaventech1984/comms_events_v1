@@ -17,6 +17,13 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-17 — Discover Eventbrite event pages through search
+
+- The scraper can use a configured Brave Search API key to discover individual UK Eventbrite event links from fixed Birmingham searches. It keeps only direct event-page URLs, fetches pages through Gather’s existing allowlist and robots-aware scraper, and sends new search-discovered events to Pending for review. Search is capped at five queries and 60 page URLs per run.
+- The production integration remains inactive until `BRAVE_SEARCH_API_KEY` is configured with an API plan that grants storage rights. No API key was present during this deployment.
+
+---
+
 ## 2026-11-17 — Paste event details and show current time
 
 - When a public event page cannot be read, admins and cell leaders can paste its copied content. Gather extracts a draft for review without fetching the blocked page or storing the pasted source text.

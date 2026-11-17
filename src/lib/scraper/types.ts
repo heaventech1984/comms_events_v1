@@ -16,5 +16,7 @@ export type ScrapedEvent = {
   notes?: string | null;
   /** Priority URL this event was parsed from (live feeds only). */
   fetchedFrom?: string | null;
+  /** Keep discoveries from auxiliary search providers in Pending, even for whitelisted organisations. */
+  forcePending?: boolean;
   needsTypeReview: boolean;
 };

@@ -11,7 +11,7 @@ Picture: a **fridge noticeboard** for ideas we may explore later. Not a bug list
 | [`FUNCTIONAL.md`](FUNCTIONAL.md) | What the app does today |
 | [`visuals.md`](visuals.md) | Where optional pictures live |
 
-**Counters:** Next **D:** `028` · Next **T:** `001` (bump when you assign ids; never reuse a number).
+**Counters:** Next **D:** `029` · Next **T:** `001` (bump when you assign ids; never reuse a number).
 
 **Park** → pull `experiment` → new row at bottom → assign `D-id` → bump Next D  
 **Work** → branch / PR / commit use `D-xxx`; tasks as `T-xxx` in PR (Level A — see [maintenance README](tutorials/maintenance/README.md#tracking-work-d--and-t--ids))  
@@ -46,3 +46,4 @@ Never put passwords, `.env`, or real member data in this file or linked images.
 | D-014 | idea | 2026-11-09 | Pending | Bulk discard or tag beyond current multi-approve. | Faster on heavy scrape days. | — | Final test brainstorm |
 | D-015 | idea | 2026-11-09 | Insights | Explicit audit reason on sensitive attendee export or share. | Governance and explainability. | — | Healthcare alignment |
 | D-020 | idea | 2026-11-09 | Login | Type the cell number you were given; do not list every live identifier. | The lock screen is not a directory. | — | Critic 9 Nov Oracle |
+| D-028 | in-progress | 2026-11-17 | Scraper | Discover Eventbrite event-page URLs through a search API, then fetch individual pages with Gather’s existing safety and review rules. | Finds events without relying on Eventbrite listing pages that return a JavaScript challenge. | — | REVIEW |
