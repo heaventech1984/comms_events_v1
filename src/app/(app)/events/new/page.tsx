@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { EventForm } from "@/components/EventForm";
+import { AddEventChoice } from "@/components/AddEventChoice";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { calendarBackHref, parseDayKey } from "@/lib/calendar";
@@ -46,7 +46,7 @@ export default async function NewEventPage({
       <p className="lede">
         Create a one-off or a weekly series of 24 occurrences. Place as text, then find it on the map or drop a pin.
       </p>
-      <EventForm
+      <AddEventChoice
         organisations={orgs}
         colours={settings.colours}
         defaultStartsAt={start ? toDatetimeLocalValue(start) : undefined}

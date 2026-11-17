@@ -4,7 +4,8 @@ import {
   MEETUP_BIRMINGHAM_FIND_URL,
   parsePriorityUrls,
   scrapeUrlAllowed,
-  STARTER_PRIORITY_URL
+  STARTER_PRIORITY_URL,
+  validatePublicImportUrl
 } from "@/lib/scraper/allowlist";
 import { droppedPriorityUrlMessage, runFinishedMessage } from "@/lib/scraper/priority-copy";
 import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "@/lib/scraper/categorise";
@@ -23,6 +24,23 @@ import { stripHtml } from "@/lib/scraper/text";
 import { londonDate, londonParts } from "@/lib/time";
 import type { ScrapedEvent } from "@/lib/scraper/types";
 import { CATEGORIES, type Category } from "@/lib/constants";
+
+describe("one-off page import URL policy", () => {
+  it("allows public HTTPS pages outside the recurring allowlist", () => {
+    expect(validatePublicImportUrl("https://example.org/events").ok).toBe(true);
+  });
+
+  it.each([
+    "http://example.org/events",
+    "https://127.0.0.1/private",
+    "https://192.168.1.10/",
+    "https://localhost/",
+    "https://user:pass@example.org/",
+    "https://example.org:8443/"
+  ])("rejects unsafe URL %s", (url) => {
+    expect(validatePublicImportUrl(url).ok).toBe(false);
+  });
+});
 
 describe("fixture harvest", () => {
   const events = fixtureEvents();

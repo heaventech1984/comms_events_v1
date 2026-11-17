@@ -1,5 +1,5 @@
 import { tidyPlaceName } from "../place";
-import { scrapeUrlAllowed } from "./allowlist";
+import { scrapeUrlAllowed, validatePublicImportUrl } from "./allowlist";
 import { inferCategory, TYPE_REVIEW_NOTE, TYPE_WEAK_NOTE } from "./categorise";
 import { withOwnPageClock } from "./detail-time";
 import { inferTags } from "../tags";
@@ -100,7 +100,7 @@ async function timedFetch(
   }
 }
 
-function decorate(events: ScrapedEvent[], pageUrl: string): ScrapedEvent[] {
+export function decorateScrapedEvents(events: ScrapedEvent[], pageUrl: string): ScrapedEvent[] {
   let host = "";
   try {
     host = new URL(pageUrl).hostname;
@@ -140,7 +140,7 @@ function decorate(events: ScrapedEvent[], pageUrl: string): ScrapedEvent[] {
   });
 }
 
-function parseBody(url: string, contentType: string, body: string): ScrapedEvent[] {
+export function parseScrapedBody(url: string, contentType: string, body: string): ScrapedEvent[] {
   const lower = contentType.toLowerCase();
   const path = (() => {
     try {
@@ -173,7 +173,7 @@ function parseBody(url: string, contentType: string, body: string): ScrapedEvent
  */
 export async function fetchLiveEvents(
   urls: string[],
-  opts: { fetchFn?: FetchLike; pauseMs?: number; radiusMiles?: number } = {}
+  opts: { fetchFn?: FetchLike; pauseMs?: number; radiusMiles?: number; publicSingleUrl?: boolean } = {}
 ): Promise<LiveHarvest> {
   if (urls.length === 0 || process.env.SCRAPE_LIVE === "0") {
     return { events: [], sources: [], droppedGeo: 0 };
@@ -202,7 +202,7 @@ export async function fetchLiveEvents(
   }
 
   for (const raw of urls) {
-    const allowed = scrapeUrlAllowed(raw);
+    const allowed = opts.publicSingleUrl ? validatePublicImportUrl(raw) : scrapeUrlAllowed(raw);
     if (!allowed.ok) {
       sources.push({ url: raw, ok: false, eventCount: 0, error: allowed.reason });
       continue;
@@ -248,7 +248,7 @@ export async function fetchLiveEvents(
       } else if (page.body.length > FETCH_BODY_MAX) {
         sources.push({ url: raw, ok: false, eventCount: 0, error: "Response too large." });
       } else {
-        let parsed = decorate(parseBody(url.toString(), page.contentType, page.body), url.toString());
+        let parsed = decorateScrapedEvents(parseScrapedBody(url.toString(), page.contentType, page.body), url.toString());
 
         // Follow same-host calendar links when the HTML page itself had no events.
         const lowerType = page.contentType.toLowerCase();
@@ -256,7 +256,7 @@ export async function fetchLiveEvents(
         if (!parsed.length && isHtml) {
           for (const icsUrl of discoverCalendarLinks(page.body, url.toString())) {
             if (fetchedIcs.has(icsUrl)) continue;
-            const icsAllowed = scrapeUrlAllowed(icsUrl);
+            const icsAllowed = opts.publicSingleUrl ? validatePublicImportUrl(icsUrl) : scrapeUrlAllowed(icsUrl);
             if (!icsAllowed.ok) continue;
             const icsRobots = await robotsOk(icsAllowed.url);
             if (icsRobots == null) continue;
@@ -266,8 +266,8 @@ export async function fetchLiveEvents(
             try {
               const icsPage = await timedFetch(fetchFn, icsAllowed.url.toString());
               if (!icsPage.ok || icsPage.body.length > FETCH_BODY_MAX) continue;
-              const fromIcs = decorate(
-                parseBody(icsAllowed.url.toString(), icsPage.contentType, icsPage.body),
+              const fromIcs = decorateScrapedEvents(
+                parseScrapedBody(icsAllowed.url.toString(), icsPage.contentType, icsPage.body),
                 url.toString()
               );
               parsed = [...parsed, ...fromIcs];

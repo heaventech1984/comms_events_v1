@@ -12,6 +12,7 @@ import { LocationPicker } from "./LocationPicker";
 import { useConfirm } from "./ConfirmDialog";
 import type { GeocodeHit } from "@/lib/geocode";
 import { eventFromCalendarHref } from "@/lib/calendar";
+import { toDatetimeLocalValue } from "@/lib/time";
 
 type Org = { id: string; name: string };
 type EventValue = {
@@ -43,7 +44,8 @@ export function EventForm({
   seriesOccurrenceCount,
   defaultStartsAt,
   defaultEndsAt,
-  backHref
+  backHref,
+  initialDraft
 }: {
   organisations: Org[];
   colours: Record<string, string>;
@@ -53,17 +55,18 @@ export function EventForm({
   defaultStartsAt?: string;
   defaultEndsAt?: string;
   backHref?: string;
+  initialDraft?: Partial<EventValue> & { sourcePageUrl?: string };
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [kind, setKind] = useState<"info" | "error">("info");
   const [dialog, confirm] = useConfirm();
-  const [online, setOnline] = useState(event?.online ?? false);
-  const [tags, setTags] = useState<Tag[]>(() => withAttendance(decodeTags(event?.tags), event?.online ?? false));
-  const [placeName, setPlaceName] = useState(event?.placeName ?? "");
-  const [lat, setLat] = useState(event?.lat != null ? String(event.lat) : "");
-  const [lng, setLng] = useState(event?.lng != null ? String(event.lng) : "");
+  const [online, setOnline] = useState(event?.online ?? initialDraft?.online ?? false);
+  const [tags, setTags] = useState<Tag[]>(() => withAttendance(decodeTags(event?.tags ?? (initialDraft?.tags as string)), event?.online ?? initialDraft?.online ?? false));
+  const [placeName, setPlaceName] = useState(event?.placeName ?? initialDraft?.placeName ?? "");
+  const [lat, setLat] = useState(event?.lat != null ? String(event.lat) : initialDraft?.lat != null ? String(initialDraft.lat) : "");
+  const [lng, setLng] = useState(event?.lng != null ? String(event.lng) : initialDraft?.lng != null ? String(initialDraft.lng) : "");
   const [looking, setLooking] = useState(false);
   const point = useMemo(() => {
     const la = Number(lat);
@@ -102,7 +105,7 @@ export function EventForm({
     const payload = Object.fromEntries(new FormData(formRef.current).entries());
     const result = await requestJson<{ id?: string }>(event ? `/api/events/${event.id}` : "/api/events", {
       method: event ? "PATCH" : "POST",
-      body: { ...payload, tags, online: online ? "on" : "off", ...(editScope === "future" ? { seriesMode: "future" } : {}), ...extra }
+      body: { ...payload, tags, online: online ? "on" : "off", sourcePageUrl: initialDraft?.sourcePageUrl, ...(editScope === "future" ? { seriesMode: "future" } : {}), ...extra }
     });
     if (!result.ok) {
       setKind("error");
@@ -186,11 +189,11 @@ export function EventForm({
       ) : null}
       <label>
         Title
-        <input name="title" required maxLength={LIMITS.titleLength} defaultValue={event?.title} />
+        <input name="title" required maxLength={LIMITS.titleLength} defaultValue={event?.title ?? initialDraft?.title} />
       </label>
       <label>
         Organisation
-        <input name="organisationName" required defaultValue={event?.organisationName} list="orgs" />
+        <input name="organisationName" required defaultValue={event?.organisationName ?? initialDraft?.organisationName} list="orgs" />
         <datalist id="orgs">
           {organisations.map((o) => (
             <option key={o.id} value={o.name} />
@@ -199,7 +202,7 @@ export function EventForm({
       </label>
       <label>
         Type
-        <select name="category" defaultValue={event?.category ?? "Social"}>
+        <select name="category" defaultValue={event?.category ?? initialDraft?.category ?? "Social"}>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -239,11 +242,11 @@ export function EventForm({
       <div className="row">
         <label>
           Starts
-          <input type="datetime-local" name="startsAt" required defaultValue={event?.startsAt ?? defaultStartsAt} />
+          <input type="datetime-local" name="startsAt" required defaultValue={event?.startsAt ?? (initialDraft?.startsAt ? toDatetimeLocalValue(new Date(initialDraft.startsAt)) : defaultStartsAt)} />
         </label>
         <label>
           Ends
-          <input type="datetime-local" name="endsAt" required defaultValue={event?.endsAt ?? defaultEndsAt} />
+          <input type="datetime-local" name="endsAt" required defaultValue={event?.endsAt ?? (initialDraft?.endsAt ? toDatetimeLocalValue(new Date(initialDraft.endsAt)) : defaultEndsAt)} />
         </label>
       </div>
       <label>
@@ -296,7 +299,7 @@ export function EventForm({
           <input
             name="externalUrl"
             placeholder="https://… event page or Zoom"
-            defaultValue={event?.externalUrl}
+            defaultValue={event?.externalUrl ?? initialDraft?.externalUrl}
           />
         </label>
         <label className="online-check">
@@ -315,7 +318,7 @@ export function EventForm({
       </div>
       <label>
         Notes
-        <textarea name="notes" defaultValue={event?.notes} />
+        <textarea name="notes" defaultValue={event?.notes ?? initialDraft?.notes} />
       </label>
       <label>
         Capacity (leave blank for unlimited)

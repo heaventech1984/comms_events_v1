@@ -15,6 +15,7 @@ import {
 import { formatWhereLine } from "@/lib/place";
 import { formatTime } from "@/lib/time";
 import { layoutCalendarDay } from "@/lib/calendar-layout";
+import { CategoryThumb } from "@/components/CategoryThumb";
 
 /** Dense Apple-like rows — readable blocks without towering empty hours. */
 const PX_PER_HOUR = 48;
@@ -167,9 +168,12 @@ export function WeekTimeGrid({
                         borderLeftColor: "var(--cat)"
                       }}
                     >
-                      <span className="week-time-event-title">
+                      <span className="week-time-event-heading">
+                        <CategoryThumb category={event.category} size="sm" />
+                        <span className="week-time-event-title">
                         {event.starred ? "★ " : ""}
                         {event.title}
+                        </span>
                       </span>
                       {showRange ? (
                         <span className="week-time-event-time">

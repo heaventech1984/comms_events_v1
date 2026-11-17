@@ -11,6 +11,7 @@ import { addDays, formatDateTime, londonDate, londonParts } from "@/lib/time";
 import { CATEGORIES, type Category } from "@/lib/constants";
 import type { SourceResult } from "@/lib/scraper/live-adapter";
 import type { ScrapedEvent } from "@/lib/scraper/types";
+import { ScraperSourceHistory } from "@/components/ScraperSourceHistory";
 
 function safeSources(raw: string): SourceResult[] {
   try {
@@ -115,6 +116,7 @@ export default async function ScraperPage() {
   const pendingOpen = pendingRows.length;
   const pendingNeedsType = pendingRows.filter((row) => notesNeedTypeReview(row.notes)).length;
   const latestOk = runs.find((r) => r.status === "OK");
+  const importedSources = await prisma.auditLog.findMany({ where: { action: "event.import-from-page" }, orderBy: { at: "desc" }, take: 100, select: { id: true, summary: true } });
 
   return (
     <main className="stack">
@@ -138,6 +140,7 @@ export default async function ScraperPage() {
         allowedHosts={[...ALLOWED_HOSTS].sort()}
         notice={droppedNotice}
       />
+      <ScraperSourceHistory rows={importedSources} allowedHosts={[...ALLOWED_HOSTS]} />
 
       <section className="stack" data-testid="scraper-quality-scorecard">
         <h2>Quality scorecard</h2>

@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Shift recurring event schedules* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Add events from a page and show category art on calendar events* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -14,6 +14,13 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIEW.md). Sign-off stays blank in [`FUNCTIONAL.md`](FUNCTIONAL.md) until An, Becca and Guillaume choose to sign.
 
 Style later: [Keep a Changelog](https://keepachangelog.com/).
+
+---
+
+## 2026-11-17 — Add events from a page and show category art on calendar events
+
+- Admins and cell leaders can import public HTTPS event pages through the existing scraper parsers, choose an extracted event, review and edit the prefilled details, and save it. Imports are bounded, DNS-pinned, robots-aware and restricted to public HTTPS destinations; likely duplicates are flagged. Successful imports are recorded for admins. Admins can add an already allowlisted page as a recurring feed or request review before a new host can be allowlisted.
+- Day and Week event cards show the existing category artwork before the title. The Month selected-day agenda already uses the same artwork.
 
 ---
 

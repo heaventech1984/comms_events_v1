@@ -50,6 +50,18 @@ function parseEvent(body: Record<string, unknown>) {
   };
 }
 
+function auditedSourceUrl(value: unknown): string | null {
+  try {
+    const url = new URL(String(value ?? ""));
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    url.search = "";
+    url.hash = "";
+    return url.toString().slice(0, 2048);
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!originAllowed(request)) return rejectOrigin();
   const user = await getCurrentUser();
@@ -60,9 +72,13 @@ export async function POST(request: NextRequest) {
   try {
     const parsed = parseEvent(body);
     if (!parsed.title) return NextResponse.json({ error: "Title is required." }, { status: 400 });
+    const sourcePageUrl = auditedSourceUrl(body.sourcePageUrl);
     if (parsed.recurrence === "WEEKLY") {
       const seriesId = await createWeeklySeries({ actor: user, ...parsed, status: "PUBLISHED" });
       const first = await prisma.event.findFirst({ where: { seriesId }, orderBy: { startsAt: "asc" } });
+      if (first && sourcePageUrl) {
+        await writeAudit({ actorId: user.id, action: "event.import-from-page", entityType: "Event", entityId: first.id, summary: `Imported ${first.title} from ${sourcePageUrl}` });
+      }
       return NextResponse.json({ ok: true, id: first?.id });
     }
     const event = await prisma.event.create({
@@ -82,6 +98,9 @@ export async function POST(request: NextRequest) {
       entityId: event.id,
       summary: `${user.name} created ${event.title}`
     });
+    if (sourcePageUrl) {
+      await writeAudit({ actorId: user.id, action: "event.import-from-page", entityType: "Event", entityId: event.id, summary: `Imported ${event.title} from ${sourcePageUrl}` });
+    }
     return NextResponse.json({ ok: true, id: event.id });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not save." }, { status: 400 });

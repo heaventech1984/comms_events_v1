@@ -1,4 +1,5 @@
 import { isHttpUrl } from "../security";
+import { isIP } from "node:net";
 
 /**
  * Hosts an admin may point Priority URLs at. Anything else is recorded as an error and not fetched.
@@ -61,6 +62,21 @@ export const MEETUP_BIRMINGHAM_FIND_URL = "https://www.meetup.com/find/?location
 
 /** Wider Birmingham discovery pack — still capped so a bad run cannot fan out forever. */
 export const MAX_PRIORITY_URLS = 100;
+
+/** One-off editor imports may use public HTTPS pages without changing the recurring crawler allowlist. */
+export function validatePublicImportUrl(value: string): { ok: true; url: URL } | { ok: false; reason: string } {
+  if (!isHttpUrl(value)) return { ok: false, reason: "Enter a valid page URL." };
+  let url: URL;
+  try { url = new URL(value); } catch { return { ok: false, reason: "URL is not valid." }; }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443")) {
+    return { ok: false, reason: "Use a public HTTPS page on port 443." };
+  }
+  if (isLoopbackHost(host) || isPrivateOrLinkLocalIp(host) || isIP(host)) {
+    return { ok: false, reason: "Private and IP-address URLs are not allowed." };
+  }
+  return { ok: true, url };
+}
 
 function isLoopbackHost(host: string): boolean {
   return (

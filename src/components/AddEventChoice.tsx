@@ -1,0 +1,55 @@
+"use client";
+
+import { useState } from "react";
+import { requestJson } from "@/lib/fetch-json";
+import { EventForm } from "./EventForm";
+import { StatusBanner } from "./StatusBanner";
+
+type Draft = {
+  title: string; organisationName: string; category: string; tags: string; startsAt: string; endsAt: string; duplicate?: boolean;
+  online: boolean; placeName: string; lat: number | null; lng: number | null; externalUrl: string; notes: string; sourcePageUrl: string;
+};
+
+export function AddEventChoice(props: {
+  organisations: { id: string; name: string }[];
+  colours: Record<string, string>;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
+  backHref: string;
+}) {
+  const [mode, setMode] = useState<"choose" | "manual" | "page">("choose");
+  const [url, setUrl] = useState("");
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [candidates, setCandidates] = useState<Draft[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  if (mode === "manual" || draft) return <>
+    {draft ? <><p className="muted">Check the imported details below, correct anything that needs it, then save.</p>{draft.duplicate ? <p className="notice">Possible duplicate: an event with this title and start time is already in Gather. Check before saving.</p> : null}</> : null}
+    <EventForm {...props} initialDraft={draft ?? undefined} />
+  </>;
+
+  return <section className="card stack" aria-label="Choose how to add an event">
+    <h2>How would you like to add it?</h2>
+    <div className="row">
+      <button type="button" onClick={() => setMode("manual")}>Add manually</button>
+      <button type="button" className="secondary" onClick={() => setMode("page")}>Add from a page</button>
+    </div>
+    {mode === "page" ? <form className="stack" onSubmit={async (e) => {
+      e.preventDefault(); setLoading(true); setMessage(null);
+      const result = await requestJson<{ events?: Draft[] }>("/api/events/import-page", { method: "POST", body: { url } });
+      setLoading(false);
+      if (!result.ok) { setMessage(result.error); return; }
+      const found = result.data.events ?? [];
+      if (!found.length) { setMessage("No events were found on that page."); return; }
+      if (found.length === 1) setDraft(found[0]);
+      else setCandidates(found);
+    }}>
+      <StatusBanner message={message} kind={message ? "error" : "info"} />
+      <label>Public event page URL<input type="url" required placeholder="https://example.org/events" value={url} onChange={(e) => setUrl(e.target.value)} /></label>
+      <p className="muted">Public HTTPS pages are checked for event details. Gather uses the same event extraction rules as its scraper; pages that need JavaScript rendering may not be readable.</p>
+      <div className="row"><button type="submit" disabled={loading}>{loading ? "Reading page…" : "Read page"}</button><button type="button" className="ghost" onClick={() => setMode("choose")}>Back</button></div>
+      {candidates.length ? <div className="stack"><h3>Choose an event to review</h3>{candidates.map((candidate, index) => <button key={`${candidate.title}-${index}`} type="button" className="secondary" onClick={() => setDraft(candidate)}>{candidate.title} · {new Date(candidate.startsAt).toLocaleDateString("en-GB")}{candidate.duplicate ? " · Possible duplicate already in Gather" : ""}</button>)}</div> : null}
+    </form> : null}
+  </section>;
+}
