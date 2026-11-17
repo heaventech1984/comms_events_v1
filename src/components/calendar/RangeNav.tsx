@@ -1,12 +1,5 @@
 import Link from "next/link";
-import { calendarHref, rangeLabel, stepAnchor, type CalendarState, type DayKey } from "@/lib/calendar";
-
-const VIEWS = [
-  { id: "week", label: "Week" },
-  { id: "day", label: "Day" },
-  { id: "month", label: "Month" },
-  { id: "list", label: "List" }
-] as const;
+import { CALENDAR_VIEW_ORDER, calendarHref, rangeLabel, stepAnchor, type CalendarState, type DayKey } from "@/lib/calendar";
 
 export function RangeNav({ state, today }: { state: CalendarState; today: DayKey }) {
   const prev = stepAnchor(state.view, state.anchor, -1);
@@ -38,7 +31,7 @@ export function RangeNav({ state, today }: { state: CalendarState; today: DayKey
         {rangeLabel(state.view, state.anchor)}
       </h2>
       <div className="view-tabs" role="tablist" aria-label="Calendar view">
-        {VIEWS.map((v) => (
+        {CALENDAR_VIEW_ORDER.map((v) => (
           <Link
             key={v.id}
             role="tab"

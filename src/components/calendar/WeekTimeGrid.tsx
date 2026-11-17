@@ -12,15 +12,11 @@ import {
   type DayKey
 } from "@/lib/calendar";
 import { formatWhereLine } from "@/lib/place";
-import { formatTime, londonParts } from "@/lib/time";
+import { formatTime } from "@/lib/time";
+import { layoutCalendarDay } from "@/lib/calendar-layout";
 
-const HOUR_START = 8;
-const HOUR_END = 21;
-const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
 /** Dense Apple-like rows — readable blocks without towering empty hours. */
 const PX_PER_HOUR = 48;
-const GRID_HEIGHT = HOURS.length * PX_PER_HOUR;
-const MIN_EVENT_HEIGHT = 28;
 
 type GridEvent = {
   id: string;
@@ -32,61 +28,12 @@ type GridEvent = {
   online: boolean;
 };
 
-type LaidOut = GridEvent & {
-  top: number;
-  height: number;
-  col: number;
-  colCount: number;
-  starred: boolean;
-};
-
-function minutesFromMidnight(date: Date): number {
-  const p = londonParts(date);
-  return p.hour * 60 + p.minute;
+function clockLabel(minute: number): string {
+  return `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 }
 
-function layoutDay(events: (GridEvent & { starred: boolean })[]): LaidOut[] {
-  const windowStart = HOUR_START * 60;
-  const windowEnd = HOUR_END * 60;
-  const prepared = events
-    .map((event) => {
-      const startMin = Math.max(windowStart, minutesFromMidnight(event.startsAt));
-      const endRaw = minutesFromMidnight(event.endsAt);
-      const endMin = Math.min(windowEnd, Math.max(startMin + 30, endRaw > startMin ? endRaw : startMin + 60));
-      const top = ((startMin - windowStart) / 60) * PX_PER_HOUR;
-      const height = Math.max(MIN_EVENT_HEIGHT, ((endMin - startMin) / 60) * PX_PER_HOUR);
-      return { event, startMin, endMin, top, height };
-    })
-    .sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
-
-  const colEnds: number[] = [];
-  const withCols = prepared.map((item) => {
-    let col = colEnds.findIndex((end) => end <= item.startMin);
-    if (col === -1) {
-      col = colEnds.length;
-      colEnds.push(item.endMin);
-    } else {
-      colEnds[col] = item.endMin;
-    }
-    return { ...item, col };
-  });
-  const colCount = Math.max(1, colEnds.length);
-  return withCols.map(({ event, top, height, col }) => ({
-    ...event,
-    top,
-    height,
-    col,
-    colCount,
-    starred: event.starred
-  }));
-}
-
-function hourLabel(hour: number): string {
-  return `${String(hour).padStart(2, "0")}:00`;
-}
-
-function slotHref(day: DayKey, hour: number): string {
-  const t = `${String(hour).padStart(2, "0")}:00`;
+function slotHref(day: DayKey, minute: number): string {
+  const t = clockLabel(minute);
   return `/events/new?d=${formatDayKey(day)}&t=${encodeURIComponent(t)}`;
 }
 
@@ -97,7 +44,9 @@ export function WeekTimeGrid({
   colours,
   canAdd,
   starredIds,
-  returnTo
+  returnTo,
+  startMinute,
+  endMinute
 }: {
   days: DayKey[];
   today: DayKey;
@@ -106,6 +55,8 @@ export function WeekTimeGrid({
   canAdd?: boolean;
   starredIds?: Set<string>;
   returnTo: string;
+  startMinute: number;
+  endMinute: number;
 }) {
   const router = useRouter();
   const weekdayShort = new Intl.DateTimeFormat("en-GB", {
@@ -140,20 +91,33 @@ export function WeekTimeGrid({
       </div>
 
       <div className="week-time-scroll">
-        <div className="week-time-body" style={{ ["--week-cols" as string]: days.length, height: GRID_HEIGHT }}>
+        <div
+          className="week-time-body"
+          style={{ ["--week-cols" as string]: days.length, height: ((endMinute - startMinute) / 60) * PX_PER_HOUR }}
+        >
           <div className="week-time-gutter" aria-hidden="true">
-            {HOURS.map((hour) => (
-              <div key={hour} className="week-time-hour" style={{ height: PX_PER_HOUR }}>
-                <span>{hourLabel(hour)}</span>
-              </div>
-            ))}
+            {Array.from(
+              { length: Math.ceil(endMinute / 60) - Math.floor(startMinute / 60) },
+              (_, i) => Math.floor(startMinute / 60) + i
+            ).map((hour) => {
+              const slotStart = Math.max(startMinute, hour * 60);
+              const slotEnd = Math.min(endMinute, (hour + 1) * 60);
+              const height = ((slotEnd - slotStart) / 60) * PX_PER_HOUR;
+              return (
+                <div key={hour} className="week-time-hour" style={{ height }}>
+                  <span>{clockLabel(slotStart)}</span>
+                </div>
+              );
+            })}
           </div>
 
           {days.map((day) => {
             const dayEvents = events
               .filter((e) => sameDayKey(dayKeyOf(e.startsAt), day))
               .map((e) => ({ ...e, starred: Boolean(starredIds?.has(e.id)) }));
-            const laid = layoutDay(dayEvents);
+            const placements = new Map(
+              layoutCalendarDay(dayEvents, day, startMinute, endMinute).map((placement) => [placement.id, placement])
+            );
             const isToday = sameDayKey(day, today);
             return (
               <div
@@ -161,30 +125,32 @@ export function WeekTimeGrid({
                 className="week-time-col"
                 data-today={isToday ? "true" : undefined}
               >
-                {HOURS.map((hour) => (
-                  <div
-                    key={hour}
-                    className="week-time-slot"
-                    style={{ height: PX_PER_HOUR }}
-                    data-testid={canAdd ? `week-slot-${formatDayKey(day)}-${hour}` : undefined}
-                    onDoubleClick={
-                      canAdd
-                        ? () => {
-                            router.push(slotHref(day, hour));
-                          }
-                        : undefined
-                    }
-                    title={canAdd ? "Double-click to add an event" : undefined}
-                  />
-                ))}
-                {laid.map((event) => {
+                {Array.from(
+                  { length: Math.ceil(endMinute / 60) - Math.floor(startMinute / 60) },
+                  (_, i) => Math.floor(startMinute / 60) + i
+                ).map((hour) => {
+                  const slotStart = Math.max(startMinute, hour * 60);
+                  const slotEnd = Math.min(endMinute, (hour + 1) * 60);
+                  const height = ((slotEnd - slotStart) / 60) * PX_PER_HOUR;
+                  return (
+                    <div
+                      key={hour}
+                      className="week-time-slot"
+                      style={{ height }}
+                      data-testid={canAdd ? `week-slot-${formatDayKey(day)}-${hour}` : undefined}
+                      onDoubleClick={canAdd ? () => router.push(slotHref(day, slotStart)) : undefined}
+                      title={canAdd ? "Double-click to add an event" : undefined}
+                    />
+                  );
+                })}
+                {dayEvents.flatMap((event) => {
+                  const placement = placements.get(event.id);
+                  if (!placement) return [];
                   const colour = colours[event.category];
-                  const widthPct = 100 / event.colCount;
-                  const leftPct = event.col * widthPct;
-                  const showRange = event.height >= 36;
+                  const showRange = placement.height >= 36;
                   const startLabel = formatTime(event.startsAt);
                   const endLabel = formatTime(event.endsAt);
-                  return (
+                  return [(
                     <Link
                       key={event.id}
                       href={eventFromCalendarHref(event.id, returnTo)}
@@ -192,10 +158,10 @@ export function WeekTimeGrid({
                       title={`${startLabel}–${endLabel} ${event.title}`}
                       style={{
                         ...categoryAccentStyle(colour),
-                        top: event.top,
-                        height: event.height,
-                        left: `calc(${leftPct}% + 2px)`,
-                        width: `calc(${widthPct}% - 4px)`,
+                        top: placement.top,
+                        height: placement.height,
+                        left: `calc(${placement.leftPct}% + 2px)`,
+                        width: `calc(${placement.widthPct}% - 4px)`,
                         background: "var(--cat-mid)",
                         borderLeftColor: "var(--cat)"
                       }}
@@ -210,7 +176,7 @@ export function WeekTimeGrid({
                         </span>
                       ) : null}
                     </Link>
-                  );
+                  )];
                 })}
               </div>
             );

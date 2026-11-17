@@ -5,6 +5,12 @@ import { londonDate, londonParts } from "./time";
 
 export type CalendarView = "month" | "week" | "day" | "list";
 export type CalendarFormat = "" | "online" | "inperson";
+export const CALENDAR_VIEW_ORDER: { id: CalendarView; label: string }[] = [
+  { id: "day", label: "Day" },
+  { id: "week", label: "Week" },
+  { id: "month", label: "Month" },
+  { id: "list", label: "List" }
+];
 
 /** A calendar date with no time or zone attached. Month is 1–12. */
 export type DayKey = { year: number; month: number; day: number };
@@ -14,7 +20,12 @@ export type CalendarState = {
   categories: Category[];
   tags: Tag[];
   anchor: DayKey;
+  startMinute: number;
+  endMinute: number;
 };
+
+export const DEFAULT_CALENDAR_START_MINUTE = 8 * 60;
+export const DEFAULT_CALENDAR_END_MINUTE = 23 * 60;
 
 export type CalendarParams = {
   view?: string;
@@ -25,7 +36,21 @@ export type CalendarParams = {
   d?: string;
   y?: string;
   m?: string;
+  fromMin?: string;
+  toMin?: string;
 };
+
+export function validCalendarBand(startMinute: unknown, endMinute: unknown): boolean {
+  return (
+    Number.isInteger(startMinute) &&
+    Number.isInteger(endMinute) &&
+    Number(startMinute) >= DEFAULT_CALENDAR_START_MINUTE &&
+    Number(endMinute) <= DEFAULT_CALENDAR_END_MINUTE &&
+    Number(startMinute) < Number(endMinute) &&
+    Number(startMinute) % 30 === 0 &&
+    Number(endMinute) % 30 === 0
+  );
+}
 
 const MIN_YEAR = 2020;
 const MAX_YEAR = 2100;
@@ -107,7 +132,14 @@ export function toggleCategory(selected: Category[], category: Category): Catego
   return CATEGORIES.filter((c) => next.has(c));
 }
 
-export function parseCalendarParams(params: CalendarParams, today: DayKey): CalendarState {
+export function parseCalendarParams(
+  params: CalendarParams,
+  today: DayKey,
+  defaultBand = { startMinute: DEFAULT_CALENDAR_START_MINUTE, endMinute: DEFAULT_CALENDAR_END_MINUTE }
+): CalendarState {
+  const fallbackBand = validCalendarBand(defaultBand.startMinute, defaultBand.endMinute)
+    ? defaultBand
+    : { startMinute: DEFAULT_CALENDAR_START_MINUTE, endMinute: DEFAULT_CALENDAR_END_MINUTE };
   const view: CalendarView =
     params.view === "month" || params.view === "day" || params.view === "week" || params.view === "list"
       ? params.view
@@ -129,7 +161,12 @@ export function parseCalendarParams(params: CalendarParams, today: DayKey): Cale
       anchor = year === today.year && month === today.month ? today : legacy;
     }
   }
-  return { view, categories, tags, anchor: anchor ?? today };
+  const requestedStart = params.fromMin === undefined ? fallbackBand.startMinute : Number(params.fromMin);
+  const requestedEnd = params.toMin === undefined ? fallbackBand.endMinute : Number(params.toMin);
+  const band = validCalendarBand(requestedStart, requestedEnd)
+    ? { startMinute: requestedStart, endMinute: requestedEnd }
+    : fallbackBand;
+  return { view, categories, tags, anchor: anchor ?? today, ...band };
 }
 
 export type CalendarRange = { from: Date; to: Date; days: DayKey[] };
@@ -176,6 +213,8 @@ export function calendarHref(state: CalendarState, overrides: CalendarOverrides 
   if (next.categories.length) sp.set("types", next.categories.join(","));
   if (next.tags.length) sp.set("tags", next.tags.join(","));
   sp.set("d", formatDayKey(next.anchor));
+  sp.set("fromMin", String(next.startMinute));
+  sp.set("toMin", String(next.endMinute));
   return `/calendar?${sp.toString()}`;
 }
 

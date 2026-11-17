@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   addDaysKey,
+  CALENDAR_VIEW_ORDER,
   calendarBackHref,
   calendarHref,
+  DEFAULT_CALENDAR_END_MINUTE,
+  DEFAULT_CALENDAR_START_MINUTE,
   dayKeyOf,
   eventFromCalendarHref,
   formatDayKey,
@@ -14,6 +17,7 @@ import {
   sameDayKey,
   stepAnchor,
   toggleCategory,
+  validCalendarBand,
   weekdayMondayFirst,
   type CalendarState
 } from "@/lib/calendar";
@@ -22,7 +26,10 @@ const today = { year: 2026, month: 10, day: 17 };
 
 describe("parseCalendarParams", () => {
   it("defaults to week view on today", () => {
-    expect(parseCalendarParams({}, today)).toEqual({ view: "week", categories: [], tags: [], anchor: today });
+    expect(parseCalendarParams({}, today)).toEqual({
+      view: "week", categories: [], tags: [], anchor: today,
+      startMinute: DEFAULT_CALENDAR_START_MINUTE, endMinute: DEFAULT_CALENDAR_END_MINUTE
+    });
   });
 
   it("accepts a valid anchor date and filters", () => {
@@ -31,7 +38,9 @@ describe("parseCalendarParams", () => {
       view: "week",
       categories: ["Faith"],
       tags: ["Online"],
-      anchor: { year: 2026, month: 10, day: 20 }
+      anchor: { year: 2026, month: 10, day: 20 },
+      startMinute: DEFAULT_CALENDAR_START_MINUTE,
+      endMinute: DEFAULT_CALENDAR_END_MINUTE
     });
   });
 
@@ -59,6 +68,12 @@ describe("parseCalendarParams", () => {
   it("keeps old y/m links working: current month anchors on today, other months on the 1st", () => {
     expect(parseCalendarParams({ y: "2026", m: "10" }, today).anchor).toEqual(today);
     expect(parseCalendarParams({ y: "2026", m: "11" }, today).anchor).toEqual({ year: 2026, month: 11, day: 1 });
+  });
+});
+
+describe("calendar view order", () => {
+  it("lists Day, Week, Month, List", () => {
+    expect(CALENDAR_VIEW_ORDER.map((view) => view.label)).toEqual(["Day", "Week", "Month", "List"]);
   });
 });
 
@@ -115,19 +130,21 @@ describe("calendarHref — regression: 'All types' kept the selected type", () =
     view: "week",
     categories: ["Faith"],
     tags: ["Online"],
-    anchor: today
+    anchor: today,
+    startMinute: DEFAULT_CALENDAR_START_MINUTE,
+    endMinute: DEFAULT_CALENDAR_END_MINUTE
   };
 
   it("clearing categories removes them but keeps the tags", () => {
-    expect(calendarHref(state, { categories: [] })).toBe("/calendar?view=week&tags=Online&d=2026-10-17");
+    expect(calendarHref(state, { categories: [] })).toBe("/calendar?view=week&tags=Online&d=2026-10-17&fromMin=480&toMin=1380");
   });
 
   it("clearing tags removes them but keeps the categories", () => {
-    expect(calendarHref(state, { tags: [] })).toBe("/calendar?view=week&types=Faith&d=2026-10-17");
+    expect(calendarHref(state, { tags: [] })).toBe("/calendar?view=week&types=Faith&d=2026-10-17&fromMin=480&toMin=1380");
   });
 
   it("keeps a calendar return path and drops anything else", () => {
-    const back = "/calendar?view=list&d=2026-10-17";
+    const back = "/calendar?view=list&d=2026-10-17&fromMin=480&toMin=1380";
     expect(eventFromCalendarHref("evt-1", back)).toBe(`/events/evt-1?from=${encodeURIComponent(back)}`);
     expect(calendarBackHref(back)).toBe(back);
     expect(calendarBackHref("/calendar")).toBe("/calendar");
@@ -138,7 +155,7 @@ describe("calendarHref — regression: 'All types' kept the selected type", () =
 
   it("switching view keeps filters and date", () => {
     expect(calendarHref(state, { view: "day" })).toBe(
-      "/calendar?view=day&types=Faith&tags=Online&d=2026-10-17"
+      "/calendar?view=day&types=Faith&tags=Online&d=2026-10-17&fromMin=480&toMin=1380"
     );
   });
 
@@ -149,6 +166,32 @@ describe("calendarHref — regression: 'All types' kept the selected type", () =
     expect(calendarHref(state, { categories: both })).toContain("types=Professional%2CFaith");
     expect(parseTypesParam("Faith,Professional,Party")).toEqual(["Professional", "Faith"]);
     expect(parseCalendarParams({ types: "Faith,Professional" }, today).categories).toEqual(["Professional", "Faith"]);
+  });
+
+  it("keeps a custom time band when changing calendar views", () => {
+    const custom = { ...state, startMinute: 570, endMinute: 1200 };
+    expect(calendarHref(custom, { view: "day" })).toBe(
+      "/calendar?view=day&types=Faith&tags=Online&d=2026-10-17&fromMin=570&toMin=1200"
+    );
+    expect(parseCalendarParams({ fromMin: "570", toMin: "1200" }, today).startMinute).toBe(570);
+  });
+});
+
+describe("calendar time band", () => {
+  it("accepts half-hour boundaries within 08:00–23:00", () => {
+    expect(validCalendarBand(480, 1380)).toBe(true);
+    expect(validCalendarBand(510, 1350)).toBe(true);
+    expect(validCalendarBand(481, 1350)).toBe(false);
+    expect(validCalendarBand(480, 480)).toBe(false);
+    expect(validCalendarBand(450, 1380)).toBe(false);
+  });
+
+  it("uses the saved user band unless valid URL values override it", () => {
+    expect(parseCalendarParams({}, today, { startMinute: 600, endMinute: 1260 })).toMatchObject({
+      startMinute: 600, endMinute: 1260
+    });
+    expect(parseCalendarParams({ fromMin: "999", toMin: "1200" }, today, { startMinute: 600, endMinute: 1260 }))
+      .toMatchObject({ startMinute: 600, endMinute: 1260 });
   });
 });
 

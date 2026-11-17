@@ -16,17 +16,26 @@ import { MonthGrid } from "@/components/calendar/MonthGrid";
 import { MonthDayAgenda } from "@/components/calendar/MonthDayAgenda";
 import { WeekTimeGrid } from "@/components/calendar/WeekTimeGrid";
 import { DatedList } from "@/components/calendar/DatedList";
+import { CalendarTimeBand } from "@/components/calendar/CalendarTimeBand";
+import { eventOverlapsTimeBand } from "@/lib/calendar-layout";
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<CalendarParams> }) {
   const user = await requireUser();
   const settings = await getSettings();
   const today = dayKeyOf(new Date());
-  const state = parseCalendarParams(await searchParams, today);
+  const preferences = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { calendarStartMinute: true, calendarEndMinute: true }
+  });
+  const state = parseCalendarParams(await searchParams, today, {
+    startMinute: preferences?.calendarStartMinute ?? 480,
+    endMinute: preferences?.calendarEndMinute ?? 1380
+  });
   const returnTo = calendarHref(state);
   const range = rangeFor(state.view, state.anchor);
   const enabledCategories = CATEGORIES.filter((c) => settings.enabled[c]);
 
-  const events = await prisma.event.findMany({
+  const rangeEvents = await prisma.event.findMany({
     where: {
       status: "PUBLISHED",
       startsAt: { gte: range.from, lt: range.to },
@@ -35,6 +44,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     },
     orderBy: { startsAt: "asc" }
   });
+  const events = rangeEvents.filter((event) => eventOverlapsTimeBand(event, state.startMinute, state.endMinute));
 
   const stars = await prisma.star.findMany({
     where: { userId: user.id, event: { status: "PUBLISHED", startsAt: { gte: new Date() } } },
@@ -98,6 +108,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <CalendarFilterMemory />
         </Suspense>
         <RangeNav state={state} today={today} />
+        <CalendarTimeBand state={state} />
 
         {state.view === "month" ? (
           <div className="calendar-month-layout">
@@ -139,6 +150,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             colours={settings.colours}
             events={gridEvents}
             returnTo={returnTo}
+            startMinute={state.startMinute}
+            endMinute={state.endMinute}
           />
         )}
       </section>
