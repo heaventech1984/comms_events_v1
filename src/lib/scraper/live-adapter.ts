@@ -44,7 +44,7 @@ function sleep(ms: number): Promise<void> {
 function pathDisallowed(robots: string, path: string): boolean {
   const lines = robots.split(/\r?\n/).map((l) => l.trim());
   let inStar = false;
-  const disallows: string[] = [];
+  const rules: { allow: boolean; specificity: number }[] = [];
   for (const line of lines) {
     if (!line || line.startsWith("#")) continue;
     const [rawKey, ...rest] = line.split(":");
@@ -54,12 +54,17 @@ function pathDisallowed(robots: string, path: string): boolean {
       inStar = value === "*";
       continue;
     }
-    if (inStar && key === "disallow" && value) disallows.push(value);
+    if (inStar && (key === "allow" || key === "disallow") && value) {
+      const terminal = value.endsWith("$");
+      const pattern = terminal ? value.slice(0, -1) : value;
+      const escaped = pattern.split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*");
+      if (new RegExp(`^${escaped}${terminal ? "$" : ""}`).test(path)) {
+        rules.push({ allow: key === "allow", specificity: pattern.replaceAll("*", "").length });
+      }
+    }
   }
-  return disallows.some((rule) => {
-    if (rule === "/") return true;
-    return path === rule || path.startsWith(rule);
-  });
+  rules.sort((a, b) => b.specificity - a.specificity || Number(b.allow) - Number(a.allow));
+  return rules[0] ? !rules[0].allow : false;
 }
 
 function isEventbriteHost(hostname: string): boolean {
@@ -79,7 +84,7 @@ function retryAfterMs(header: string | null, fallbackMs: number): number {
 async function timedFetch(
   fetchFn: FetchLike,
   url: string
-): Promise<{ ok: boolean; status: number; contentType: string; body: string; retryAfter: string | null }> {
+): Promise<{ ok: boolean; status: number; contentType: string; body: string; retryAfter: string | null; cloudflareChallenge: boolean }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_MS);
   try {
@@ -93,7 +98,8 @@ async function timedFetch(
       status: response.status,
       contentType: response.headers.get("content-type") ?? "",
       body,
-      retryAfter: response.headers.get("retry-after")
+      retryAfter: response.headers.get("retry-after"),
+      cloudflareChallenge: response.headers.get("cf-mitigated")?.toLowerCase() === "challenge"
     };
   } finally {
     clearTimeout(timer);
@@ -180,25 +186,39 @@ export async function fetchLiveEvents(
   }
   const fetchFn = opts.fetchFn ?? (globalThis.fetch as FetchLike);
   const pause = opts.pauseMs ?? GAP_MS;
-  const robotsCache = new Map<string, string | null>();
+  const robotsCache = new Map<string, { body: string; error?: string }>();
   const sources: SourceResult[] = [];
   const events: ScrapedEvent[] = [];
   const fetchedIcs = new Set<string>();
   /** After Eventbrite HTTP 405, skip remaining EB URLs this run (bad IP / WAF). */
   let eventbriteSoftFailed = false;
 
-  async function robotsOk(url: URL): Promise<string | null> {
+  async function robotsOk(url: URL): Promise<{ body: string; error?: string }> {
     const origin = url.origin;
     if (!robotsCache.has(origin)) {
       try {
         const robots = await timedFetch(fetchFn, `${origin}/robots.txt`);
-        robotsCache.set(origin, robots.ok ? robots.body : "");
-      } catch {
-        robotsCache.set(origin, null);
+        if (robots.cloudflareChallenge) {
+          robotsCache.set(origin, { body: "", error: "Cloudflare blocked access to robots.txt. Use an official iCal feed or add the event manually." });
+        } else if (robots.status === 404 || robots.status === 410) {
+          robotsCache.set(origin, { body: "" });
+        } else if (!robots.ok) {
+          robotsCache.set(origin, { body: "", error: `robots.txt returned HTTP ${robots.status}; Gather stopped without fetching the page.` });
+        } else {
+          robotsCache.set(origin, { body: robots.body });
+        }
+      } catch (error) {
+        const aborted = error instanceof Error && error.name === "AbortError";
+        robotsCache.set(origin, {
+          body: "",
+          error: aborted
+            ? "Timed out while checking robots.txt. Try again or add the event manually."
+            : "Could not connect to robots.txt. Check the URL or try again."
+        });
       }
       if (pause) await sleep(pause);
     }
-    return robotsCache.get(origin) ?? null;
+    return robotsCache.get(origin) ?? { body: "", error: "Could not check robots.txt." };
   }
 
   for (const raw of urls) {
@@ -219,12 +239,17 @@ export async function fetchLiveEvents(
     }
     try {
       const robots = await robotsOk(url);
-      if (robots == null) {
-        sources.push({ url: raw, ok: false, eventCount: 0, error: "Could not read robots.txt." });
+      if (robots.error) {
+        sources.push({ url: raw, ok: false, eventCount: 0, error: robots.error });
         continue;
       }
-      if (robots && pathDisallowed(robots, url.pathname)) {
-        sources.push({ url: raw, ok: false, eventCount: 0, error: "robots.txt disallows this path." });
+      if (robots.body && pathDisallowed(robots.body, url.pathname)) {
+        sources.push({
+          url: raw,
+          ok: false,
+          eventCount: 0,
+          error: "robots.txt disallows this page. Try the site's direct iCal (.ics) feed or add the event manually."
+        });
         continue;
       }
       let page = await timedFetch(fetchFn, url.toString());
@@ -243,7 +268,10 @@ export async function fetchLiveEvents(
             error: "HTTP 405 — Eventbrite soft-fail; further Eventbrite URLs skipped this run."
           });
         } else {
-          sources.push({ url: raw, ok: false, eventCount: 0, error: `HTTP ${page.status}` });
+          const error = page.cloudflareChallenge
+            ? "The site presented a Cloudflare browser challenge. Use an official iCal feed or add the event manually."
+            : `The event page returned HTTP ${page.status}.`;
+          sources.push({ url: raw, ok: false, eventCount: 0, error });
         }
       } else if (page.body.length > FETCH_BODY_MAX) {
         sources.push({ url: raw, ok: false, eventCount: 0, error: "Response too large." });
@@ -259,8 +287,8 @@ export async function fetchLiveEvents(
             const icsAllowed = opts.publicSingleUrl ? validatePublicImportUrl(icsUrl) : scrapeUrlAllowed(icsUrl);
             if (!icsAllowed.ok) continue;
             const icsRobots = await robotsOk(icsAllowed.url);
-            if (icsRobots == null) continue;
-            if (icsRobots && pathDisallowed(icsRobots, icsAllowed.url.pathname)) continue;
+            if (icsRobots.error) continue;
+            if (icsRobots.body && pathDisallowed(icsRobots.body, icsAllowed.url.pathname)) continue;
             fetchedIcs.add(icsUrl);
             if (pause) await sleep(pause);
             try {

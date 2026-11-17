@@ -891,6 +891,57 @@ END:VCALENDAR`;
     expect(harvest.sources.some((s) => s.error?.match(/No calendar events/i))).toBe(true);
   });
 
+  it("reports robots denial, robots connection failure, and Cloudflare challenges separately", async () => {
+    const reply = (status: number, body: string, extra: Record<string, string> = {}) => ({
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: (name: string) => ({ "content-type": "text/plain", ...extra }[name.toLowerCase()] ?? null) },
+      text: async () => body
+    });
+    const fetchFn: FetchLike = async (input) => {
+      if (input.includes("robots-denied.example") && input.endsWith("/robots.txt")) return reply(200, "User-agent: *\nDisallow: /\n");
+      if (input.includes("robots-failed.example")) throw new Error("connection reset");
+      if (input.includes("robots-challenge.example") && input.endsWith("/robots.txt")) return reply(403, "challenge", { "cf-mitigated": "challenge" });
+      if (input.includes("page-challenge.example") && input.endsWith("/robots.txt")) return reply(200, "User-agent: *\nAllow: /\n");
+      return reply(403, "challenge", { "cf-mitigated": "challenge" });
+    };
+    const harvest = await fetchLiveEvents([
+      "https://robots-denied.example/events/one",
+      "https://robots-failed.example/events/two",
+      "https://robots-challenge.example/events/three",
+      "https://page-challenge.example/events/four"
+    ], { fetchFn, pauseMs: 0, publicSingleUrl: true });
+    expect(harvest.sources.map((source) => source.error)).toEqual([
+      "robots.txt disallows this page. Try the site's direct iCal (.ics) feed or add the event manually.",
+      "Could not connect to robots.txt. Check the URL or try again.",
+      "Cloudflare blocked access to robots.txt. Use an official iCal feed or add the event manually.",
+      "The site presented a Cloudflare browser challenge. Use an official iCal feed or add the event manually."
+    ]);
+  });
+
+  it("honours a specific robots Allow rule for direct iCal feed paths", async () => {
+    const requested: string[] = [];
+    const feed = `BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:carols\nSUMMARY:Carols at Birmingham\nDTSTART;TZID=Europe/London:20261206T170000\nDTEND;TZID=Europe/London:20261206T203000\nLOCATION:Birmingham\nEND:VEVENT\nEND:VCALENDAR`;
+    const fetchFn: FetchLike = async (input) => {
+      requested.push(input);
+      if (input.endsWith("/robots.txt")) return {
+        ok: true, status: 200, headers: { get: () => "text/plain" },
+        text: async () => "User-agent: *\nDisallow: /\nAllow: /ical/*.ics*\n"
+      };
+      if (input.endsWith(".ics")) return {
+        ok: true, status: 200, headers: { get: () => "text/calendar" }, text: async () => feed
+      };
+      return { ok: true, status: 200, headers: { get: () => "text/html" }, text: async () => "<html></html>" };
+    };
+    const harvest = await fetchLiveEvents([
+      "https://gasstreet.churchsuite.com/events/tncebvhx",
+      "https://gasstreet.churchsuite.com/ical/carols.ics"
+    ], { fetchFn, pauseMs: 0, publicSingleUrl: true });
+    expect(requested).not.toContain("https://gasstreet.churchsuite.com/events/tncebvhx");
+    expect(requested).toContain("https://gasstreet.churchsuite.com/ical/carols.ics");
+    expect(harvest.events.map((event) => event.title)).toEqual(["Carols at Birmingham"]);
+  });
+
   it("parses Event microdata and discovers same-host ICS links", () => {
     const html = `
       <div itemscope itemtype="https://schema.org/Event">

@@ -47,7 +47,7 @@ export function AddEventChoice(props: {
     }}>
       <StatusBanner message={message} kind={message ? "error" : "info"} />
       <label>Public event page URL<input type="url" required placeholder="https://example.org/events" value={url} onChange={(e) => setUrl(e.target.value)} /></label>
-      <p className="muted">Public HTTPS pages are checked for event details. Gather uses the same event extraction rules as its scraper; pages that need JavaScript rendering may not be readable.</p>
+      <p className="muted">Public HTTPS pages are checked for event details. If a site blocks its event page, paste its direct public iCal (.ics) feed URL if available, or add the event manually. Gather does not bypass robots.txt or browser challenges.</p>
       <div className="row"><button type="submit" disabled={loading}>{loading ? "Reading page…" : "Read page"}</button><button type="button" className="ghost" onClick={() => setMode("choose")}>Back</button></div>
       {candidates.length ? <div className="stack"><h3>Choose an event to review</h3>{candidates.map((candidate, index) => <button key={`${candidate.title}-${index}`} type="button" className="secondary" onClick={() => setDraft(candidate)}>{candidate.title} · {new Date(candidate.startsAt).toLocaleDateString("en-GB")}{candidate.duplicate ? " · Possible duplicate already in Gather" : ""}</button>)}</div> : null}
     </form> : null}
