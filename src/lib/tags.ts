@@ -104,9 +104,7 @@ const TOPIC_RULES: { tag: Tag; pattern: RegExp }[] = [
   { tag: "Spirituality", pattern: /\b(faith|religion|religious|spirituality|spiritual|worship|prayer|bible|jesus|gospel|eucharist|sermon|liturgy|mass|evensong|islam|muslim|qur.?an|hadith|imam|mosque|masjid|ramadan|hajj|hindu(?:ism)?|puja|diwali|sikh|gurdwara|kirtan|buddhis(?:m|t)|dharma|judaism|jewish|synagogue|torah|rabbi|shabbat|bahai|jain(?:ism)?|zoroastrian|tao(?:ism|ist)|shinto|confucian|sacred|meditation|mantra|reiki|sound healing|mindfulness)\b/i },
   { tag: "Philosophy", pattern: /\bphilosoph/i },
   { tag: "Family-Friendly", pattern: /\b(all ages|family[- ]friendly|family event|families welcome|children welcome|kids welcome|for children|for kids|parents and children|breakfast with santa|santa's grotto|christmas grotto)\b/i },
-  { tag: "Networking", pattern: /\b(networking|professional network|founders meetup|startup|start-up|coworking|business connections)\b/i },
   { tag: "Music", pattern: /\b(music|choir|concert|\bgig\b|open mic|recital|live singer|live music|band|dj|carols?|electro pop|dance anthems)\b/i },
-  { tag: "Fitness", pattern: /\b(fitness|gym|yoga|sport|running|\brun\b|\bwalk\b|hiking|football|futsal|training session)\b/i },
   { tag: "Learning", pattern: /\b(learning|learn|workshop|lecture|masterclass|course|taster (?:session|lesson)|skills fest|training|study|teach(?:er|ing)?|webinar|tutorial|educational|practice english|advocacy)\b/i },
   { tag: "Creative", pattern: /\b(creative|\bart\b|craft|poetry|theatre|theater|murder mystery|exhibition|photography|creative writing)\b/i }
 ];
@@ -128,6 +126,14 @@ export function inferTags(input: {
   for (const rule of TOPIC_RULES) {
     if (rule.pattern.test(eventText)) tags.push(rule.tag);
   }
+
+  const networkingTitle = /\b(networking|professional network|founders meetup|startup|start-up|coworking|business connections)\b/i;
+  const networkingPurpose = /\b(professional networking|business networking|networking event|networking evening|networking session|meet founders|connect with professionals|network with peers|network with founders)\b/i;
+  if (networkingTitle.test(title) || networkingPurpose.test(content)) tags.push("Networking");
+
+  const fitnessTitle = /\b(fitness|gym|yoga|sport|running|run|walk|hiking|football|futsal)\b/i;
+  const fitnessActivity = /\b(fitness class|exercise class|gym session|yoga class|running club|running group|guided walk|walking group|hiking (?:trip|group|walk)|football (?:game|match|training|session)|futsal (?:game|festival|session)|sports? (?:game|match|session|training)|workout)\b/i;
+  if (fitnessTitle.test(title) || fitnessActivity.test(content)) tags.push("Fitness");
 
   const universityHost = /\b(universit(?:y|ies)|guild of students|guildofstudents|students?['’]? union|students?union|student society|student[- ]led|hosted by students)\b/i;
   const localUniversitySociety = /\b(?:uob|bcu)\b.{0,60}\b(?:society|student|guild|union)\b/i;

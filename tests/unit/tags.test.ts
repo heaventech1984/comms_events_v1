@@ -144,6 +144,23 @@ describe("inferTags", () => {
     expect(tags).not.toContain("Fitness");
     expect(tags).toContain("Free");
   });
+
+  it("does not mistake ordinary event wording for fitness or networking", () => {
+    const technicalTalk = inferTags({
+      title: "Microsoft Ignite Online",
+      organisationName: "Microsoft Reactor",
+      notes: "Learn how to run, scale and govern AI workloads in production.",
+      online: true
+    });
+    const comedy = inferTags({
+      title: "Live Stand Up Comedy Gong Show",
+      organisationName: "Third Eye Comedy Events",
+      notes: "A networking group meets in another room before the show.",
+      online: false
+    });
+    expect(technicalTalk).not.toContain("Fitness");
+    expect(comedy).not.toContain("Networking");
+  });
 });
 
 describe("shelfForStoredCategory", () => {
