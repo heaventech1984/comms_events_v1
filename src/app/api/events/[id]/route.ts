@@ -21,6 +21,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!event) return NextResponse.json({ error: "Event not found." }, { status: 404 });
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
+  if (body.seriesMode === "future" && (!event.seriesId || event.status === "PENDING")) {
+    return NextResponse.json({ error: "Series editing is only available for published recurring events." }, { status: 400 });
+  }
+
   // Pending “Confirm type” / quick type switch — clear review notes and freeze scrape fields.
   if (body.confirmType === true) {
     const category = String(body.category ?? event.category);
@@ -53,7 +57,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       : String(body.capacity).trim() === ""
         ? null
         : Number(body.capacity);
-  if (capacity !== null && capacity < event._count.bookings) {
+  if (body.seriesMode !== "future" && capacity !== null && capacity < event._count.bookings) {
     return NextResponse.json({ error: "Capacity cannot be below the current booking count." }, { status: 400 });
   }
   const category = String(body.category ?? event.category);
@@ -86,6 +90,65 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       placeName
     });
   if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+
+  const tags = encodeTags(
+    withAttendance(
+      withCostDefault(
+        body.tags === undefined
+          ? decodeTags(event.tags)
+          : parseTagsParam((Array.isArray(body.tags) ? body.tags.map(String) : String(body.tags).split(",")).join(",")),
+        `${title}\n${notes ?? ""}`
+      ),
+      online
+    )
+  );
+
+  if (body.seriesMode === "future" && event.seriesId) {
+    const editedAt = new Date();
+    const result = await prisma.$transaction(async (tx) => {
+      const where = { seriesId: event.seriesId!, startsAt: { gte: event.startsAt } };
+      const occurrences = await tx.event.findMany({
+        where,
+        select: { id: true, _count: { select: { bookings: true } } }
+      });
+      if (capacity !== null && occurrences.some((occurrence) => occurrence._count.bookings > capacity)) {
+        return { error: "Capacity cannot be below the booking count for any event in this series." };
+      }
+      if (!occurrences.some((occurrence) => occurrence.id === event.id)) {
+        return { error: "This event is no longer part of the series." };
+      }
+      await tx.event.updateMany({
+        where,
+        data: {
+          title,
+          organisationName,
+          category,
+          online,
+          tags,
+          placeName,
+          lat: Number.isFinite(lat) ? lat : event.lat,
+          lng: Number.isFinite(lng) ? lng : event.lng,
+          externalUrl,
+          notes,
+          capacity,
+          humanEditedAt: editedAt
+        }
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: user.id,
+          action: "event.series.edit",
+          entityType: "Event",
+          entityId: event.seriesId,
+          summary: `${user.name} edited ${title} for this and ${occurrences.length - 1} later series occurrence${occurrences.length === 2 ? "" : "s"}`
+        }
+      });
+      return { id: event.id };
+    });
+    if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ ok: true, id: result.id });
+  }
+
   const updated = await prisma.event.update({
     where: { id },
     data: {
@@ -95,17 +158,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       startsAt,
       endsAt,
       online,
-      tags: encodeTags(
-        withAttendance(
-          withCostDefault(
-            body.tags === undefined
-              ? decodeTags(event.tags)
-              : parseTagsParam((Array.isArray(body.tags) ? body.tags.map(String) : String(body.tags).split(",")).join(",")),
-            `${title}\n${notes ?? ""}`
-          ),
-          online
-        )
-      ),
+      tags,
       placeName,
       lat: Number.isFinite(lat) ? lat : event.lat,
       lng: Number.isFinite(lng) ? lng : event.lng,

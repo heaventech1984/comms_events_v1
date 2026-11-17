@@ -107,6 +107,8 @@ export default async function EventPage({
         </p>
         <EventActions
           eventId={event.id}
+          seriesId={event.seriesId}
+          eventStatus={event.status}
           booked={!!myBooking}
           full={full && !myBooking}
           starred={starred}

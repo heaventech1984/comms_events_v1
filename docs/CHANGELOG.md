@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Filter pending from scraper settings* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Edit one event or its series* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -14,6 +14,12 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIEW.md). Sign-off stays blank in [`FUNCTIONAL.md`](FUNCTIONAL.md) until An, Becca and Guillaume choose to sign.
 
 Style later: [Keep a Changelog](https://keepachangelog.com/).
+
+---
+
+## 2026-11-17 — Edit one event or its series
+
+- Recurring events offer **Edit One Off** and **Edit Series**. One-off edits affect only the selected event. Series edits update shared details for that event and later occurrences, preserving their dates, times, bookings, attendance and feedback; earlier occurrences stay unchanged. The edit is confirmed with the number of affected events.
 
 ---
 

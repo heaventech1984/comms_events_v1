@@ -12,14 +12,19 @@ export default async function EditEventPage({
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; scope?: string }>;
 }) {
   await requireUser(["admin", "cell leader"]);
   const { id } = await params;
-  const { from } = await searchParams;
+  const { from, scope } = await searchParams;
   const backHref = pendingBackHref(from);
   const event = await prisma.event.findUnique({ where: { id } });
   if (!event) notFound();
+  const editScope = event.seriesId && event.status !== "PENDING" && scope === "future" ? "future" : "this";
+  const seriesOccurrenceCount =
+    editScope === "future"
+      ? await prisma.event.count({ where: { seriesId: event.seriesId, startsAt: { gte: event.startsAt } } })
+      : undefined;
   const orgs = await prisma.organisation.findMany({ orderBy: { name: "asc" } });
   const settings = await getSettings();
   return (
@@ -54,6 +59,8 @@ export default async function EditEventPage({
           recurrence: event.recurrence,
           seriesId: event.seriesId
         }}
+        editScope={editScope}
+        seriesOccurrenceCount={seriesOccurrenceCount}
       />
     </main>
   );

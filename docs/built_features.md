@@ -6,6 +6,7 @@ When something ships: copy from [`desirables.md`](desirables.md) Open (keeping t
 
 | Id | Date done | Area | Wish (one sentence) | Proof | Visual (optional) |
 | --- | --- | --- | --- | --- | --- |
+| D-022 | 2026-11-17 | Events | Edit a recurring event either for one occurrence or for that occurrence and later dates in its series. | [CHANGELOG — Edit one event or its series](CHANGELOG.md#2026-11-17--edit-one-event-or-its-series) | — |
 | D-R11 | 2026-11-09 | Booking | Cell leaders can book people from their own cell onto an event (named list + Book on the event page). | [CHANGELOG — Book people in your cell](CHANGELOG.md) | — |
 | D-R10 | 2026-11-09 | Members | Expert Members list for admin and cell leader: search, filter every column, A→Z / Z→A sort. | [CHANGELOG — Members expert list](CHANGELOG.md) | — |
 | D-016 | 2026-11-09 | Home | Signed-in Home is one next event, then a list — not six empty bands. | [CHANGELOG — Formatting (D-016–D-019, D-021)](CHANGELOG.md) | — |

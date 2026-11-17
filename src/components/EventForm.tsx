@@ -38,6 +38,8 @@ export function EventForm({
   organisations,
   colours,
   event,
+  editScope = "this",
+  seriesOccurrenceCount,
   defaultStartsAt,
   defaultEndsAt,
   backHref
@@ -45,6 +47,8 @@ export function EventForm({
   organisations: Org[];
   colours: Record<string, string>;
   event?: EventValue;
+  editScope?: "this" | "future";
+  seriesOccurrenceCount?: number;
   defaultStartsAt?: string;
   defaultEndsAt?: string;
   backHref?: string;
@@ -74,6 +78,16 @@ export function EventForm({
 
   async function submit(extra: Record<string, string> = {}) {
     if (!formRef.current) return;
+    if (editScope === "future") {
+      const count = seriesOccurrenceCount ?? 0;
+      const ok = await confirm({
+        title: "Edit this and later events in the series?",
+        body: `This will update shared details for ${count} occurrence${count === 1 ? "" : "s"}, including this one. Earlier events, dates, times, bookings and attendance will stay as they are.`,
+        confirmLabel: "Edit series",
+        cancelLabel: "Keep editing"
+      });
+      if (!ok) return;
+    }
     if (extra.status === "DISCARDED") {
       const ok = await confirm({
         title: "Discard this event?",
@@ -87,7 +101,7 @@ export function EventForm({
     const payload = Object.fromEntries(new FormData(formRef.current).entries());
     const result = await requestJson<{ id?: string }>(event ? `/api/events/${event.id}` : "/api/events", {
       method: event ? "PATCH" : "POST",
-      body: { ...payload, tags, online: online ? "on" : "off", ...extra }
+      body: { ...payload, tags, online: online ? "on" : "off", ...(editScope === "future" ? { seriesMode: "future" } : {}), ...extra }
     });
     if (!result.ok) {
       setKind("error");
@@ -166,6 +180,9 @@ export function EventForm({
       }}
     >
       <StatusBanner message={message} kind={kind} />
+      {editScope === "future" ? (
+        <p className="muted">Shared details apply to this and later events. Each event keeps its scheduled date and time.</p>
+      ) : null}
       <label>
         Title
         <input name="title" required maxLength={LIMITS.titleLength} defaultValue={event?.title} />
@@ -221,11 +238,11 @@ export function EventForm({
       <div className="row">
         <label>
           Starts
-          <input type="datetime-local" name="startsAt" required defaultValue={event?.startsAt ?? defaultStartsAt} />
+          <input type="datetime-local" name="startsAt" required defaultValue={event?.startsAt ?? defaultStartsAt} readOnly={editScope === "future"} />
         </label>
         <label>
           Ends
-          <input type="datetime-local" name="endsAt" required defaultValue={event?.endsAt ?? defaultEndsAt} />
+          <input type="datetime-local" name="endsAt" required defaultValue={event?.endsAt ?? defaultEndsAt} readOnly={editScope === "future"} />
         </label>
       </div>
       <label>

@@ -9,6 +9,8 @@ import { requestJson } from "@/lib/fetch-json";
 
 export function EventActions({
   eventId,
+  seriesId,
+  eventStatus,
   booked,
   full,
   starred,
@@ -20,6 +22,8 @@ export function EventActions({
   past
 }: {
   eventId: string;
+  seriesId?: string | null;
+  eventStatus?: string;
   booked: boolean;
   full: boolean;
   starred: boolean;
@@ -134,7 +138,16 @@ export function EventActions({
         <button className="ghost" type="button" onClick={toggleStar} aria-pressed={star}>
           {star ? "Starred" : "Star"}
         </button>
-        {canEdit ? (
+        {canEdit && seriesId && eventStatus !== "PENDING" ? (
+          <>
+            <Link className="button ghost" href={`/events/${eventId}/edit?scope=this`}>
+              Edit One Off
+            </Link>
+            <Link className="button ghost" href={`/events/${eventId}/edit?scope=future`}>
+              Edit Series
+            </Link>
+          </>
+        ) : canEdit ? (
           <Link className="button ghost" href={`/events/${eventId}/edit`}>
             Edit
           </Link>
