@@ -1,5 +1,4 @@
 import { isHttpUrl } from "../security";
-import { isIP } from "node:net";
 
 /**
  * Hosts an admin may point Priority URLs at. Anything else is recorded as an error and not fetched.
@@ -72,7 +71,7 @@ export function validatePublicImportUrl(value: string): { ok: true; url: URL } |
   if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443")) {
     return { ok: false, reason: "Use a public HTTPS page on port 443." };
   }
-  if (isLoopbackHost(host) || isPrivateOrLinkLocalIp(host) || isIP(host)) {
+  if (isLoopbackHost(host) || isPrivateOrLinkLocalIp(host) || host.includes(":") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) {
     return { ok: false, reason: "Private and IP-address URLs are not allowed." };
   }
   return { ok: true, url };
