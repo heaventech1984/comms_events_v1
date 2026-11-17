@@ -4,6 +4,7 @@ One mistake → one rule. Newest first. Keep lines short.
 
 | Date | Mistake | Rule to prevent it |
 | --- | --- | --- |
+| 2026-11-17 | Page-import controls did not show selected state, and paste mode still showed a URL field | Use the active berry button style for selected modes and show only fields needed by the selected import method. |
 | 2026-11-17 | Tag review missed faith and student-hosted events, and treated missing price as unknown | Tag from event content; include any faith/spirituality and university/student society hosts; default to Free and In Person unless paid or online. |
 | 2026-11-12 | A search page stamped Christian on a DevOps card, and Confirm buttons pushed Approve aside | Pending cards only Approve and Discard. A doubtful type is a flag for the event page later. A search URL never sets the type unless the title agrees. |
 | 2026-11-09 | Front-door notes assumed a programmer and used shortened jargon | Write the read-me for someone who has never made software. Define each specialist word in the same breath. Do not rely on acronyms. |

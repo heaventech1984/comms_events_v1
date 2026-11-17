@@ -36,8 +36,8 @@ export function AddEventChoice(props: {
     <section className="card stack" aria-label="Choose how to add an event">
       <h2>How would you like to add it?</h2>
       <div className="row">
-        <button type="button" onClick={() => setMode("manual")}>Add manually</button>
-        <button type="button" className="secondary" onClick={() => setMode("page")}>Add from a page</button>
+        <button type="button" className={mode === "page" ? "secondary" : undefined} onClick={() => setMode("manual")}>Add manually</button>
+        <button type="button" className={mode === "page" ? undefined : "secondary"} aria-pressed={mode === "page"} onClick={() => setMode("page")}>Add from a page</button>
       </div>
       {mode === "page" ? (
         <form className="stack" onSubmit={async (e) => {
@@ -55,15 +55,17 @@ export function AddEventChoice(props: {
         }}>
           <StatusBanner message={message} kind={message ? "error" : "info"} />
           <div className="row" role="group" aria-label="Choose page import method">
-            <button type="button" aria-pressed={pageMethod === "url"} onClick={() => setPageMethod("url")}>Read page URL</button>
-            <button type="button" className="secondary" aria-pressed={pageMethod === "paste"} onClick={() => setPageMethod("paste")}>Paste page content</button>
+            <button type="button" className={pageMethod === "url" ? undefined : "secondary"} aria-pressed={pageMethod === "url"} onClick={() => setPageMethod("url")}>Read page URL</button>
+            <button type="button" className={pageMethod === "paste" ? undefined : "secondary"} aria-pressed={pageMethod === "paste"} onClick={() => { setPageMethod("paste"); setUrl(""); }}>Paste page content</button>
           </div>
-          <label>
-            Event page URL
-            <input type="url" required placeholder="https://example.org/events" value={url} onChange={(e) => setUrl(e.target.value)} />
-          </label>
           {pageMethod === "url" ? (
-            <p className="muted">Public HTTPS pages are checked for event details. If a site blocks its event page, paste its direct public iCal (.ics) feed URL if available, or switch to Paste page content. Gather does not bypass robots.txt or browser challenges.</p>
+            <>
+              <label>
+                Event page URL
+                <input type="url" required placeholder="https://example.org/events" value={url} onChange={(e) => setUrl(e.target.value)} />
+              </label>
+              <p className="muted">Public HTTPS pages are checked for event details. If a site blocks its event page, paste its direct public iCal (.ics) feed URL if available, or switch to Paste page content. Gather does not bypass robots.txt or browser challenges.</p>
+            </>
           ) : (
             <>
               <p className="muted">Open the event in your browser, select and copy its details, then paste them below. Include the title, date, start and end time, and location. Gather will use copied page markup when available, but will not reopen or fetch the page.</p>
@@ -85,7 +87,7 @@ export function AddEventChoice(props: {
           )}
           <div className="row">
             <button type="submit" disabled={loading || (pageMethod === "paste" && !pastedText.trim() && !pastedHtml.trim())}>{loading ? (pageMethod === "paste" ? "Reading pasted details…" : "Reading page…") : (pageMethod === "paste" ? "Extract details" : "Read page")}</button>
-            <button type="button" className="ghost" onClick={() => setMode("choose")}>Back</button>
+            <button type="button" className="ghost" onClick={() => { setMode("choose"); setPageMethod("url"); }}>Back</button>
           </div>
           {candidates.length ? (
             <div className="stack">

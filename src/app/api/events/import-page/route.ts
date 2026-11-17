@@ -15,7 +15,8 @@ function sourcePathOnly(url: URL): string {
   return `${url.origin}${url.pathname}`;
 }
 
-async function previews(events: ScrapedEvent[], sourceUrl: string) {
+async function previews(events: ScrapedEvent[], sourceUrl: string | null) {
+  const safeSource = sourceUrl ? sourcePathOnly(new URL(sourceUrl)) : "";
   return Promise.all(events.map(async (event) => {
     const duplicate = await prisma.event.findFirst({
       where: { title: event.title, startsAt: event.startsAt, status: { not: "DISCARDED" } },
@@ -33,8 +34,8 @@ async function previews(events: ScrapedEvent[], sourceUrl: string) {
       lat: event.lat ?? null,
       lng: event.lng ?? null,
       externalUrl: event.externalUrl ?? "",
-      notes: (event.notes ?? "").replaceAll(sourceUrl, `${new URL(sourceUrl).origin}${new URL(sourceUrl).pathname}`),
-      sourcePageUrl: `${new URL(sourceUrl).origin}${new URL(sourceUrl).pathname}`,
+      notes: sourceUrl ? (event.notes ?? "").replaceAll(sourceUrl, safeSource) : event.notes ?? "",
+      sourcePageUrl: safeSource,
       duplicate: Boolean(duplicate)
     };
   }));
@@ -51,27 +52,35 @@ export async function POST(request: NextRequest) {
   const body = await Promise.resolve().then(() => JSON.parse(rawBody)).catch(() => ({})) as { url?: unknown; mode?: unknown; text?: unknown; html?: unknown };
   const rawUrl = String(body.url ?? "");
   if (rawUrl.length > 2048) return NextResponse.json({ error: "URL is too long." }, { status: 400 });
-  const checked = validatePublicImportUrl(rawUrl);
-  if (!checked.ok) return NextResponse.json({ error: checked.reason }, { status: 400 });
   if (body.mode === "paste") {
+    const checkedSource = rawUrl ? validatePublicImportUrl(rawUrl) : null;
+    if (checkedSource && !checkedSource.ok) return NextResponse.json({ error: checkedSource.reason }, { status: 400 });
     const pastedText = String(body.text ?? "");
     const pastedHtml = String(body.html ?? "");
     if (pastedText.length + pastedHtml.length > FETCH_BODY_MAX) {
       return NextResponse.json({ error: "Pasted content is too large. Copy just the event details and try again." }, { status: 413 });
     }
+    const sourceUrl = checkedSource?.ok ? checkedSource.url.toString() : "https://pasted-content.invalid/";
     const events = pastedHtml
-      ? parseScrapedBody(checked.url.toString(), "text/html", pastedHtml)
+      ? parseScrapedBody(sourceUrl, "text/html", pastedHtml)
       : [];
     const parsed = events.length ? events : (() => {
-      const event = eventFromPastedText(pastedText, `${checked.url.origin}${checked.url.pathname}`);
+      const event = eventFromPastedText(pastedText, checkedSource?.ok ? sourcePathOnly(checkedSource.url) : "");
       return event ? [event] : [];
     })();
     if (!parsed.length) {
       return NextResponse.json({ error: "I couldn't identify an event. Paste its title, date, start/end time and location, or add it manually." }, { status: 422 });
     }
-    const decorated = decorateScrapedEvents(parsed, `${checked.url.origin}${checked.url.pathname}`);
-    return NextResponse.json({ events: await previews(decorated, checked.url.toString()) });
+    const decorated = decorateScrapedEvents(parsed, sourceUrl).map((event) => checkedSource?.ok ? event : {
+      ...event,
+      externalUrl: event.externalUrl === sourceUrl ? null : event.externalUrl,
+      fetchedFrom: null,
+      notes: (event.notes ?? "").replace(`\n\nSource feed: ${sourceUrl}`, "").replace(`Source feed: ${sourceUrl}`, "")
+    });
+    return NextResponse.json({ events: await previews(decorated, checkedSource?.ok ? checkedSource.url.toString() : null) });
   }
+  const checked = validatePublicImportUrl(rawUrl);
+  if (!checked.ok) return NextResponse.json({ error: checked.reason }, { status: 400 });
   const settings = await getSettings();
   const result = await fetchLiveEvents([checked.url.toString()], {
     fetchFn: fetchPublicPage,
