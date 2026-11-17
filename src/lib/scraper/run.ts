@@ -22,7 +22,7 @@ import { parseScrapeRadiusMiles, urlWithinRadius } from "./geo";
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
 import { claimScrapeLock, releaseScrapeLock } from "./lock";
 import { clip, stripHtml } from "./text";
-import { encodeTags } from "../tags";
+import { encodeTags, inferTags, withAttendance, withCostDefault } from "../tags";
 
 function nameKey(name: string) {
   return name.trim().toLowerCase();
@@ -139,7 +139,22 @@ export async function runScraper(opts: {
         organisationName: incoming.organisationName,
         organisationId: org.id,
         category: incoming.category,
-        tags: encodeTags(incoming.tags ?? []),
+        tags: encodeTags(
+          withAttendance(
+            withCostDefault(
+              incoming.tags ??
+                inferTags({
+                  title: incoming.title,
+                  organisationName: incoming.organisationName,
+                  notes: incoming.notes,
+                  externalUrl: incoming.externalUrl,
+                  online: incoming.online
+                }),
+              `${incoming.title}\n${incoming.notes ?? ""}`
+            ),
+            incoming.online
+          )
+        ),
         startsAt: incoming.startsAt,
         endsAt: incoming.endsAt,
         online: incoming.online,

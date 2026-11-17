@@ -6,7 +6,7 @@ import { fromDatetimeLocalValue } from "@/lib/time";
 import { writeAudit } from "@/lib/audit";
 import { deleteOccurrence } from "@/lib/series";
 import { CATEGORIES, type Category } from "@/lib/constants";
-import { encodeTags, parseTagsParam, withAttendance } from "@/lib/tags";
+import { decodeTags, encodeTags, parseTagsParam, withAttendance, withCostDefault } from "@/lib/tags";
 import { stripTypeReviewNotes } from "@/lib/scraper/type-review";
 import { eventInputProblem } from "@/lib/security";
 
@@ -65,6 +65,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const statusChanging = nextStatus !== event.status;
   const title = String(body.title ?? event.title).trim();
   const notes = body.notes !== undefined ? String(body.notes).trim() || null : event.notes;
+  const online = body.online === true || body.online === "on" || (body.online === undefined && event.online);
+  const organisationName = String(body.organisationName ?? event.organisationName);
   const externalUrl = body.externalUrl !== undefined ? String(body.externalUrl).trim() || null : event.externalUrl;
   const placeName =
     body.placeName !== undefined ? String(body.placeName).trim() || null : event.placeName;
@@ -88,20 +90,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     where: { id },
     data: {
       title,
-      organisationName: String(body.organisationName ?? event.organisationName),
+      organisationName,
       category,
       startsAt,
       endsAt,
-      online: body.online === true || body.online === "on" || (body.online === undefined && event.online),
-      tags:
-        body.tags === undefined
-          ? event.tags
-          : encodeTags(
-              withAttendance(
-                parseTagsParam((Array.isArray(body.tags) ? body.tags.map(String) : String(body.tags).split(",")).join(",")),
-                body.online === true || body.online === "on" || (body.online === undefined && event.online)
-              )
-            ),
+      online,
+      tags: encodeTags(
+        withAttendance(
+          withCostDefault(
+            body.tags === undefined
+              ? decodeTags(event.tags)
+              : parseTagsParam((Array.isArray(body.tags) ? body.tags.map(String) : String(body.tags).split(",")).join(",")),
+            `${title}\n${notes ?? ""}`
+          ),
+          online
+        )
+      ),
       placeName,
       lat: Number.isFinite(lat) ? lat : event.lat,
       lng: Number.isFinite(lng) ? lng : event.lng,

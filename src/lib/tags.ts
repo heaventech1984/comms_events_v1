@@ -1,4 +1,5 @@
 import { TAGS, type Category, type Tag } from "./constants";
+import { stripHtml } from "./scraper/text";
 
 const ATTENDANCE: Tag[] = ["In Person", "Online"];
 
@@ -38,6 +39,40 @@ export function withAttendance(tags: readonly Tag[], online: boolean): Tag[] {
   return [...rest, online ? "Online" : "In Person"];
 }
 
+function tagEvidence(value: string | null | undefined): string {
+  return stripHtml(value ?? "")
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*(?:source feed|gather guessed this type)\s*:/i.test(line))
+    .join(" ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasPaidEvidence(value: string): boolean {
+  const clauses = value
+    .replace(/\b(?:optional|donation|parking)\b[^.!?\n]*(?:[.!?\n]|$)/gi, " ")
+    .split(/[.!?\n|]+/)
+    .filter((clause) => clause.trim());
+  const requiredPayment = /\b(?:paid event|paid course|entry fee|admission fee|fee\s*:|fee per|costs? to attend|pay to attend|pay via|pay on the day|payment required)\b/i;
+  const amount = /(?:£|\$)\s?(\d+(?:[.,]\d{1,2})?)|\b(\d+(?:[.,]\d{1,2})?)\s?(?:GBP|USD|EUR)\b/gi;
+  const priceContext = /\b(ticket|admission|entry|price|cost|fee|per person|per session|per night|registration)\b/i;
+  return clauses.some((clause) => {
+    if (requiredPayment.test(clause)) return true;
+    return (
+      priceContext.test(clause) &&
+      [...clause.matchAll(amount)].some((match) => Number((match[1] ?? match[2]).replace(",", ".")) > 0)
+    );
+  });
+}
+
+/** Default cost sticker: Fee when a required price is stated, otherwise Free. */
+export function withCostDefault(tags: readonly Tag[], evidence: string): Tag[] {
+  const rest = tags.filter((tag) => tag !== "Free" && tag !== "Fee");
+  const paid = tags.includes("Fee") || hasPaidEvidence(evidence);
+  return [...rest, paid ? "Fee" : "Free"];
+}
+
 export function tagsWhere(selected: Tag[]): { OR: { tags: { contains: string } }[] } | undefined {
   if (!selected.length) return undefined;
   return { OR: selected.map((tag) => ({ tags: { contains: `|${tag}|` } })) };
@@ -64,25 +99,19 @@ export function isMeetupSite(hostOrUrl?: string | null): boolean {
   return host === "meetup.com" || host.endsWith(".meetup.com");
 }
 
-const TAG_RULES: { tag: Tag; pattern: RegExp }[] = [
-  { tag: "Christian", pattern: /\b(christian|jesus|gospel|catholic|baptist|bible|anglican|pentecostal|evangelical)\b/i },
-  { tag: "Church", pattern: /\b(church|cathedral|chapel|parish|eucharist|sermon|liturgy|worship|mass)\b/i },
-  { tag: "Spirituality", pattern: /\b(spirituality|spiritual)\b/i },
+const TOPIC_RULES: { tag: Tag; pattern: RegExp }[] = [
+  { tag: "Christian", pattern: /\b(christian|jesus|gospel|catholic|baptist|bible|anglican|pentecostal|evangelical|eucharist|communion|carol service|christmas carols?)\b/i },
+  { tag: "Spirituality", pattern: /\b(faith|religion|religious|spirituality|spiritual|worship|prayer|bible|jesus|gospel|eucharist|sermon|liturgy|mass|evensong|islam|muslim|qur.?an|hadith|imam|mosque|masjid|ramadan|hajj|hindu(?:ism)?|puja|diwali|sikh|gurdwara|kirtan|buddhis(?:m|t)|dharma|judaism|jewish|synagogue|torah|rabbi|shabbat|bahai|jain(?:ism)?|zoroastrian|tao(?:ism|ist)|shinto|confucian|sacred|meditation|mantra|reiki|sound healing|mindfulness)\b/i },
   { tag: "Philosophy", pattern: /\bphilosoph/i },
-  { tag: "University", pattern: /\b(university|student|students|campus|freshers|undergraduate|guild of students)\b/i },
-  { tag: "Family-Friendly", pattern: /\b(family-friendly|family friendly|family|kids|children)\b/i },
-  { tag: "Networking", pattern: /\b(networking|founders|startup|start-up|coworking)\b/i },
-  { tag: "Music", pattern: /\b(music|choir|concert|\bgig\b|open mic)\b/i },
-  { tag: "Fitness", pattern: /\b(fitness|gym|yoga|sport|running|\brun\b|\bwalk\b|hiking|football)\b/i },
-  { tag: "Learning", pattern: /\b(learning|workshop|lecture|masterclass|(?<!of\s)course)\b/i },
-  { tag: "Creative", pattern: /\b(creative|\bart\b|craft|poetry|theatre|theater)\b/i }
+  { tag: "Family-Friendly", pattern: /\b(all ages|family[- ]friendly|family event|families welcome|children welcome|kids welcome|for children|for kids|parents and children|breakfast with santa|santa's grotto|christmas grotto)\b/i },
+  { tag: "Networking", pattern: /\b(networking|professional network|founders meetup|startup|start-up|coworking|business connections)\b/i },
+  { tag: "Music", pattern: /\b(music|choir|concert|\bgig\b|open mic|recital|live singer|live music|band|dj|carols?|electro pop|dance anthems)\b/i },
+  { tag: "Fitness", pattern: /\b(fitness|gym|yoga|sport|running|\brun\b|\bwalk\b|hiking|football|futsal|training session)\b/i },
+  { tag: "Learning", pattern: /\b(learning|learn|workshop|lecture|masterclass|course|taster (?:session|lesson)|skills fest|training|study|teach(?:er|ing)?|webinar|tutorial|educational|practice english|advocacy)\b/i },
+  { tag: "Creative", pattern: /\b(creative|\bart\b|craft|poetry|theatre|theater|murder mystery|exhibition|photography|creative writing)\b/i }
 ];
 
-/**
- * Stickers from the title and organisation already in hand.
- * Meetup is the only sticker that comes from the website name.
- * No extra page is opened.
- */
+/** Infer topic stickers from event content; use organiser and source only for host/provenance labels. */
 export function inferTags(input: {
   host?: string | null;
   externalUrl?: string | null;
@@ -91,18 +120,50 @@ export function inferTags(input: {
   notes?: string | null;
   online: boolean;
 }): Tag[] {
-  const hay = `${input.title} ${input.organisationName}`;
-  const priceHay = `${hay} ${input.notes ?? ""}`;
+  const title = tagEvidence(input.title);
+  const content = tagEvidence(input.notes);
+  const eventText = `${title} ${content}`;
+  const organisation = tagEvidence(input.organisationName);
   const tags: Tag[] = [];
-  for (const rule of TAG_RULES) {
-    if (rule.pattern.test(hay)) tags.push(rule.tag);
+  for (const rule of TOPIC_RULES) {
+    if (rule.pattern.test(eventText)) tags.push(rule.tag);
   }
+
+  const universityHost = /\b(universit(?:y|ies)|guild of students|guildofstudents|students?['’]? union|students?union|student society|student[- ]led|hosted by students)\b/i;
+  const localUniversitySociety = /\b(?:uob|bcu)\b.{0,60}\b(?:society|student|guild|union)\b/i;
+  if (
+    universityHost.test(organisation) ||
+    universityHost.test(title) ||
+    universityHost.test(hostOf(input.externalUrl)) ||
+    localUniversitySociety.test(organisation) ||
+    localUniversitySociety.test(title) ||
+    /\b(?:hosted|organised|organized|presented) by [^.\n]{0,100}\buniversit(?:y|ies)\b/i.test(content)
+  ) {
+    tags.push("University");
+  }
+
+  const churchHosted = /\b(church|cathedral|chapel|parish)\b/i.test(organisation);
+  const churchNamedInEvent = /\b(church|cathedral|chapel|parish)\b/i.test(title);
+  const churchActivity = /\b(service|prayer|worship|communion|mass|evensong|carols?|fayre|fellowship|bible study|eucharist|sermon|liturgy)\b/i.test(eventText);
+  const clearlyChurchWorship = /\b(eucharist|holy communion|evensong|morning prayer|sung service|church service|sermon|liturgy)\b/i.test(eventText);
+  if (((churchNamedInEvent || churchHosted) && churchActivity) || clearlyChurchWorship || (tags.includes("Christian") && /\b(worship|prayer|carols?)\b/i.test(eventText))) {
+    tags.push("Church");
+  }
+  if ((((churchNamedInEvent || churchHosted) && churchActivity) || clearlyChurchWorship) && !tags.includes("Spirituality")) {
+    tags.push("Spirituality");
+  }
+
+  if (/\b(protest|campaign|solidarity|reclaim the night|march against|awareness walk)\b/i.test(eventText)) {
+    const fitnessIndex = tags.indexOf("Fitness");
+    if (fitnessIndex >= 0) tags.splice(fitnessIndex, 1);
+  }
+  if (/\b(v|vs|versus)\b/i.test(title) && /\b(league|premier league|stadium|park)\b/i.test(eventText)) {
+    const fitnessIndex = tags.indexOf("Fitness");
+    if (fitnessIndex >= 0) tags.splice(fitnessIndex, 1);
+  }
+
   if (isMeetupSite(input.host) || isMeetupSite(input.externalUrl)) tags.push("Meetup");
-  const saysFree = /\bfree\b/i.test(priceHay);
-  const saysFee = /[£$]\s?\d|\bfee\b|\bpaid\b|\btickets?\b/i.test(priceHay);
-  if (saysFree && !saysFee) tags.push("Free");
-  if (saysFee && !saysFree) tags.push("Fee");
-  return withAttendance(tags, input.online);
+  return withAttendance(withCostDefault(tags, `${title}\n${content}`), input.online);
 }
 
 /**

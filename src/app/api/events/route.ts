@@ -4,7 +4,7 @@ import { originAllowed, rejectOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/db";
 import { fromDatetimeLocalValue } from "@/lib/time";
 import { CATEGORIES, type Category } from "@/lib/constants";
-import { encodeTags, parseTagsParam, withAttendance } from "@/lib/tags";
+import { encodeTags, parseTagsParam, withAttendance, withCostDefault } from "@/lib/tags";
 import { createWeeklySeries } from "@/lib/series";
 import { writeAudit } from "@/lib/audit";
 import { eventInputProblem } from "@/lib/security";
@@ -14,7 +14,10 @@ function parseEvent(body: Record<string, unknown>) {
   if (!CATEGORIES.includes(category as Category)) throw new Error("Choose a valid event type.");
   const online = body.online === true || body.online === "on";
   const rawTags = Array.isArray(body.tags) ? body.tags.map(String) : String(body.tags ?? "").split(",");
-  const tags = encodeTags(withAttendance(parseTagsParam(rawTags.join(",")), online));
+  const selectedTags = parseTagsParam(rawTags.join(","));
+  const tags = encodeTags(
+    withAttendance(withCostDefault(selectedTags, `${String(body.title ?? "")}\n${String(body.notes ?? "")}`), online)
+  );
   const startsAt = fromDatetimeLocalValue(String(body.startsAt));
   const endsAt = fromDatetimeLocalValue(String(body.endsAt));
   const capacityRaw = String(body.capacity ?? "").trim();
