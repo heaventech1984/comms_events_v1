@@ -23,6 +23,18 @@ function minuteOfDay(date: Date): number {
   return parts.hour * 60 + parts.minute;
 }
 
+/** Return today's London clock minute only when it falls inside the visible calendar band. */
+export function currentTimeMinute(
+  now: Date,
+  day: DayKey,
+  startMinute: number,
+  endMinute: number
+): number | null {
+  if (!sameDayKey(dayKeyOf(now), day)) return null;
+  const minute = minuteOfDay(now);
+  return minute >= startMinute && minute <= endMinute ? minute : null;
+}
+
 function endMinuteOnStartDay(event: CalendarTimedEvent): number {
   const start = dayKeyOf(event.startsAt);
   const end = dayKeyOf(event.endsAt);

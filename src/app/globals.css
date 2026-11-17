@@ -886,6 +886,37 @@ textarea.scraper-priority-urls {
 .week-time-slot[data-testid] {
   cursor: cell;
 }
+.week-time-now {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid var(--accent);
+  pointer-events: none;
+}
+.week-time-now::before {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  left: -4px;
+  top: -5px;
+}
+.week-time-now span {
+  position: absolute;
+  right: 0.25rem;
+  top: -1.25rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .week-time-event {
   position: absolute;
   z-index: 1;

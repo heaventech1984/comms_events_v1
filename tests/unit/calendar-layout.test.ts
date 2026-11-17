@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventOverlapsTimeBand, layoutCalendarDay } from "@/lib/calendar-layout";
+import { currentTimeMinute, eventOverlapsTimeBand, layoutCalendarDay } from "@/lib/calendar-layout";
 
 const day = { year: 2026, month: 11, day: 17 };
 function event(id: string, start: string, end: string) {
@@ -7,6 +7,11 @@ function event(id: string, start: string, end: string) {
 }
 
 describe("calendar event time-band layout", () => {
+  it("places the current-time marker only on today and inside the visible band", () => {
+    expect(currentTimeMinute(new Date("2026-11-17T18:30:00Z"), day, 8 * 60, 23 * 60)).toBe(18 * 60 + 30);
+    expect(currentTimeMinute(new Date("2026-11-17T07:30:00Z"), day, 8 * 60, 23 * 60)).toBeNull();
+    expect(currentTimeMinute(new Date("2026-11-18T18:30:00Z"), day, 8 * 60, 23 * 60)).toBeNull();
+  });
   it("gives an isolated event full width even if later events overlap", () => {
     const placed = layoutCalendarDay([
       event("morning", "2026-11-17T10:00:00Z", "2026-11-17T11:00:00Z"),

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { categoryAccentStyle } from "@/lib/category-art";
 import {
   dayKeyOf,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/calendar";
 import { formatWhereLine } from "@/lib/place";
 import { formatTime } from "@/lib/time";
-import { layoutCalendarDay } from "@/lib/calendar-layout";
+import { currentTimeMinute, layoutCalendarDay } from "@/lib/calendar-layout";
 import { CategoryThumb } from "@/components/CategoryThumb";
 
 /** Dense Apple-like rows — readable blocks without towering empty hours. */
@@ -61,6 +62,13 @@ export function WeekTimeGrid({
   endMinute: number;
 }) {
   const router = useRouter();
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    const update = () => setNow(new Date());
+    update();
+    const timer = window.setInterval(update, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const weekdayShort = new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
     timeZone: "Europe/London"
@@ -121,12 +129,21 @@ export function WeekTimeGrid({
               layoutCalendarDay(dayEvents, day, startMinute, endMinute).map((placement) => [placement.id, placement])
             );
             const isToday = sameDayKey(day, today);
+            const nowMinute = now ? currentTimeMinute(now, day, startMinute, endMinute) : null;
             return (
               <div
                 key={formatDayKey(day)}
                 className="week-time-col"
                 data-today={isToday ? "true" : undefined}
               >
+                {nowMinute !== null ? (
+                  <div
+                    className="week-time-now"
+                    aria-label={`Current time ${formatTime(now!)}`}
+                    data-testid={`week-time-now-${formatDayKey(day)}`}
+                    style={{ top: ((nowMinute - startMinute) / 60) * PX_PER_HOUR }}
+                  ><span>{formatTime(now!)}</span></div>
+                ) : null}
                 {Array.from(
                   { length: Math.ceil(endMinute / 60) - Math.floor(startMinute / 60) },
                   (_, i) => Math.floor(startMinute / 60) + i

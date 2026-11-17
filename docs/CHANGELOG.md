@@ -17,6 +17,13 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-17 — Paste event details and show current time
+
+- When a public event page cannot be read, admins and cell leaders can paste its copied content. Gather extracts a draft for review without fetching the blocked page or storing the pasted source text.
+- Day and Week calendar grids show a live London-time line in today’s column while it is within the visible time band.
+
+---
+
 ## 2026-11-17 — Add events from a page and show category art on calendar events
 
 - Admins and cell leaders can import public HTTPS event pages through the existing scraper parsers, choose an extracted event, review and edit the prefilled details, and save it. Imports are bounded, DNS-pinned, robots-aware and restricted to public HTTPS destinations; likely duplicates are flagged. Robots denials, robots fetch failures and Cloudflare challenges now have distinct messages. The robots parser honors more-specific Allow rules, such as a site's permitted iCal path. DNS pinning handles Node's address-family lookup mode. Successful imports are recorded for admins. Admins can add an already allowlisted page as a recurring feed or request review before a new host can be allowlisted.
