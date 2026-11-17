@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { EventForm } from "@/components/EventForm";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { parseDayKey } from "@/lib/calendar";
+import { calendarBackHref, parseDayKey } from "@/lib/calendar";
 import { londonDate, toDatetimeLocalValue } from "@/lib/time";
 
 function parseTimeParam(value: string | undefined): { hour: number; minute: number } | null {
@@ -19,12 +19,13 @@ function parseTimeParam(value: string | undefined): { hour: number; minute: numb
 export default async function NewEventPage({
   searchParams
 }: {
-  searchParams: Promise<{ d?: string; t?: string }>
+  searchParams: Promise<{ d?: string; t?: string; from?: string }>
 }) {
   await requireUser(["admin", "cell leader"]);
   const orgs = await prisma.organisation.findMany({ orderBy: { name: "asc" } });
   const settings = await getSettings();
   const params = await searchParams;
+  const backHref = calendarBackHref(params.from);
   const day = parseDayKey(params.d);
   const time = parseTimeParam(params.t);
   const hour = time?.hour ?? 9;
@@ -37,7 +38,7 @@ export default async function NewEventPage({
   return (
     <main>
       <p className="row" style={{ marginBottom: "0.75rem" }}>
-        <Link className="button ghost" href="/calendar">
+        <Link className="button ghost" href={backHref}>
           ← Back to calendar
         </Link>
       </p>
@@ -50,6 +51,7 @@ export default async function NewEventPage({
         colours={settings.colours}
         defaultStartsAt={start ? toDatetimeLocalValue(start) : undefined}
         defaultEndsAt={end ? toDatetimeLocalValue(end) : undefined}
+        backHref={backHref}
       />
     </main>
   );

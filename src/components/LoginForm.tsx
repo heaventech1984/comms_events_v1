@@ -69,7 +69,7 @@ function LoginFields({
     } finally {
       setPending(false);
     }
-    router.push(safeNextPath(params.get("next")));
+    router.push(safeNextPath(params.get("next"), "/calendar?view=day"));
     router.refresh();
   }
 

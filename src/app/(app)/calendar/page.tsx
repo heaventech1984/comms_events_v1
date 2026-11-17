@@ -5,7 +5,7 @@ import { requireUser, canReview } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { CATEGORIES } from "@/lib/constants";
-import { calendarHref, dayKeyOf, eventFromCalendarHref, parseCalendarParams, rangeFor, type CalendarParams } from "@/lib/calendar";
+import { calendarHref, dayKeyOf, eventFromCalendarHref, newEventFromCalendarHref, parseCalendarParams, rangeFor, type CalendarParams } from "@/lib/calendar";
 import { tagsWhere } from "@/lib/tags";
 import { CalendarMapSection } from "@/components/calendar/CalendarMapSection";
 import { CalendarFilterMemory } from "@/components/calendar/CalendarFilterMemory";
@@ -81,7 +81,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             </div>
           </div>
           {canReview(user) ? (
-            <Link className="button calendar-add" href="/events/new">
+            <Link className="button calendar-add" href={newEventFromCalendarHref(returnTo)}>
               Add event
             </Link>
           ) : null}

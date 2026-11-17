@@ -6,6 +6,7 @@ import {
   eventFromCalendarHref,
   formatDayKey,
   formatDayLabel,
+  newEventFromCalendarHref,
   sameDayKey,
   type CalendarView,
   type DayKey
@@ -62,7 +63,7 @@ export function DatedList({
               {formatDayLabel(day)}
               {sameDayKey(day, today) ? <span className="today-tag">Today</span> : null}
               {canAdd ? (
-                <Link className="day-add heading-add" href={`/events/new?d=${formatDayKey(day)}`}>
+                <Link className="day-add heading-add" href={newEventFromCalendarHref(returnTo, day)}>
                   Add
                 </Link>
               ) : null}

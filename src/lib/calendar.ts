@@ -143,7 +143,7 @@ export function parseCalendarParams(
   const view: CalendarView =
     params.view === "month" || params.view === "day" || params.view === "week" || params.view === "list"
       ? params.view
-      : "week";
+      : "day";
   let categories = parseTypesParam(params.types);
   if (!categories.length && CATEGORIES.includes(params.category as Category)) {
     categories = [params.category as Category];
@@ -221,6 +221,30 @@ export function calendarHref(state: CalendarState, overrides: CalendarOverrides 
 /** Event opened from the calendar. `from` is the calendar address to return to. */
 export function eventFromCalendarHref(eventId: string, calendarPath: string): string {
   return `/events/${eventId}?from=${encodeURIComponent(calendarPath)}`;
+}
+
+/** New-event link that keeps both the selected date/time and the full calendar return address. */
+export function newEventFromCalendarHref(
+  calendarPath: string,
+  day?: DayKey,
+  time?: string
+): string {
+  const params = new URLSearchParams();
+  if (day) params.set("d", formatDayKey(day));
+  if (time) params.set("t", time);
+  params.set("from", calendarBackHref(calendarPath));
+  return `/events/new?${params.toString()}`;
+}
+
+/** Edit link that retains the calendar return address and optional series scope. */
+export function eventEditFromCalendarHref(
+  eventId: string,
+  calendarPath: string,
+  scope?: "this" | "future"
+): string {
+  const params = new URLSearchParams({ from: calendarBackHref(calendarPath) });
+  if (scope) params.set("scope", scope);
+  return `/events/${eventId}/edit?${params.toString()}`;
 }
 
 /**

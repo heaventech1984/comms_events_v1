@@ -6,6 +6,7 @@ import { EventForm } from "@/components/EventForm";
 import { getSettings } from "@/lib/settings";
 import { pendingBackHref } from "@/lib/pending-filters";
 import { toDatetimeLocalValue } from "@/lib/time";
+import { calendarBackHref } from "@/lib/calendar";
 
 export default async function EditEventPage({
   params,
@@ -38,7 +39,7 @@ export default async function EditEventPage({
       <EventForm
         organisations={orgs}
         colours={settings.colours}
-        backHref={event.status === "PENDING" ? backHref : undefined}
+        backHref={event.status === "PENDING" ? backHref : calendarBackHref(from)}
         event={{
           id: event.id,
           title: event.title,

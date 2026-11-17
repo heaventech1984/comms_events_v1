@@ -8,6 +8,7 @@ import {
   eventFromCalendarHref,
   formatDayKey,
   formatDayLabel,
+  newEventFromCalendarHref,
   sameDayKey,
   type DayKey
 } from "@/lib/calendar";
@@ -32,9 +33,9 @@ function clockLabel(minute: number): string {
   return `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 }
 
-function slotHref(day: DayKey, minute: number): string {
+function slotHref(day: DayKey, minute: number, returnTo: string): string {
   const t = clockLabel(minute);
-  return `/events/new?d=${formatDayKey(day)}&t=${encodeURIComponent(t)}`;
+  return newEventFromCalendarHref(returnTo, day, t);
 }
 
 export function WeekTimeGrid({
@@ -81,7 +82,7 @@ export function WeekTimeGrid({
               <span className="week-time-weekday">{weekdayShort.format(noon)}</span>
               <span className="week-time-daynum">{day.day}</span>
               {canAdd ? (
-                <Link className="day-add week-time-add" href={`/events/new?d=${formatDayKey(day)}`} aria-label={`Add event on ${formatDayLabel(day)}`}>
+                <Link className="day-add week-time-add" href={newEventFromCalendarHref(returnTo, day)} aria-label={`Add event on ${formatDayLabel(day)}`}>
                   Add
                 </Link>
               ) : null}
@@ -138,7 +139,7 @@ export function WeekTimeGrid({
                       className="week-time-slot"
                       style={{ height }}
                       data-testid={canAdd ? `week-slot-${formatDayKey(day)}-${hour}` : undefined}
-                      onDoubleClick={canAdd ? () => router.push(slotHref(day, slotStart)) : undefined}
+                      onDoubleClick={canAdd ? () => router.push(slotHref(day, slotStart, returnTo)) : undefined}
                       title={canAdd ? "Double-click to add an event" : undefined}
                     />
                   );

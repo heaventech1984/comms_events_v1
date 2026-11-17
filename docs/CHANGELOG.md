@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Edit one event or its series* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Return to the same calendar place* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -14,6 +14,12 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIEW.md). Sign-off stays blank in [`FUNCTIONAL.md`](FUNCTIONAL.md) until An, Becca and Guillaume choose to sign.
 
 Style later: [Keep a Changelog](https://keepachangelog.com/).
+
+---
+
+## 2026-11-17 — Return to the same calendar place
+
+- Adding or editing an event keeps the calendar view and selected day for the return link, including after saving. A bare calendar visit and sign-in with no requested destination open Day.
 
 ---
 

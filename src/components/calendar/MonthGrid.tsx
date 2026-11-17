@@ -4,6 +4,7 @@ import {
   dayKeyOf,
   formatDayKey,
   formatDayLabel,
+  newEventFromCalendarHref,
   sameDayKey,
   type CalendarState,
   type DayKey
@@ -78,7 +79,7 @@ export function MonthGrid({
                       </span>
                     ) : null}
                     {canAdd ? (
-                      <Link className="day-add" href={`/events/new?d=${formatDayKey(day)}`} aria-label={`Add event on ${formatDayLabel(day)}`}>
+                      <Link className="day-add" href={newEventFromCalendarHref(calendarHref(state, { anchor: day }), day)} aria-label={`Add event on ${formatDayLabel(day)}`}>
                         Add
                       </Link>
                     ) : null}

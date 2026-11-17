@@ -8,7 +8,9 @@ import {
   DEFAULT_CALENDAR_START_MINUTE,
   dayKeyOf,
   eventFromCalendarHref,
+  eventEditFromCalendarHref,
   formatDayKey,
+  newEventFromCalendarHref,
   parseCalendarParams,
   parseDayKey,
   parseTypesParam,
@@ -25,9 +27,9 @@ import {
 const today = { year: 2026, month: 10, day: 17 };
 
 describe("parseCalendarParams", () => {
-  it("defaults to week view on today", () => {
+  it("defaults to day view on today", () => {
     expect(parseCalendarParams({}, today)).toEqual({
-      view: "week", categories: [], tags: [], anchor: today,
+      view: "day", categories: [], tags: [], anchor: today,
       startMinute: DEFAULT_CALENDAR_START_MINUTE, endMinute: DEFAULT_CALENDAR_END_MINUTE
     });
   });
@@ -56,7 +58,7 @@ describe("parseCalendarParams", () => {
 
   it("ignores unknown view, category and format", () => {
     const state = parseCalendarParams({ view: "year", category: "Party", format: "hybrid" }, today);
-    expect(state.view).toBe("week");
+    expect(state.view).toBe("day");
     expect(state.categories).toEqual([]);
     expect(state.tags).toEqual([]);
   });
@@ -151,6 +153,19 @@ describe("calendarHref — regression: 'All types' kept the selected type", () =
     expect(calendarBackHref("https://example.com")).toBe("/calendar");
     expect(calendarBackHref("/members")).toBe("/calendar");
     expect(calendarBackHref(undefined)).toBe("/calendar");
+  });
+
+  it("keeps calendar context on add and edit links", () => {
+    const back = "/calendar?view=month&d=2026-10-17&fromMin=480&toMin=1380";
+    const addHref = newEventFromCalendarHref(back, today, "19:00");
+    const addParams = new URL(`https://gather.test${addHref}`).searchParams;
+    expect(addParams.get("d")).toBe("2026-10-17");
+    expect(addParams.get("t")).toBe("19:00");
+    expect(addParams.get("from")).toBe(back);
+    const editHref = eventEditFromCalendarHref("evt-1", back, "future");
+    const editParams = new URL(`https://gather.test${editHref}`).searchParams;
+    expect(editParams.get("from")).toBe(back);
+    expect(editParams.get("scope")).toBe("future");
   });
 
   it("switching view keeps filters and date", () => {

@@ -24,6 +24,10 @@ describe("safeNextPath — regression: login next= could send a member off-site"
   ])("maps %j to %s", (input, expected) => {
     expect(safeNextPath(input)).toBe(expected);
   });
+
+  it("uses the Day calendar when there is no requested destination", () => {
+    expect(safeNextPath(null, "/calendar?view=day")).toBe("/calendar?view=day");
+  });
 });
 
 describe("pathAndSearch — middleware bounce keeps the query", () => {

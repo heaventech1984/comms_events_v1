@@ -109,6 +109,7 @@ export default async function EventPage({
           eventId={event.id}
           seriesId={event.seriesId}
           eventStatus={event.status}
+          returnTo={backHref}
           booked={!!myBooking}
           full={full && !myBooking}
           starred={starred}

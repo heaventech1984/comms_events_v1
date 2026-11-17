@@ -6,11 +6,13 @@ import Link from "next/link";
 import { StatusBanner } from "./StatusBanner";
 import { useConfirm } from "./ConfirmDialog";
 import { requestJson } from "@/lib/fetch-json";
+import { eventEditFromCalendarHref } from "@/lib/calendar";
 
 export function EventActions({
   eventId,
   seriesId,
   eventStatus,
+  returnTo,
   booked,
   full,
   starred,
@@ -24,6 +26,7 @@ export function EventActions({
   eventId: string;
   seriesId?: string | null;
   eventStatus?: string;
+  returnTo: string;
   booked: boolean;
   full: boolean;
   starred: boolean;
@@ -140,15 +143,15 @@ export function EventActions({
         </button>
         {canEdit && seriesId && eventStatus !== "PENDING" ? (
           <>
-            <Link className="button ghost" href={`/events/${eventId}/edit?scope=this`}>
+            <Link className="button ghost" href={eventEditFromCalendarHref(eventId, returnTo, "this")}>
               Edit One Off
             </Link>
-            <Link className="button ghost" href={`/events/${eventId}/edit?scope=future`}>
+            <Link className="button ghost" href={eventEditFromCalendarHref(eventId, returnTo, "future")}>
               Edit Series
             </Link>
           </>
         ) : canEdit ? (
-          <Link className="button ghost" href={`/events/${eventId}/edit`}>
+          <Link className="button ghost" href={eventEditFromCalendarHref(eventId, returnTo)}>
             Edit
           </Link>
         ) : null}
