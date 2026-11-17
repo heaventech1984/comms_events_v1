@@ -5,6 +5,14 @@ import type { FetchLike } from "./live-adapter";
 import { validatePublicImportUrl } from "./allowlist";
 import { FETCH_BODY_MAX } from "./harvest";
 
+export function pinnedLookup(address: { address: string; family: number }) {
+  return (_hostname: string, options: unknown, callback: (...args: unknown[]) => void) => {
+    const all = typeof options === "object" && options !== null && "all" in options && options.all === true;
+    if (all) callback(null, [address]);
+    else callback(null, address.address, address.family);
+  };
+}
+
 function isPublicIp(address: string): boolean {
   if (isIP(address) === 4) {
     const [a, b] = address.split(".").map(Number);
@@ -39,7 +47,7 @@ export const fetchPublicPage: FetchLike = async (input, init) => {
         method: "GET",
         headers: init?.headers,
         servername: checked.url.hostname,
-        lookup: ((_hostname: string, _options: unknown, callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void) => callback(null, address.address, address.family)) as never,
+        lookup: pinnedLookup(address) as never,
         signal: init?.signal
       }, (res) => {
         const chunks: Buffer[] = [];

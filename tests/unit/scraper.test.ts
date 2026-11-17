@@ -24,6 +24,7 @@ import { stripHtml } from "@/lib/scraper/text";
 import { londonDate, londonParts } from "@/lib/time";
 import type { ScrapedEvent } from "@/lib/scraper/types";
 import { CATEGORIES, type Category } from "@/lib/constants";
+import { pinnedLookup } from "@/lib/scraper/public-fetch";
 
 describe("one-off page import URL policy", () => {
   it("allows public HTTPS pages outside the recurring allowlist", () => {
@@ -39,6 +40,17 @@ describe("one-off page import URL policy", () => {
     "https://example.org:8443/"
   ])("rejects unsafe URL %s", (url) => {
     expect(validatePublicImportUrl(url).ok).toBe(false);
+  });
+
+  it("returns the address shape Node requests when auto-selecting pinned DNS", () => {
+    const answers: unknown[][] = [];
+    const lookup = pinnedLookup({ address: "104.20.18.249", family: 4 });
+    lookup("gasstreet.churchsuite.com", { all: true }, (...args) => answers.push(args));
+    lookup("gasstreet.churchsuite.com", { all: false }, (...args) => answers.push(args));
+    expect(answers).toEqual([
+      [null, [{ address: "104.20.18.249", family: 4 }]],
+      [null, "104.20.18.249", 4]
+    ]);
   });
 });
 
