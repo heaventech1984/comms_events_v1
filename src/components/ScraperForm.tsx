@@ -147,6 +147,43 @@ export function ScraperForm({
     router.refresh();
   }
 
+  async function searchEventbriteNow(form: HTMLFormElement) {
+    if (running) return;
+    setRunning(true);
+    setKind("info");
+    setRunSummary(null);
+    setMessage("Saving settings, then searching Eventbrite pages…");
+    const saved = await requestJson<{ dropped?: { url: string; reason: string }[] }>("/api/settings", {
+      method: "POST",
+      body: settingsBody(new FormData(form))
+    });
+    if (!saved.ok) {
+      setRunning(false);
+      show(saved, "");
+      return;
+    }
+    const result = await requestJson<{
+      createdCount?: number;
+      updatedCount?: number;
+      leftPending?: number;
+      sources?: { url: string; label?: string; ok: boolean; eventCount: number; error?: string }[];
+    }>("/api/scraper/eventbrite-search", { method: "POST" });
+    setRunning(false);
+    if (!result.ok) {
+      show(result, "");
+      return;
+    }
+    const pages = result.data.sources?.filter((source) => source.label?.includes("page ")).length ?? 0;
+    const searchErrors = result.data.sources?.filter((source) => !source.ok).map((source) => source.error).filter(Boolean) ?? [];
+    setKind(searchErrors.length ? "error" : "info");
+    setMessage(
+      searchErrors.length
+        ? `Eventbrite search finished with an issue: ${searchErrors[0]}`
+        : `Eventbrite search finished: ${result.data.createdCount ?? 0} new, ${result.data.updatedCount ?? 0} refreshed; ${result.data.leftPending ?? 0} pending. Searched ${pages} page${pages === 1 ? "" : "s"}.`
+    );
+    router.refresh();
+  }
+
   async function filterOut(form: HTMLFormElement) {
     if (running) return;
     const confirmed = window.confirm(
@@ -310,7 +347,7 @@ export function ScraperForm({
               checked={eventbriteConfig.enabled}
               onChange={(event) => setEventbriteConfig({ ...eventbriteConfig, enabled: event.target.checked })}
             />
-            Enable scheduled Eventbrite search
+            Enable Eventbrite search
           </label>
           <div className="row" role="group" aria-label="Eventbrite search run days">
             {EVENTBRITE_SEARCH_DAYS.map((day) => (
@@ -369,6 +406,25 @@ export function ScraperForm({
             Formed Brave query preview
             <textarea rows={2} readOnly value={formedQuery} data-testid="eventbrite-query-preview" />
           </label>
+          <button
+            className="secondary"
+            type="button"
+            data-testid="eventbrite-search-now"
+            onClick={(event) => {
+              const form = event.currentTarget.form;
+              if (form) void searchEventbriteNow(form);
+            }}
+            disabled={running || !eventbriteConfig.enabled}
+          >
+            {running ? "Searching…" : "Search Eventbrite now"}
+          </button>
+          <p className="muted">
+            Runs only this search immediately, regardless of the selected weekdays or the full scraper’s manual-run
+            option. The search must be enabled above.
+          </p>
+          {!eventbriteConfig.enabled ? (
+            <p className="muted">Enable Eventbrite search above to run a manual search.</p>
+          ) : null}
         </fieldset>
         <div className="row">
           <button type="submit" disabled={running}>

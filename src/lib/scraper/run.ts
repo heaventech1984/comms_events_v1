@@ -33,7 +33,9 @@ function nameKey(name: string) {
 export async function runScraper(opts: {
   trigger: "MANUAL" | "SCHEDULED";
   actorId?: string | null;
+  eventbriteOnly?: boolean;
 }) {
+  const eventbriteOnly = opts.eventbriteOnly === true;
   await claimScrapeLock();
   let runId: string | null = null;
   const counts = {
@@ -56,9 +58,9 @@ export async function runScraper(opts: {
     runId = run.id;
     const settings = await prisma.settings.findUnique({ where: { id: "default" } });
     const radiusMiles = parseScrapeRadiusMiles(settings?.scrapeRadiusMiles);
-    const urls = (await persistCleanPriorityUrls(opts.actorId)).urls.filter((url) =>
-      urlWithinRadius(url, radiusMiles)
-    );
+    const urls = eventbriteOnly
+      ? []
+      : (await persistCleanPriorityUrls(opts.actorId)).urls.filter((url) => urlWithinRadius(url, radiusMiles));
     await prisma.scraperRun.update({
       where: { id: runId },
       data: { priorityUrlsSnapshot: JSON.stringify(urls) }
@@ -73,9 +75,13 @@ export async function runScraper(opts: {
       CATEGORIES.forEach((c) => enabled.add(c));
     }
 
-    const live = await fetchLiveEvents(urls, { radiusMiles });
+    const live = eventbriteOnly
+      ? { events: [], sources: [] as SourceResult[], droppedGeo: 0 }
+      : await fetchLiveEvents(urls, { radiusMiles });
     const eventbriteConfig = parseEventbriteSearchConfig(settings?.eventbriteSearchConfig);
-    const searchEventbrite = shouldRunEventbriteSearch(eventbriteConfig, opts.trigger);
+    const searchEventbrite = eventbriteOnly
+      ? eventbriteConfig.enabled
+      : shouldRunEventbriteSearch(eventbriteConfig, opts.trigger);
     const eventbriteDiscovery = process.env.SCRAPE_LIVE === "0" || !searchEventbrite
       ? { urls: [], sources: [] as SourceResult[] }
       : await discoverEventbriteUrls(undefined, fetch, eventbriteConfig);
@@ -86,9 +92,13 @@ export async function runScraper(opts: {
     const eventbriteEvents = forceEventbritePending(upcomingEventbriteEvents(eventbriteLive.events));
     sources = [...live.sources, ...eventbriteDiscovery.sources, ...eventbriteLive.sources];
     const droppedGeo = live.droppedGeo + eventbriteLive.droppedGeo;
-    const harvest = selectHarvestEvents([...live.events, ...eventbriteEvents], fixtureEvents(), enabled);
+    const harvest = selectHarvestEvents(
+      [...live.events, ...eventbriteEvents],
+      eventbriteOnly ? [] : fixtureEvents(),
+      enabled
+    );
     let events = harvest.events;
-    if (process.env.SCRAPE_LIVE !== "0") {
+    if (!eventbriteOnly && process.env.SCRAPE_LIVE !== "0") {
       const budget = { left: DETAIL_TIME_CAP };
       const pauseMs = Number(process.env.SCRAPE_PAUSE_MS ?? "1500") || 1500;
       const missedUrls = loadClockMisses();
@@ -203,7 +213,7 @@ export async function runScraper(opts: {
       counts.createdCount += 1;
     }
 
-    await dropEndedStars();
+    if (!eventbriteOnly) await dropEndedStars();
     await prisma.scraperRun.update({
       where: { id: runId },
       data: {
@@ -221,7 +231,7 @@ export async function runScraper(opts: {
       action: "scraper.run",
       entityType: "ScraperRun",
       entityId: runId,
-      summary: `${opts.trigger} scraper created ${counts.createdCount}, updated ${counts.updatedCount}, skipped ${counts.skippedHumanEdited} human-edited`
+      summary: `${opts.eventbriteOnly ? "MANUAL Eventbrite-only" : opts.trigger} scraper created ${counts.createdCount}, updated ${counts.updatedCount}, skipped ${counts.skippedHumanEdited} human-edited`
     });
     return {
       id: runId,
