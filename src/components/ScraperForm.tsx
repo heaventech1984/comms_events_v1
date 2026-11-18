@@ -10,6 +10,12 @@ import {
   type RunFinishedSummary
 } from "@/lib/scraper/priority-copy";
 import { requestJson, type JsonResult } from "@/lib/fetch-json";
+import {
+  buildEventbriteSearchQuery,
+  EVENTBRITE_SEARCH_DAYS,
+  parseEventbriteSearchConfig,
+  type EventbriteSearchConfig
+} from "@/lib/scraper/eventbrite-settings";
 import { StatusBanner } from "./StatusBanner";
 
 type Settings = {
@@ -19,6 +25,7 @@ type Settings = {
   enabled: Record<Category, boolean>;
   colours: Record<string, string>;
   priorityUrls: string[];
+  eventbriteSearchConfig: EventbriteSearchConfig;
 };
 
 export function ScraperForm({
@@ -40,6 +47,15 @@ export function ScraperForm({
   const [running, setRunning] = useState(false);
   const [runSummary, setRunSummary] = useState<RunFinishedSummary | null>(null);
   const [orgFilter, setOrgFilter] = useState<"ALL" | "WHITELIST" | "STANDARD" | "BLACKLIST">("ALL");
+  const [eventbriteConfig, setEventbriteConfig] = useState(settings.eventbriteSearchConfig);
+  const [searchTerms, setSearchTerms] = useState(settings.eventbriteSearchConfig.terms.join(", "));
+  const formedQuery = buildEventbriteSearchQuery(
+    parseEventbriteSearchConfig({
+      ...eventbriteConfig,
+      terms: searchTerms.split(",").map((term) => term.trim()).filter(Boolean)
+    }),
+    new Date()
+  );
   const visibleOrgs =
     orgFilter === "ALL" ? organisations : organisations.filter((o) => o.status === orgFilter);
 
@@ -63,7 +79,11 @@ export function ScraperForm({
       priorityUrls: priorityText
         .split("\n")
         .map((s) => s.trim())
-        .filter(Boolean)
+        .filter(Boolean),
+      eventbriteSearchConfig: {
+        ...eventbriteConfig,
+        terms: searchTerms.split(",").map((term) => term.trim()).filter(Boolean)
+      }
     };
   }
 
@@ -282,6 +302,74 @@ export function ScraperForm({
             refreshed place and Event Link when the feed provided them.
           </span>
         </label>
+        <fieldset className="stack" data-testid="eventbrite-search-settings">
+          <legend>Brave Eventbrite search</legend>
+          <label className="row">
+            <input
+              type="checkbox"
+              checked={eventbriteConfig.enabled}
+              onChange={(event) => setEventbriteConfig({ ...eventbriteConfig, enabled: event.target.checked })}
+            />
+            Enable scheduled Eventbrite search
+          </label>
+          <div className="row" role="group" aria-label="Eventbrite search run days">
+            {EVENTBRITE_SEARCH_DAYS.map((day) => (
+              <label key={day.value} className="row">
+                <input
+                  type="checkbox"
+                  checked={eventbriteConfig.runDays.includes(day.value)}
+                  onChange={(event) => setEventbriteConfig({
+                    ...eventbriteConfig,
+                    runDays: event.target.checked
+                      ? [...new Set([...eventbriteConfig.runDays, day.value])].sort()
+                      : eventbriteConfig.runDays.filter((value) => value !== day.value)
+                  })}
+                />
+                {day.label}
+              </label>
+            ))}
+          </div>
+          <label>
+            Pages per run (1–10, up to 20 results per page)
+            <input
+              type="number"
+              min={1}
+              max={10}
+              step={1}
+              value={eventbriteConfig.pages}
+              onChange={(event) => setEventbriteConfig({ ...eventbriteConfig, pages: Number(event.target.value) })}
+            />
+          </label>
+          <label>
+            Search location
+            <input
+              value={eventbriteConfig.location}
+              maxLength={80}
+              onChange={(event) => setEventbriteConfig({ ...eventbriteConfig, location: event.target.value })}
+            />
+          </label>
+          <label>
+            Search terms (comma separated; searched as alternatives)
+            <input value={searchTerms} onChange={(event) => setSearchTerms(event.target.value)} />
+          </label>
+          <label className="row">
+            <input
+              type="checkbox"
+              checked={eventbriteConfig.includeManual}
+              onChange={(event) => setEventbriteConfig({ ...eventbriteConfig, includeManual: event.target.checked })}
+            />
+            Include Brave search in manual Run now
+          </label>
+          <p className="muted">
+            The month and year target the London calendar month seven days after the run. Scheduled runs use the
+            selected weekdays. Search results are event-page candidates and still go through Gather’s existing page
+            checks and Pending review.
+          </p>
+          <label>
+            Formed Brave query preview
+            <textarea rows={2} readOnly value={formedQuery} data-testid="eventbrite-query-preview" />
+          </label>
+        </fieldset>
         <div className="row">
           <button type="submit" disabled={running}>
             Save settings

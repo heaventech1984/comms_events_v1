@@ -145,6 +145,7 @@ model Settings {
   categoryColours      String
   priorityUrls         String  @default("[]")
   scrapeRadiusMiles    Int     @default(10)
+  eventbriteSearchConfig String  @default("{}")
 }
 
 model ScraperRun {

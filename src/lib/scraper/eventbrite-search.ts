@@ -1,12 +1,17 @@
 import type { SourceResult } from "./live-adapter";
 import type { ScrapedEvent } from "./types";
+import {
+  buildEventbriteSearchQuery,
+  DEFAULT_EVENTBRITE_SEARCH_CONFIG,
+  type EventbriteSearchConfig
+} from "./eventbrite-settings";
 
 const BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search";
 const BRAVE_WEB_URL = "https://search.brave.com/search";
 const REQUEST_TIMEOUT_MS = 15_000;
 const RESPONSE_MAX = 1_000_000;
-const RESULTS_PER_QUERY = 20;
-export const EVENTBRITE_SEARCH_URL_CAP = 60;
+const RESULTS_PER_PAGE = 20;
+export const EVENTBRITE_SEARCH_URL_CAP = 200;
 
 /** New search-discovered events must be reviewed before any organisation whitelist can publish them. */
 export function forceEventbritePending(events: ScrapedEvent[]): ScrapedEvent[] {
@@ -18,16 +23,9 @@ export function upcomingEventbriteEvents(events: ScrapedEvent[], now = new Date(
   return events.filter((event) => event.endsAt.getTime() > now.getTime());
 }
 
-const SEARCHES = [
-  { key: "church", query: "site:eventbrite.co.uk Birmingham church Christian events" },
-  { key: "faith", query: "site:eventbrite.co.uk Birmingham prayer worship spirituality events" },
-  { key: "free", query: "site:eventbrite.co.uk Birmingham free events this week" },
-  { key: "music", query: "site:eventbrite.co.uk Birmingham music choir concert events" },
-  { key: "community", query: "site:eventbrite.co.uk Birmingham community family student events" }
-] as const;
-
 type SearchResponse = {
   web?: { results?: Array<{ url?: unknown }> };
+  query?: { more_results_available?: boolean | null };
 };
 
 type SearchFetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -65,12 +63,15 @@ export function canonicalEventbriteUrl(value: unknown): string | null {
 /** Use Brave only to discover direct event URLs; all page content is fetched by Gather's scraper. */
 export async function discoverEventbriteUrls(
   apiKey = process.env.BRAVE_SEARCH_API_KEY,
-  fetchFn: SearchFetch = fetch
+  fetchFn: SearchFetch = fetch,
+  config: EventbriteSearchConfig = DEFAULT_EVENTBRITE_SEARCH_CONFIG,
+  runAt = new Date()
 ): Promise<{ urls: string[]; sources: SourceResult[] }> {
+  const query = buildEventbriteSearchQuery(config, runAt);
   if (!apiKey?.trim()) {
     return {
       urls: [],
-      sources: [sourceResult("Eventbrite", "site:eventbrite.co.uk Birmingham", false, 0, "BRAVE_SEARCH_API_KEY is not configured.")]
+      sources: [sourceResult("Eventbrite", query, false, 0, "BRAVE_SEARCH_API_KEY is not configured.")]
     };
   }
 
@@ -78,13 +79,13 @@ export async function discoverEventbriteUrls(
   const seen = new Set<string>();
   const sources: SourceResult[] = [];
 
-  for (const search of SEARCHES) {
-    if (urls.length >= EVENTBRITE_SEARCH_URL_CAP) break;
+  for (let page = 0; page < config.pages && urls.length < EVENTBRITE_SEARCH_URL_CAP; page += 1) {
     const requestUrl = new URL(BRAVE_SEARCH_URL);
-    requestUrl.searchParams.set("q", search.query);
+    requestUrl.searchParams.set("q", query);
     requestUrl.searchParams.set("country", "GB");
     requestUrl.searchParams.set("search_lang", "en");
-    requestUrl.searchParams.set("count", String(RESULTS_PER_QUERY));
+    requestUrl.searchParams.set("count", String(RESULTS_PER_PAGE));
+    requestUrl.searchParams.set("offset", String(page));
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
@@ -94,20 +95,20 @@ export async function discoverEventbriteUrls(
         cache: "no-store"
       });
       if (!response.ok) {
-        sources.push(sourceResult(search.key, search.query, false, 0, `Search API returned HTTP ${response.status}.`));
-        continue;
+        sources.push(sourceResult(`Eventbrite · page ${page + 1}`, query, false, 0, `Search API returned HTTP ${response.status}.`));
+        break;
       }
       const body = await response.text();
       if (body.length > RESPONSE_MAX) {
-        sources.push(sourceResult(search.key, search.query, false, 0, "Search API response was too large."));
-        continue;
+        sources.push(sourceResult(`Eventbrite · page ${page + 1}`, query, false, 0, "Search API response was too large."));
+        break;
       }
       let payload: SearchResponse;
       try {
         payload = JSON.parse(body) as SearchResponse;
       } catch {
-        sources.push(sourceResult(search.key, search.query, false, 0, "Search API returned invalid JSON."));
-        continue;
+        sources.push(sourceResult(`Eventbrite · page ${page + 1}`, query, false, 0, "Search API returned invalid JSON."));
+        break;
       }
       let added = 0;
       for (const result of payload.web?.results ?? []) {
@@ -118,10 +119,12 @@ export async function discoverEventbriteUrls(
         added += 1;
         if (urls.length >= EVENTBRITE_SEARCH_URL_CAP) break;
       }
-      sources.push(sourceResult(search.key, search.query, true, added));
+      sources.push(sourceResult(`Eventbrite · page ${page + 1}`, query, true, added));
+      if (payload.query?.more_results_available !== true) break;
     } catch (error) {
       const timedOut = error instanceof Error && error.name === "AbortError";
-      sources.push(sourceResult(search.key, search.query, false, 0, timedOut ? "Search request timed out." : "Could not reach the search API."));
+      sources.push(sourceResult(`Eventbrite · page ${page + 1}`, query, false, 0, timedOut ? "Search request timed out." : "Could not reach the search API."));
+      break;
     } finally {
       clearTimeout(timer);
     }

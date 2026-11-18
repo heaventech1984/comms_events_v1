@@ -3,6 +3,7 @@ import { writeAudit } from "./audit";
 import { CATEGORIES, DEFAULT_COLOURS, parseMemberAttendeeView, type Category } from "./constants";
 import { parsePriorityUrls } from "./scraper/allowlist";
 import { parseScrapeRadiusMiles } from "./scraper/geo";
+import { parseEventbriteSearchConfig } from "./scraper/eventbrite-settings";
 import {
   extrasOnlyPriorityUrls,
   frozenDiscoveryUrls,
@@ -94,7 +95,8 @@ export async function getSettings() {
     colours: { ...DEFAULT_COLOURS, ...colours },
     enabled,
     // Form shows gap-fillers only — the pack is always added at Run.
-    priorityUrls: extrasOnlyPriorityUrls(partitioned.urls)
+    priorityUrls: extrasOnlyPriorityUrls(partitioned.urls),
+    eventbriteSearchConfig: parseEventbriteSearchConfig(row?.eventbriteSearchConfig)
   };
 }
 

@@ -21,6 +21,7 @@ import {
 import { parseScrapeRadiusMiles, urlWithinRadius } from "./geo";
 import { fetchLiveEvents, type SourceResult } from "./live-adapter";
 import { discoverEventbriteUrls, forceEventbritePending, upcomingEventbriteEvents } from "./eventbrite-search";
+import { parseEventbriteSearchConfig, shouldRunEventbriteSearch } from "./eventbrite-settings";
 import { claimScrapeLock, releaseScrapeLock } from "./lock";
 import { clip, stripHtml } from "./text";
 import { encodeTags, inferTags, withAttendance, withCostDefault } from "../tags";
@@ -73,9 +74,11 @@ export async function runScraper(opts: {
     }
 
     const live = await fetchLiveEvents(urls, { radiusMiles });
-    const eventbriteDiscovery = process.env.SCRAPE_LIVE === "0"
+    const eventbriteConfig = parseEventbriteSearchConfig(settings?.eventbriteSearchConfig);
+    const searchEventbrite = shouldRunEventbriteSearch(eventbriteConfig, opts.trigger);
+    const eventbriteDiscovery = process.env.SCRAPE_LIVE === "0" || !searchEventbrite
       ? { urls: [], sources: [] as SourceResult[] }
-      : await discoverEventbriteUrls();
+      : await discoverEventbriteUrls(undefined, fetch, eventbriteConfig);
     const eventbriteLive = eventbriteDiscovery.urls.length
       ? await fetchLiveEvents(eventbriteDiscovery.urls, { radiusMiles })
       : { events: [], sources: [], droppedGeo: 0 };

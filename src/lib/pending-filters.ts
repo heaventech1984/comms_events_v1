@@ -9,6 +9,7 @@ export type PendingDateMode = "default" | "custom" | "all";
 export type PendingFilterState = {
   types: Category[];
   tags: Tag[];
+  platform: string;
   needsTypeOnly: boolean;
   dateMode: PendingDateMode;
   from: DayKey;
@@ -20,6 +21,7 @@ export function parsePendingFilters(
   params: {
     types?: string;
     tags?: string;
+    platform?: string;
     format?: string;
     filter?: string;
     from?: string;
@@ -41,6 +43,7 @@ export function parsePendingFilters(
   return {
     types: parseTypesParam(params.types),
     tags,
+    platform: typeof params.platform === "string" ? params.platform.slice(0, 120) : "",
     needsTypeOnly: params.filter === "needs-type",
     dateMode,
     from,
@@ -63,6 +66,7 @@ export function pendingHref(state: PendingFilterState, patch: Partial<PendingFil
   const next: PendingFilterState = {
     types: patch.types ?? state.types,
     tags: patch.tags !== undefined ? patch.tags : state.tags,
+    platform: patch.platform !== undefined ? patch.platform : state.platform,
     needsTypeOnly: patch.needsTypeOnly !== undefined ? patch.needsTypeOnly : state.needsTypeOnly,
     dateMode: patch.dateMode ?? state.dateMode,
     from: patch.from ?? state.from,
@@ -72,6 +76,7 @@ export function pendingHref(state: PendingFilterState, patch: Partial<PendingFil
   const sp = new URLSearchParams();
   if (next.types.length) sp.set("types", next.types.join(","));
   if (next.tags.length) sp.set("tags", next.tags.join(","));
+  if (next.platform) sp.set("platform", next.platform);
   if (next.needsTypeOnly) sp.set("filter", "needs-type");
   if (next.dateMode === "all") sp.set("dates", "all");
   if (next.dateMode === "custom") {
@@ -103,13 +108,29 @@ export function eventInPendingDates(startsAt: Date, state: PendingFilterState): 
 }
 
 export function eventMatchesPendingFilters(
-  event: { category: string; tags?: string | null; online: boolean; notes: string | null; startsAt?: Date },
+  event: { category: string; tags?: string | null; online: boolean; notes: string | null; externalUrl?: string | null; startsAt?: Date },
   state: PendingFilterState,
   needsType: boolean
 ): boolean {
   if (state.needsTypeOnly && !needsType) return false;
   if (state.types.length && !state.types.includes(event.category as Category)) return false;
   if (!hasAnyTag(event.tags, state.tags)) return false;
+  if (state.platform && pendingPlatform(event.externalUrl) !== state.platform) return false;
   if (event.startsAt && !eventInPendingDates(event.startsAt, state)) return false;
   return true;
+}
+
+export function pendingPlatform(externalUrl: string | null | undefined): string {
+  if (!externalUrl) return "Manual / no link";
+  try {
+    const host = new URL(externalUrl).hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "eventbrite.co.uk" || host === "eventbrite.com") return "Eventbrite";
+    if (host === "meetup.com") return "Meetup";
+    if (host === "facebook.com") return "Facebook Events";
+    if (host === "skiddle.com") return "Skiddle";
+    if (host === "ticketmaster.co.uk" || host === "ticketmaster.com") return "Ticketmaster";
+    return host;
+  } catch {
+    return "Manual / no link";
+  }
 }

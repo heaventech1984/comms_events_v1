@@ -6,7 +6,8 @@ import {
   pendingBackHref,
   pendingEditHref,
   pendingHref,
-  togglePendingType
+  togglePendingType,
+  pendingPlatform
 } from "@/lib/pending-filters";
 import {
   extrasOnlyPriorityUrls,
@@ -41,6 +42,21 @@ describe("pending filters", () => {
     expect(
       eventMatchesPendingFilters({ category: "Faith", tags: "|Online|", online: true, notes: null }, base, false)
     ).toBe(false);
+  });
+
+  it("filters by platform derived from event links and keeps it in filter links", () => {
+    const state = parsePendingFilters({ platform: "Eventbrite" });
+    expect(pendingHref(state)).toBe("/pending?platform=Eventbrite");
+    expect(pendingPlatform("https://www.eventbrite.co.uk/e/event-123")).toBe("Eventbrite");
+    expect(pendingPlatform("https://www.meetup.com/example/events/123/")).toBe("Meetup");
+    expect(eventMatchesPendingFilters({
+      category: "Faith", tags: "|Christian|", online: false, notes: null,
+      externalUrl: "https://www.eventbrite.co.uk/e/event-123"
+    }, state, false)).toBe(true);
+    expect(eventMatchesPendingFilters({
+      category: "Faith", tags: "|Christian|", online: false, notes: null,
+      externalUrl: "https://www.meetup.com/example/events/123/"
+    }, state, false)).toBe(false);
   });
 
   it("defaults to today through the next 7 days, and can show every open card", () => {

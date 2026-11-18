@@ -6,6 +6,7 @@ When something ships: copy from [`desirables.md`](desirables.md) Open (keeping t
 
 | Id | Date done | Area | Wish (one sentence) | Proof | Visual (optional) |
 | --- | --- | --- | --- | --- | --- |
+| D-029 | 2026-11-18 | Scraper / Pending | Configure Brave Eventbrite search timing, pages and query inputs with a formed-query preview; filter Pending events by source platform. | [CHANGELOG — Configure Eventbrite discovery and filter Pending by platform](CHANGELOG.md#2026-11-18--configure-eventbrite-discovery-and-filter-pending-by-platform) | — |
 | D-027 | 2026-11-17 | Calendar | Show a live current-time line in the Day and Week calendar grids when today is visible. | [CHANGELOG — Paste event details and show current time](CHANGELOG.md#2026-11-17--paste-event-details-and-show-current-time) | — |
 | D-026 | 2026-11-17 | Events | Let an editor paste event-page content when a site blocks URL import, then preview, correct and save extracted details. | [CHANGELOG — Paste event details and show current time](CHANGELOG.md#2026-11-17--paste-event-details-and-show-current-time) | — |
 | D-025 | 2026-11-17 | Events / Calendar | Cell leaders and admins can import a reviewed event from a public page and see category artwork before event titles in calendar views. | [CHANGELOG — Add events from a page and show category art on calendar events](CHANGELOG.md#2026-11-17--add-events-from-a-page-and-show-category-art-on-calendar-events) | — |

@@ -7,6 +7,7 @@ import { isHexColour } from "@/lib/security";
 import { parsePriorityUrls } from "@/lib/scraper/allowlist";
 import { extrasOnlyPriorityUrls } from "@/lib/scraper/discovery-pack";
 import { parseScrapeRadiusMiles } from "@/lib/scraper/geo";
+import { parseEventbriteSearchConfig } from "@/lib/scraper/eventbrite-settings";
 import { writeAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
@@ -27,8 +28,10 @@ export async function POST(request: NextRequest) {
   const priorityUrls = extrasOnlyPriorityUrls(parsedUrls.urls);
   const locationLabel = String(body.locationLabel ?? "Birmingham").trim().slice(0, 80) || "Birmingham";
   const scrapeRadiusMiles = parseScrapeRadiusMiles(body.scrapeRadiusMiles);
+  const eventbriteSearchConfig = parseEventbriteSearchConfig(body.eventbriteSearchConfig);
   const previous = await prisma.settings.findUnique({ where: { id: "default" } });
   const previousView = parseMemberAttendeeView(previous?.memberAttendeeView);
+  const previousEventbriteConfig = parseEventbriteSearchConfig(previous?.eventbriteSearchConfig);
   await prisma.settings.upsert({
     where: { id: "default" },
     update: {
@@ -40,7 +43,8 @@ export async function POST(request: NextRequest) {
       faithEnabled: !!enabled.Faith,
       activitiesEnabled: !!enabled.Activities,
       categoryColours: JSON.stringify(colours),
-      priorityUrls: JSON.stringify(priorityUrls)
+      priorityUrls: JSON.stringify(priorityUrls),
+      eventbriteSearchConfig: JSON.stringify(eventbriteSearchConfig)
     },
     create: {
       id: "default",
@@ -48,7 +52,8 @@ export async function POST(request: NextRequest) {
       scrapeRadiusMiles,
       memberAttendeeView,
       categoryColours: JSON.stringify(colours),
-      priorityUrls: JSON.stringify(priorityUrls)
+      priorityUrls: JSON.stringify(priorityUrls),
+      eventbriteSearchConfig: JSON.stringify(eventbriteSearchConfig)
     }
   });
   if (memberAttendeeView !== previousView) {
@@ -58,6 +63,15 @@ export async function POST(request: NextRequest) {
       entityType: "Settings",
       entityId: "default",
       summary: `${user.name} changed what members see for attendees from ${previousView} to ${memberAttendeeView}`
+    });
+  }
+  if (JSON.stringify(eventbriteSearchConfig) !== JSON.stringify(previousEventbriteConfig)) {
+    await writeAudit({
+      actorId: user.id,
+      action: "settings.eventbriteSearch",
+      entityType: "Settings",
+      entityId: "default",
+      summary: `${user.name} changed Brave Eventbrite search settings.`
     });
   }
   if (parsedUrls.rejected.length) {

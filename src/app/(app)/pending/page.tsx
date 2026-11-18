@@ -11,6 +11,7 @@ import {
   eventInPendingDates,
   eventMatchesPendingFilters,
   parsePendingFilters,
+  pendingPlatform,
   pendingHref,
   togglePendingTag,
   togglePendingType
@@ -27,7 +28,7 @@ import { formatDate } from "@/lib/time";
 export default async function PendingPage({
   searchParams
 }: {
-  searchParams: Promise<{ filter?: string; types?: string; tags?: string; format?: string; from?: string; to?: string; dates?: string }>;
+  searchParams: Promise<{ filter?: string; types?: string; tags?: string; platform?: string; format?: string; from?: string; to?: string; dates?: string }>;
 }) {
   const user = await requireUser(["admin", "cell leader"]);
   const settings = await getSettings();
@@ -37,6 +38,7 @@ export default async function PendingPage({
   await repairUnsupportedTypeStamps();
   const allEvents = await loadOpenPendingEvents();
   const inDates = allEvents.filter((event) => eventInPendingDates(event.startsAt, filters));
+  const platforms = [...new Set(allEvents.map((event) => pendingPlatform(event.externalUrl)))].sort((a, b) => a.localeCompare(b));
   const needsTypeCount = inDates.filter((e) => notesNeedTypeReview(e.notes)).length;
   const events = inDates.filter((event) =>
     eventMatchesPendingFilters(event, filters, notesNeedTypeReview(event.notes))
@@ -78,6 +80,7 @@ export default async function PendingPage({
           <form className="filters" method="get" action="/pending" aria-label="Dates">
             {filters.types.length ? <input type="hidden" name="types" value={filters.types.join(",")} /> : null}
             {filters.tags.length ? <input type="hidden" name="tags" value={filters.tags.join(",")} /> : null}
+            {filters.platform ? <input type="hidden" name="platform" value={filters.platform} /> : null}
             {filters.needsTypeOnly ? <input type="hidden" name="filter" value="needs-type" /> : null}
             <label>
               From
@@ -95,6 +98,21 @@ export default async function PendingPage({
               All open dates
             </Chip>
           </form>
+          <div className="filters" role="group" aria-label="Source platform">
+            <Chip href={pendingHref(filters, { platform: "" })} current={!filters.platform} pressed={!filters.platform}>
+              All platforms
+            </Chip>
+            {platforms.map((platform) => (
+              <Chip
+                key={platform}
+                href={pendingHref(filters, { platform })}
+                current={filters.platform === platform}
+                pressed={filters.platform === platform}
+              >
+                {platform}
+              </Chip>
+            ))}
+          </div>
           <div className="filters" role="group" aria-label="Event type">
             <Chip href={pendingHref(filters, { types: [] })} current={filters.types.length === 0}>
               All types

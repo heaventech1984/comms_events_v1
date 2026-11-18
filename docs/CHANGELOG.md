@@ -17,6 +17,11 @@ Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## 2026-11-18 — Configure Eventbrite discovery and filter Pending by platform
+
+- Admins can configure Brave Eventbrite search weekdays, page count (up to 10), location, alternative search terms, and whether manual runs include the search. The Scraper page previews the formed query, using the Europe/London calendar month seven days after each run. Searches paginate up to 20 results per page, stop when Brave reports no more results, and continue to fetch direct event pages through Gather's existing safety and Pending-review flow.
+- Pending can be filtered by source platform, derived from each event's external link so existing rows remain filterable without backfilling the database.
+
 ## 2026-11-17 — Discover Eventbrite event pages through search
 
 - The scraper can use a configured Brave Search API key to discover individual UK Eventbrite event links from fixed Birmingham searches. It keeps only direct event-page URLs, fetches pages through Gather’s existing allowlist and robots-aware scraper, and sends new search-discovered events to Pending for review. Search is capped at five queries and 60 page URLs per run.
