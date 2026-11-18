@@ -147,7 +147,12 @@ export function decorateScrapedEvents(events: ScrapedEvent[], pageUrl: string): 
   });
 }
 
-export function parseScrapedBody(url: string, contentType: string, body: string): ScrapedEvent[] {
+export function parseScrapedBody(
+  url: string,
+  contentType: string,
+  body: string,
+  options: { fallbackOrganisation?: boolean } = {}
+): ScrapedEvent[] {
   const lower = contentType.toLowerCase();
   const path = (() => {
     try {
@@ -157,20 +162,20 @@ export function parseScrapedBody(url: string, contentType: string, body: string)
     }
   })();
   if (lower.includes("text/calendar") || path.endsWith(".ics") || body.includes("BEGIN:VEVENT")) {
-    return parseIcsEvents(body, url);
+    return parseIcsEvents(body, url, options);
   }
   if (lower.includes("ld+json") || lower.includes("application/json")) {
     try {
-      return eventsFromJsonLd(JSON.parse(body), url);
+      return eventsFromJsonLd(JSON.parse(body), url, options);
     } catch {
       return [];
     }
   }
-  const fromScripts = extractJsonLdScripts(body).flatMap((block) => eventsFromJsonLd(block, url));
+  const fromScripts = extractJsonLdScripts(body).flatMap((block) => eventsFromJsonLd(block, url, options));
   if (fromScripts.length) return withOwnPageClock(fromScripts, url, body);
-  const micro = eventsFromMicrodata(body, url);
+  const micro = eventsFromMicrodata(body, url, options);
   if (micro.length) return withOwnPageClock(micro, url, body);
-  return withOwnPageClock(eventsFromMslHtml(body, url), url, body);
+  return withOwnPageClock(eventsFromMslHtml(body, url, options), url, body);
 }
 
 /**
@@ -277,7 +282,10 @@ export async function fetchLiveEvents(
       } else if (page.body.length > FETCH_BODY_MAX) {
         sources.push({ url: raw, ok: false, eventCount: 0, error: "Response too large." });
       } else {
-        let parsed = decorateScrapedEvents(parseScrapedBody(url.toString(), page.contentType, page.body), url.toString());
+        let parsed = decorateScrapedEvents(
+          parseScrapedBody(url.toString(), page.contentType, page.body, { fallbackOrganisation: !opts.publicSingleUrl }),
+          url.toString()
+        );
 
         // Follow same-host calendar links when the HTML page itself had no events.
         const lowerType = page.contentType.toLowerCase();
@@ -296,7 +304,7 @@ export async function fetchLiveEvents(
               const icsPage = await timedFetch(fetchFn, icsAllowed.url.toString());
               if (!icsPage.ok || icsPage.body.length > FETCH_BODY_MAX) continue;
               const fromIcs = decorateScrapedEvents(
-                parseScrapedBody(icsAllowed.url.toString(), icsPage.contentType, icsPage.body),
+                parseScrapedBody(icsAllowed.url.toString(), icsPage.contentType, icsPage.body, { fallbackOrganisation: !opts.publicSingleUrl }),
                 url.toString()
               );
               parsed = [...parsed, ...fromIcs];

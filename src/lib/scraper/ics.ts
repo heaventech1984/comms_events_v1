@@ -79,7 +79,11 @@ function parseDurationMs(duration: string | undefined): number | null {
   return ms > 0 ? ms : null;
 }
 
-export function parseIcsEvents(raw: string, sourceUrl: string): ScrapedEvent[] {
+export function parseIcsEvents(
+  raw: string,
+  sourceUrl: string,
+  options: { fallbackOrganisation?: boolean } = {}
+): ScrapedEvent[] {
   let host = "ics";
   try {
     host = new URL(sourceUrl).hostname.toLowerCase();
@@ -122,7 +126,7 @@ export function parseIcsEvents(raw: string, sourceUrl: string): ScrapedEvent[] {
       const location = props.LOCATION ? cleanText(props.LOCATION) || null : null;
       const url = props.URL?.trim() || sourceUrl;
       const geo = parseGeo(props.GEO);
-      const organiser = props.ORGANIZER_CN?.trim() || host;
+      const organiser = props.ORGANIZER_CN?.trim() || (options.fallbackOrganisation === false ? "" : host);
       const description = props.DESCRIPTION ? clip(stripHtml(props.DESCRIPTION), LIMITS.textLength) : null;
       events.push({
         sourceKey: `live:${host}:${uid}`,

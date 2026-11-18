@@ -22,7 +22,11 @@ const MONTHS: Record<string, number> = {
  * Parse Membership Solutions (MSL) SU event lists — Guild of Students style cards.
  * Only used on already-allowlisted hosts when JSON-LD/ICS are empty.
  */
-export function eventsFromMslHtml(html: string, sourceUrl: string): ScrapedEvent[] {
+export function eventsFromMslHtml(
+  html: string,
+  sourceUrl: string,
+  options: { fallbackOrganisation?: boolean } = {}
+): ScrapedEvent[] {
   let host = "";
   let origin = "";
   try {
@@ -52,7 +56,7 @@ export function eventsFromMslHtml(html: string, sourceUrl: string): ScrapedEvent
     events.push({
       sourceKey: `live:${host}:${uid}`,
       title: clip(name, LIMITS.titleLength),
-      organisationName: clip(host.replace(/^www\./, ""), LIMITS.titleLength),
+      organisationName: options.fallbackOrganisation === false ? "" : clip(host.replace(/^www\./, ""), LIMITS.titleLength),
       category: "Social",
       startsAt: range.startsAt,
       endsAt: range.endsAt,

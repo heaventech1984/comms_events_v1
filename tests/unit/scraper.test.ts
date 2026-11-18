@@ -17,7 +17,7 @@ import { notesNeedTypeReview, settleScrapedType, stripTypeReviewNotes } from "@/
 import { parseIcsDate, parseIcsEvents } from "@/lib/scraper/ics";
 import { eventsFromJsonLd, extractJsonLdScripts } from "@/lib/scraper/jsonld";
 import { scrapeLockAcquired, scrapeLockUntil } from "@/lib/scraper/lock";
-import { fetchLiveEvents, type FetchLike } from "@/lib/scraper/live-adapter";
+import { fetchLiveEvents, parseScrapedBody, type FetchLike } from "@/lib/scraper/live-adapter";
 import { discoverCalendarLinks, eventsFromMicrodata } from "@/lib/scraper/microdata";
 import { eventsFromMslHtml, parseMslTimeRange } from "@/lib/scraper/msl";
 import { stripHtml } from "@/lib/scraper/text";
@@ -405,6 +405,45 @@ describe("JSON-LD", () => {
     expect(event.externalUrl).toContain("birmingham.ac.uk");
   });
 
+  it("recognizes Event subtypes such as Eventbrite SocialEvent", () => {
+    const html = `<script type="application/ld+json">${JSON.stringify({
+      "@type": "SocialEvent",
+      name: 'Philosophy Meetup "Environmentalism"',
+      startDate: "2026-11-19T18:30:00Z",
+      endDate: "2026-11-19T20:30:00Z",
+      location: { "@type": "Place", name: "BRIG Café at The Warehouse" },
+      organizer: { "@type": "Organization", name: "The Philosophers' Yard" }
+    })}</script>`;
+    const [event] = parseScrapedBody(
+      "https://www.eventbrite.co.uk/e/philosophy-meetup-environmentalism-tickets-2003411627107",
+      "text/html",
+      html,
+      { fallbackOrganisation: false }
+    );
+
+    expect(event).toMatchObject({
+      title: 'Philosophy Meetup "Environmentalism"',
+      organisationName: "The Philosophers' Yard",
+      placeName: "BRIG Café at The Warehouse"
+    });
+    expect(event.startsAt.toISOString()).toBe("2026-11-19T18:30:00.000Z");
+    expect(event.endsAt.toISOString()).toBe("2026-11-19T20:30:00.000Z");
+  });
+
+  it("recognizes a structured event by its title, start and supporting details without an Event type", () => {
+    const event = eventsFromJsonLd({
+      "@type": "Thing",
+      name: "Community discussion",
+      startDate: "2026-11-19",
+      location: { name: "Birmingham" }
+    }, "https://example.org/event");
+    expect(event).toHaveLength(1);
+    expect(event[0]?.title).toBe("Community discussion");
+
+    expect(eventsFromJsonLd({ "@type": "WebPage", name: "Community events", datePublished: "2026-11-19" }, "https://example.org/")).toHaveLength(0);
+    expect(eventsFromJsonLd({ "@type": "Event", startDate: "2026-11-19" }, "https://example.org/")).toHaveLength(0);
+  });
+
   it("walks @graph, skips broken scripts and events without a start", () => {
     const html = `<script type="application/ld+json">not-json</script>
 <script type="application/ld+json">{"@graph":[{"@type":["Event","Thing"],"name":"Panel","startDate":"2026-10-21T16:00:00Z","organizer":{"name":"Aston SU"},"eventAttendanceMode":"https://schema.org/OnlineEventAttendanceMode","location":{"name":"Online"}}]}</script>`;
@@ -420,6 +459,15 @@ describe("JSON-LD", () => {
       "not a url"
     );
     expect(fallback.sourceKey.startsWith("live:jsonld:")).toBe(true);
+  });
+
+  it("leaves an unknown organiser blank for a manually imported event", () => {
+    const [event] = eventsFromJsonLd(
+      { "@type": "Event", name: "Community panel", startDate: "2026-11-19T18:00:00Z" },
+      "https://www.eventbrite.co.uk/e/example-123",
+      { fallbackOrganisation: false }
+    );
+    expect(event.organisationName).toBe("");
   });
 
   it("reads a Meetup-shaped JSON array of Events with start and end", () => {

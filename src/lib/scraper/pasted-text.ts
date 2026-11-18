@@ -2,6 +2,7 @@ import { LIMITS } from "../security";
 import { londonParts } from "../time";
 import { cleanText, clip, looksOnline, stripHtml } from "./text";
 import { parseMslTimeRange } from "./msl";
+import { parseSchemaInstant, resolveSchemaEnd } from "./schema-date";
 import type { ScrapedEvent } from "./types";
 
 const MONTH_NUMBER: Record<string, number> = {
@@ -19,18 +20,6 @@ function labelled(lines: string[], keys: string[]): string {
   return match?.replace(new RegExp(`^(?:${key})\\s*[:–-]\\s*`, "i"), "").trim() ?? "";
 }
 
-function normaliseDateLine(value: string): string {
-  return value
-    .replace(/^[A-Za-z]+,?\s+/, "")
-    .replace(/\b(\d{1,2})-([A-Za-z]{3,9})-(\d{4})\b/g, "$1 $2 $3")
-    .replace(/\b([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})\b/g, "$2 $1 $3")
-    .replace(/\b(jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi, (month) => ({
-      jan: "January", feb: "February", mar: "March", apr: "April", jun: "June",
-      jul: "July", aug: "August", sep: "September", sept: "September", oct: "October",
-      nov: "November", dec: "December"
-    })[month.toLowerCase()] ?? month);
-}
-
 function dateLine(lines: string[]): string {
   const withLabel = labelled(lines, ["date", "day"]);
   if (withLabel) return withLabel;
@@ -41,7 +30,7 @@ function dateLine(lines: string[]): string {
   return lines.find((line) => pattern.test(line)) ?? "";
 }
 
-function normalisePastedDate(value: string, currentYear: number): { value: string; hasYear: boolean } | null {
+function normalisePastedDate(value: string, currentYear: number): { value: string; isoDate: string; hasYear: boolean } | null {
   const monthFirst = value.match(new RegExp(`\\b(${MONTH_PATTERN})\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b`, "i"));
   const dayFirst = value.match(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?[-\\s]+(${MONTH_PATTERN})(?:[-\\s]+(\\d{4}))?\\b`, "i"));
   const match = monthFirst ?? dayFirst;
@@ -53,7 +42,8 @@ function normalisePastedDate(value: string, currentYear: number): { value: strin
   const month = MONTH_NUMBER[monthName.toLowerCase()];
   if (!month || day < 1 || day > new Date(Date.UTC(year, month, 0)).getUTCDate()) return null;
   return {
-    value: yearText ? normaliseDateLine(value) : `${day} ${MONTH_FULL[month]} ${year}`,
+    value: `${day} ${MONTH_FULL[month]} ${year}`,
+    isoDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
     hasYear: Boolean(yearText)
   };
 }
@@ -75,18 +65,26 @@ export function eventFromPastedText(rawText: string, sourceUrl: string, now = ne
   const date = normalisePastedDate(dateValue, currentYear);
   const timePart = timeValue.replace(/^(?:time|hours)\s*[:–-]\s*/i, "");
   const timeRange = timeValue.match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:-|\u2013|\u2014|to)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i)?.[0];
-  const parsedTime = date && (timeRange || timePart)
+  const timedRange = date && (timeRange || timePart)
     ? parseMslTimeRange(`${date.value} ${timeRange ?? timePart}`, currentYear)
     : null;
+  const parsedDate = date && !timedRange ? parseSchemaInstant(date.isoDate) : null;
+  const parsedTime = timedRange ?? (parsedDate
+    ? { startsAt: parsedDate.at, endsAt: resolveSchemaEnd(parsedDate, null) }
+    : null);
   if (!title || !parsedTime) return null;
-  if (!date!.hasYear && parsedTime.startsAt < now) return null;
+  if (!date!.hasYear) {
+    const eventDay = londonParts(parsedTime.startsAt);
+    const today = londonParts(now);
+    const isBeforeToday = eventDay.year < today.year ||
+      (eventDay.year === today.year && eventDay.month < today.month) ||
+      (eventDay.year === today.year && eventDay.month === today.month && eventDay.day < today.day);
+    if (isBeforeToday || (!parsedDate && parsedTime.startsAt < now)) return null;
+  }
 
   const placeName = labelled(lines, ["location", "venue", "where", "place"]) ||
     lines.find((line) => /\b(?:Birmingham|Gas Street South|Gas Street Church)\b/i.test(line)) || "";
-  const organisationName = labelled(lines, ["organisation", "organizer", "organiser"]) ||
-    (() => {
-      try { return new URL(sourceUrl).hostname.split(".")[0].replace(/[-_]/g, " "); } catch { return "Event organiser"; }
-    })();
+  const organisationName = labelled(lines, ["organisation", "organizer", "organiser"]);
   const description = labelled(lines, ["description", "about", "details"]);
   const notes = description || null;
   const host = (() => { try { return new URL(sourceUrl).hostname; } catch { return "pasted-content"; } })();

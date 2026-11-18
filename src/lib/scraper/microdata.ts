@@ -48,7 +48,11 @@ function first(props: Record<string, string[]>, ...keys: string[]): string | nul
   return null;
 }
 
-export function eventsFromMicrodata(html: string, sourceUrl: string): ScrapedEvent[] {
+export function eventsFromMicrodata(
+  html: string,
+  sourceUrl: string,
+  options: { fallbackOrganisation?: boolean } = {}
+): ScrapedEvent[] {
   let host = "microdata";
   try {
     host = new URL(sourceUrl).hostname.toLowerCase();
@@ -63,7 +67,9 @@ export function eventsFromMicrodata(html: string, sourceUrl: string): ScrapedEve
   while ((match = blockRe.exec(html))) {
     const block = match[3] ?? "";
     const props = propMap(block);
-    const title = clip(cleanText(first(props, "name", "headline") ?? "Untitled event"), LIMITS.titleLength);
+    const rawTitle = first(props, "name", "headline");
+    if (!rawTitle) continue;
+    const title = clip(cleanText(rawTitle), LIMITS.titleLength);
     const startRaw = first(props, "startDate", "startTime");
     if (!startRaw) continue;
     const startParsed = parseSchemaInstant(startRaw);
@@ -75,7 +81,7 @@ export function eventsFromMicrodata(html: string, sourceUrl: string): ScrapedEve
     const urlRaw = first(props, "url");
     const url = urlRaw && isHttpUrl(urlRaw) ? urlRaw : sourceUrl;
     const description = first(props, "description");
-    const organiser = first(props, "organizer", "performer") ?? host;
+    const organiser = first(props, "organizer", "performer") ?? (options.fallbackOrganisation === false ? "" : host);
     const uid = clip(urlRaw && isHttpUrl(urlRaw) ? urlRaw : `${title}:${startsAt.toISOString()}`, 180);
     events.push({
       sourceKey: `live:${host}:${uid}`,

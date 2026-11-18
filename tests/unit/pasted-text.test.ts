@@ -12,7 +12,7 @@ describe("pasted event page extraction", () => {
     expect(event).toMatchObject({
       title: "Carols at South",
       placeName: "Gas Street South",
-      organisationName: "gasstreet",
+      organisationName: "",
       category: "Social"
     });
     expect(event?.startsAt.toISOString()).toBe("2026-12-06T17:00:00.000Z");
@@ -43,5 +43,26 @@ describe("pasted event page extraction", () => {
       new Date("2026-11-18T12:00:00Z")
     );
     expect(event).toBeNull();
+  });
+
+  it("accepts a title and date without a time, organisation or location for completion in the form", () => {
+    const event = eventFromPastedText(
+      "Community discussion\nThursday, November 19",
+      "https://example.org/event",
+      new Date("2026-11-18T12:00:00Z")
+    );
+
+    expect(event).toMatchObject({
+      title: "Community discussion",
+      organisationName: "",
+      placeName: null,
+      notes: null
+    });
+    expect(event?.startsAt.toISOString()).toBe("2026-11-19T00:00:00.000Z");
+    expect(event?.endsAt.toISOString()).toBe("2026-11-19T00:00:00.000Z");
+  });
+
+  it("does not accept pasted text when the event date is missing", () => {
+    expect(eventFromPastedText("Community discussion\nA friendly evening in Birmingham", "https://example.org/event")).toBeNull();
   });
 });

@@ -18,6 +18,26 @@ function typeName(value: unknown): string {
   return t ? String(t) : "";
 }
 
+function isEventType(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const raw = (value as { "@type"?: unknown })["@type"];
+  const types = Array.isArray(raw) ? raw : [raw];
+  return types.some((type) => {
+    if (typeof type !== "string") return false;
+    const name = type.split(/[\/#]/).pop() ?? type;
+    return name === "Event" || name.endsWith("Event");
+  });
+}
+
+/** Some JSON-LD providers omit an Event type but expose a complete event-shaped node. */
+function hasEventShape(rec: JsonLdNode): boolean {
+  const hasTitle = Boolean(textOf(rec.name) ?? textOf(rec.headline));
+  const hasStart = rec.startDate != null || rec.startTime != null || rec.doorTime != null;
+  const hasEventDetail = rec.endDate != null || rec.endTime != null || rec.location != null ||
+    rec.eventAttendanceMode != null || rec.offers != null || rec.organizer != null;
+  return hasTitle && hasStart && hasEventDetail;
+}
+
 function textOf(value: unknown): string | null {
   if (typeof value === "string" && value.trim()) return value.trim();
   if (value && typeof value === "object") {
@@ -37,7 +57,7 @@ function walk(node: unknown, acc: JsonLdNode[]): void {
   }
   if (!node || typeof node !== "object") return;
   const rec = node as JsonLdNode;
-  if (/\bEvent\b/i.test(typeName(rec))) acc.push(rec);
+  if (isEventType(rec) || hasEventShape(rec)) acc.push(rec);
   for (const key of ["@graph", "itemListElement", "item", "mainEntity", "hasPart", "subEvent", "event"]) {
     if (key in rec) walk(rec[key], acc);
   }
@@ -116,7 +136,7 @@ function organiserFrom(rec: JsonLdNode, fallback: string): string {
       if (name) return clip(name, LIMITS.titleLength);
     }
   }
-  return clip(fallback, LIMITS.titleLength);
+  return fallback ? clip(fallback, LIMITS.titleLength) : "";
 }
 
 function offerNotes(rec: JsonLdNode): string | null {
@@ -159,7 +179,11 @@ export function extractJsonLdScripts(html: string): unknown[] {
   return out;
 }
 
-export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEvent[] {
+export function eventsFromJsonLd(
+  payload: unknown,
+  sourceUrl: string,
+  options: { fallbackOrganisation?: boolean } = {}
+): ScrapedEvent[] {
   let host = "jsonld";
   try {
     host = new URL(sourceUrl).hostname.toLowerCase();
@@ -170,7 +194,9 @@ export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEv
   walk(payload, found);
   const events: ScrapedEvent[] = [];
   for (const rec of found) {
-    const title = clip(cleanText(String(rec.name ?? rec.headline ?? "Untitled event")), LIMITS.titleLength);
+    const rawTitle = textOf(rec.name) ?? textOf(rec.headline);
+    if (!rawTitle) continue;
+    const title = clip(cleanText(rawTitle), LIMITS.titleLength);
     const startRaw = rec.startDate ?? rec.startTime ?? rec.doorTime;
     const endRaw = rec.endDate ?? rec.endTime;
     const startParsed = parseSchemaInstant(startRaw == null ? null : String(startRaw));
@@ -178,7 +204,7 @@ export function eventsFromJsonLd(payload: unknown, sourceUrl: string): ScrapedEv
     const startsAt = startParsed.at;
     const endsAt = resolveSchemaEnd(startParsed, endRaw == null ? null : String(endRaw));
     const place = placeFrom(rec.location);
-    const organisationName = organiserFrom(rec, host);
+    const organisationName = organiserFrom(rec, options.fallbackOrganisation === false ? "" : host);
     const urlCandidate = typeof rec.url === "string" ? rec.url : typeof rec.sameAs === "string" ? rec.sameAs : null;
     const url = urlCandidate && isHttpUrl(urlCandidate) ? urlCandidate : sourceUrl;
     // Prefer a stable public id/url so entity-decoding title changes do not fork sourceKeys.

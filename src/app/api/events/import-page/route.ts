@@ -9,10 +9,17 @@ import { encodeTags } from "@/lib/tags";
 import { prisma } from "@/lib/db";
 import { eventFromPastedText } from "@/lib/scraper/pasted-text";
 import { FETCH_BODY_MAX } from "@/lib/scraper/harvest";
+import { isDateOnlyStoredRange } from "@/lib/scraper/schema-date";
 import type { ScrapedEvent } from "@/lib/scraper/types";
 
 function sourcePathOnly(url: URL): string {
   return `${url.origin}${url.pathname}`;
+}
+
+function hasImportEssentials(event: ScrapedEvent): boolean {
+  return Boolean(event.title.trim()) &&
+    event.title.trim().toLowerCase() !== "untitled event" &&
+    event.startsAt instanceof Date && Number.isFinite(event.startsAt.getTime());
 }
 
 async function previews(events: ScrapedEvent[], sourceUrl: string | null) {
@@ -28,7 +35,7 @@ async function previews(events: ScrapedEvent[], sourceUrl: string | null) {
       category: event.category,
       tags: encodeTags(event.tags ?? []),
       startsAt: event.startsAt.toISOString(),
-      endsAt: event.endsAt.toISOString(),
+      endsAt: isDateOnlyStoredRange(event.startsAt, event.endsAt) ? "" : event.endsAt.toISOString(),
       online: event.online,
       placeName: event.placeName ?? "",
       lat: event.lat ?? null,
@@ -62,14 +69,14 @@ export async function POST(request: NextRequest) {
     }
     const sourceUrl = checkedSource?.ok ? checkedSource.url.toString() : "https://pasted-content.invalid/";
     const events = pastedHtml
-      ? parseScrapedBody(sourceUrl, "text/html", pastedHtml)
+      ? parseScrapedBody(sourceUrl, "text/html", pastedHtml, { fallbackOrganisation: false })
       : [];
-    const parsed = events.length ? events : (() => {
+    const parsed = (events.length ? events : (() => {
       const event = eventFromPastedText(pastedText, checkedSource?.ok ? sourcePathOnly(checkedSource.url) : "");
       return event ? [event] : [];
-    })();
+    })()).filter(hasImportEssentials);
     if (!parsed.length) {
-      return NextResponse.json({ error: "I couldn't identify an event. Paste its title, date, start/end time and location, or add it manually." }, { status: 422 });
+      return NextResponse.json({ error: "I couldn't identify an event title and date. Paste at least those details; you can complete the time, organisation and location on the next screen, or add it manually." }, { status: 422 });
     }
     const decorated = decorateScrapedEvents(parsed, sourceUrl).map((event) => checkedSource?.ok ? event : {
       ...event,
@@ -88,9 +95,10 @@ export async function POST(request: NextRequest) {
     radiusMiles: settings.scrapeRadiusMiles,
     publicSingleUrl: true
   });
-  if (!result.events.length) {
+  const usableEvents = result.events.filter(hasImportEssentials);
+  if (!usableEvents.length) {
     return NextResponse.json({ error: result.sources[0]?.error ?? "No events could be read from this page." }, { status: 422 });
   }
-  const events = await previews(result.events, checked.url.toString());
+  const events = await previews(usableEvents, checked.url.toString());
   return NextResponse.json({ events });
 }
