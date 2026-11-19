@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { insightsScope } from "@/lib/policy";
-import { parseInsightsParams, insightsHref } from "@/lib/insights/period";
+import { nextSevenDaysWindow, parseInsightsParams, insightsHref } from "@/lib/insights/period";
 import { loadRawInsights } from "@/lib/insights/load";
 import { aggregateInsights, pctLabel } from "@/lib/insights/aggregate";
 import { shareSummary } from "@/lib/insights/share";
@@ -13,7 +13,7 @@ import {
   loadFeedbackRows,
   parseFeedbackQuery
 } from "@/lib/insights/feedback";
-import { CATEGORIES, FEEDBACK_RATINGS } from "@/lib/constants";
+import { FEEDBACK_RATINGS } from "@/lib/constants";
 import {
   ChartCard,
   FunnelList,
@@ -24,7 +24,8 @@ import {
   Stacked
 } from "@/components/insights/Charts";
 import { ExportShare } from "@/components/insights/ExportShare";
-import { formatDate } from "@/lib/time";
+import { formatDate, formatDateTimeRange } from "@/lib/time";
+import { dayKeyOf, formatDayKey } from "@/lib/calendar";
 
 export default async function InsightsPage({
   searchParams
@@ -48,10 +49,29 @@ export default async function InsightsPage({
   }
   const filters = { ...requested, cellId: scope.kind === "cell" ? scope.cellId : requested.cellId };
   const feedbackExtra = parseFeedbackQuery(params);
-  const [raw, settings, cells, feedback] = await Promise.all([
+  const now = new Date();
+  const upcomingWindow = nextSevenDaysWindow(now);
+  const [raw, settings, upcomingEvents, feedback] = await Promise.all([
     loadRawInsights(scope, filters),
     getSettings(),
-    user.role === "admin" ? prisma.cell.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
+    prisma.event.findMany({
+      where: {
+        status: "PUBLISHED",
+        startsAt: { gte: upcomingWindow.from, lt: upcomingWindow.to },
+        bookings: { some: {} }
+      },
+      select: {
+        id: true,
+        title: true,
+        startsAt: true,
+        endsAt: true,
+        bookings: {
+          select: { id: true, user: { select: { name: true, cellNumber: true } } },
+          orderBy: { bookedAt: "asc" }
+        }
+      },
+      orderBy: { startsAt: "asc" }
+    }),
     loadFeedbackRows(
       scope,
       feedbackFiltersFromInsights(
@@ -85,83 +105,28 @@ export default async function InsightsPage({
         </p>
       </div>
 
-      <form className="insights-toolbar" method="get">
-        <label>
-          Period
-          <select name="period" defaultValue={filters.preset}>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="year">This year</option>
-            <option value="custom">Custom dates</option>
-          </select>
-        </label>
-        <label>
-          Type
-          <select name="category" defaultValue={filters.category}>
-            <option value="">All types</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
+      <section className="card stack insights-upcoming" aria-label="Events with attendees in the next seven days">
+        <h2>Events with attendees in the next 7 days</h2>
+        {upcomingEvents.length ? (
+          <ul className="insights-upcoming-list">
+            {upcomingEvents.map((event) => (
+              <li key={event.id}>
+                <h3><Link href={`/events/${event.id}`}>{event.title}</Link></h3>
+                <p className="muted">{formatDateTimeRange(event.startsAt, event.endsAt)}</p>
+                <ul className="attendee-list">
+                  {event.bookings.map((booking) => (
+                    <li key={booking.id}>
+                      {booking.user.name} <span className="muted">· {booking.user.cellNumber}</span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
             ))}
-          </select>
-        </label>
-        <label>
-          Format
-          <select name="format" defaultValue={filters.format}>
-            <option value="">Any format</option>
-            <option value="inperson">In person</option>
-            <option value="online">Online</option>
-          </select>
-        </label>
-        {user.role === "admin" ? (
-          <label>
-            Cell
-            <select name="cell" defaultValue={filters.cellId ?? ""}>
-              <option value="">All cells</option>
-              {cells.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-        {filters.preset === "custom" ? (
-          <>
-            <label>
-              From
-              <input type="date" name="from" defaultValue={filters.from.toISOString().slice(0, 10)} />
-            </label>
-            <label>
-              To
-              <input type="date" name="to" defaultValue={new Date(filters.to.getTime() - 1).toISOString().slice(0, 10)} />
-            </label>
-          </>
-        ) : null}
-        <label>
-          Feedback rating
-          <select name="rating" defaultValue={feedbackExtra.rating}>
-            <option value="">Any rating</option>
-            {FEEDBACK_RATINGS.map((r) => (
-              <option key={r} value={r}>
-                {FEEDBACK_RATING_LABELS[r]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Find in feedback
-          <input
-            type="search"
-            name="q"
-            defaultValue={feedbackExtra.q}
-            placeholder="Member or event"
-            autoComplete="off"
-          />
-        </label>
-        <button type="submit">Apply</button>
-      </form>
+          </ul>
+        ) : (
+          <p className="muted">No upcoming events with attendees in the next 7 days.</p>
+        )}
+      </section>
 
       <KpiStrip {...data.kpis} />
 
@@ -291,6 +256,32 @@ export default async function InsightsPage({
           {feedback.scopeLabel}. After-event moods from people in your scope. Free-text notes are never shown here.
           Export “Member feedback” below for a spreadsheet.
         </p>
+        <form className="insights-feedback-filters" method="get">
+          <input type="hidden" name="period" value={filters.preset} />
+          {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
+          {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
+          {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
+          {filters.preset === "custom" ? (
+            <>
+              <input type="hidden" name="from" value={formatDayKey(dayKeyOf(filters.from))} />
+              <input type="hidden" name="to" value={formatDayKey(dayKeyOf(new Date(filters.to.getTime() - 1)))} />
+            </>
+          ) : null}
+          <label>
+            Feedback rating
+            <select name="rating" defaultValue={feedbackExtra.rating}>
+              <option value="">Any rating</option>
+              {FEEDBACK_RATINGS.map((rating) => (
+                <option key={rating} value={rating}>{FEEDBACK_RATING_LABELS[rating]}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Find in feedback
+            <input type="search" name="q" defaultValue={feedbackExtra.q} placeholder="Member or event" autoComplete="off" />
+          </label>
+          <button type="submit">Apply</button>
+        </form>
         <ul className="feedback-summary" aria-label="Feedback totals">
           <li>
             <strong>{feedback.summary.total}</strong> ratings

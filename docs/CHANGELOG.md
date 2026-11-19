@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Add events from a page and show category art on calendar events* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Show attendees and booking controls consistently* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,12 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-19 — Show attendees and booking controls consistently
+
+- Insights starts with published events in the next seven London calendar days, including today, that have at least one attendee. It lists each attendee's name and cell number; analytics default to the last 30 days, with feedback filters kept in the feedback section.
+- Every signed-in role sees all event attendees directly below the booking count. Admins and cell leaders can remove any attendee; admins can book any active member, while cell leaders can book only members of their own cell. The old attendee-visibility selector is removed because it no longer controls the event page.
+- Calendar Today and previous/next controls sit right-aligned below the time-band setting and immediately above the calendar.
 
 ## 2026-11-18 — Configure Eventbrite discovery and filter Pending by platform
 

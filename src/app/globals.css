@@ -382,6 +382,10 @@ h3 { font-size: 1.15rem; margin: 0 0 var(--space-2); }
 .calendar-stage .view-tabs {
   margin: 0;
 }
+.calendar-date-controls {
+  display: flex;
+  justify-content: flex-end;
+}
 .calendar-time-band {
   display: grid;
   gap: var(--space-2);
@@ -770,13 +774,14 @@ textarea.scraper-priority-urls {
 }
 @media (min-width: 901px) {
   .calendar-nav {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 1fr auto;
   }
   .calendar-nav .range-heading {
-    text-align: center;
+    text-align: left;
     margin: 0;
   }
 }
+.calendar-nav .range-heading { margin: 0; }
 .calendar-nav-step {
   flex-wrap: nowrap;
   gap: var(--space-2);
@@ -2183,6 +2188,28 @@ button.linkish {
   flex: 0 0 auto;
   min-height: 48px;
 }
+.insights-upcoming-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.insights-upcoming-list > li {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.insights-upcoming-list h3 { margin: 0; }
+.insights-upcoming-list p { margin: var(--space-1) 0; }
+.insights-feedback-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+.insights-feedback-filters label { flex: 1 1 12rem; }
+.insights-feedback-filters button { min-height: 44px; }
 @media (max-width: 520px) {
   .kpi-board { max-width: none; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
@@ -2660,9 +2687,10 @@ button.linkish {
     gap: var(--space-2);
   }
   .calendar-nav-step {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    justify-content: flex-end;
   }
+  .calendar-date-controls { justify-content: flex-end; }
   .calendar-nav .view-tabs {
     width: 100%;
     max-width: none;

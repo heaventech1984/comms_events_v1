@@ -10,7 +10,6 @@ import { canDelegateBooking } from "@/lib/policy";
 import { categoryAccentStyle } from "@/lib/category-art";
 import { decodeTags } from "@/lib/tags";
 import { prisma } from "@/lib/db";
-import { initialsFromName } from "@/lib/initials";
 import { getSettings } from "@/lib/settings";
 import { attendanceChipClass, attendanceLabel } from "@/lib/attendance-label";
 import { calendarBackHref } from "@/lib/calendar";
@@ -46,19 +45,13 @@ export default async function EventPage({
   }));
   const showBookCell = canDelegateBooking(user);
   const cellMembers =
-    showBookCell && user.cellId
+    showBookCell && (user.role === "admin" || user.cellId)
       ? await prisma.user.findMany({
-          where: { cellId: user.cellId, active: true },
-          orderBy: { name: "asc" }
+          where: { active: true, ...(user.role === "cell leader" ? { cellId: user.cellId! } : {}) },
+          orderBy: [{ name: "asc" }, { cellNumber: "asc" }],
+          select: { id: true, name: true, cellNumber: true, cell: { select: { name: true } } }
         })
       : [];
-
-  const visibleBookings =
-    user.role === "admin"
-      ? event.bookings
-      : user.role === "cell leader"
-        ? event.bookings.filter((b) => b.user.cellId === user.cellId)
-        : [];
 
   const canRemoveAttendees = user.role === "admin" || user.role === "cell leader";
   const canCancel = !!myBooking; // policy: own cancel anytime
@@ -101,10 +94,49 @@ export default async function EventPage({
           {orgLabel ? ` · ${orgLabel}` : ""}
         </p>
         <p className="event-going-count">
-          {count === 1 ? "1 person planning to go" : `${count} planning to go`}
+          {count === 1 ? "1 person planning to go" : `${count} people planning to go`}
           {event.capacity !== null ? ` of ${event.capacity}` : ""}
           {full ? " — this event is full." : ""}
         </p>
+        <section aria-label="Attendees" className="event-attendees">
+          <h2>Attendees</h2>
+          {event.bookings.length ? (
+            <div className="table-wrap">
+              <table className="data stack-sm">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Cell number</th>
+                    <th>Cell</th>
+                    <th>Attendance</th>
+                    {canRemoveAttendees ? <th>Actions</th> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {event.bookings.map((b) => (
+                    <tr key={b.id}>
+                      <td data-label="Name">{b.user.name}</td>
+                      <td data-label="Cell number">{b.user.cellNumber}</td>
+                      <td data-label="Cell">{b.user.cell?.name ?? ""}</td>
+                      <td data-label="Attendance">
+                        <span className={attendanceChipClass(b.attendance)}>
+                          {attendanceLabel(b.attendance, { past })}
+                        </span>
+                      </td>
+                      {canRemoveAttendees ? (
+                        <td data-label="Actions">
+                          <RemoveAttendeeButton eventId={event.id} userId={b.userId} name={b.user.name} />
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="muted">Nobody has booked yet.</p>
+          )}
+        </section>
         <EventActions
           eventId={event.id}
           seriesId={event.seriesId}
@@ -130,25 +162,6 @@ export default async function EventPage({
           </p>
         ) : null}
         {event.notes ? <p>{event.notes}</p> : null}
-        {user.role === "member" && settings.memberAttendeeView === "COUNT_AND_INITIALS" ? (
-          <p className="muted">
-            Initials: {event.bookings.map((b) => initialsFromName(b.user.name)).join(", ") || "nobody yet"}
-          </p>
-        ) : null}
-        {(user.role === "member" || user.role === "cell leader") &&
-        settings.memberAttendeeView === "COUNT_AND_NAME_CELL" ? (
-          event.bookings.length ? (
-            <ul className="attendee-list">
-              {event.bookings.map((b) => (
-                <li key={b.id}>
-                  {b.user.name} <span className="muted">· {b.user.cellNumber}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">Nobody has booked yet.</p>
-          )
-        ) : null}
         {showFeedback ? <EventFeedbackBox eventId={event.id} eventTitle={event.title} /> : null}
         {existingFeedback ? (
           <p className="muted" data-testid="event-feedback-saved">
@@ -160,10 +173,11 @@ export default async function EventPage({
         <BookCellMembers
           eventId={event.id}
           actorId={user.id}
-          members={cellMembers.map((m) => ({ id: m.id, name: m.name }))}
+          members={cellMembers.map((m) => ({ id: m.id, name: m.name, cellNumber: m.cellNumber, cellName: m.cell?.name ?? "" }))}
           bookedMemberIds={event.bookings.map((b) => b.userId)}
-          hasCell={Boolean(user.cellId)}
+          hasCell={user.role === "admin" || Boolean(user.cellId)}
           full={full}
+          scope={user.role === "admin" ? "all" : "cell"}
         />
       ) : null}
       {event.lat != null && event.lng != null ? (
@@ -174,43 +188,6 @@ export default async function EventPage({
       ) : (
         <p className="muted">No map pin for this event.</p>
       )}
-      {visibleBookings.length ? (
-        <section>
-          <h2>{user.role === "admin" ? "Everyone who has booked" : "Your cell"}</h2>
-          <div className="table-wrap">
-            <table className="data stack-sm">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Cell number</th>
-                  <th>Cell</th>
-                  <th>Attendance</th>
-                  {canRemoveAttendees ? <th>Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleBookings.map((b) => (
-                  <tr key={b.id}>
-                    <td data-label="Name">{b.user.name}</td>
-                    <td data-label="Cell number">{b.user.cellNumber}</td>
-                    <td data-label="Cell">{b.user.cell?.name}</td>
-                    <td data-label="Attendance">
-                      <span className={attendanceChipClass(b.attendance)}>
-                        {attendanceLabel(b.attendance, { past })}
-                      </span>
-                    </td>
-                    {canRemoveAttendees ? (
-                      <td data-label="Actions">
-                        <RemoveAttendeeButton eventId={event.id} userId={b.userId} name={b.user.name} />
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
     </main>
   );
 }

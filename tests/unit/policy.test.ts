@@ -34,10 +34,10 @@ describe("canBookFor", () => {
 });
 
 describe("canDelegateBooking", () => {
-  it("shows the book-cell panel to cell leaders only", () => {
+  it("shows delegate booking to admins and cell leaders only", () => {
     expect(canDelegateBooking(leader)).toBe(true);
     expect(canDelegateBooking(leaderNoCell)).toBe(true);
-    expect(canDelegateBooking(admin)).toBe(false);
+    expect(canDelegateBooking(admin)).toBe(true);
     expect(canDelegateBooking(member)).toBe(false);
   });
 });
@@ -52,9 +52,9 @@ describe("canCancelBooking", () => {
     expect(canCancelBooking(member, { userId: other.id, userCellId: "c2" }, false).ok).toBe(false);
   });
 
-  it("lets a cell leader cancel in their cell, not another", () => {
+  it("lets a cell leader cancel bookings across cells", () => {
     expect(canCancelBooking(leader, { userId: member.id, userCellId: "c1" }, true).ok).toBe(true);
-    expect(canCancelBooking(leader, { userId: other.id, userCellId: "c2" }, false).ok).toBe(false);
+    expect(canCancelBooking(leader, { userId: other.id, userCellId: "c2" }, false).ok).toBe(true);
   });
 });
 

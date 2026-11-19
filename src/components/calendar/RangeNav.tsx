@@ -1,32 +1,9 @@
 import Link from "next/link";
 import { CALENDAR_VIEW_ORDER, calendarHref, rangeLabel, stepAnchor, type CalendarState, type DayKey } from "@/lib/calendar";
 
-export function RangeNav({ state, today }: { state: CalendarState; today: DayKey }) {
-  const prev = stepAnchor(state.view, state.anchor, -1);
-  const next = stepAnchor(state.view, state.anchor, 1);
+export function RangeNav({ state }: { state: CalendarState }) {
   return (
     <div className="calendar-nav">
-      <div className="row calendar-nav-step">
-        <Link className="button ghost" href={calendarHref(state, { anchor: today })} scroll={false}>
-          Today
-        </Link>
-        <Link
-          className="button ghost calendar-nav-chevron"
-          href={calendarHref(state, { anchor: prev })}
-          scroll={false}
-          aria-label="Previous"
-        >
-          ←
-        </Link>
-        <Link
-          className="button ghost calendar-nav-chevron"
-          href={calendarHref(state, { anchor: next })}
-          scroll={false}
-          aria-label="Next"
-        >
-          →
-        </Link>
-      </div>
       <h2 className="range-heading" aria-live="polite">
         {rangeLabel(state.view, state.anchor)}
       </h2>
@@ -43,6 +20,26 @@ export function RangeNav({ state, today }: { state: CalendarState; today: DayKey
             {v.label}
           </Link>
         ))}
+      </div>
+    </div>
+  );
+}
+
+export function CalendarDateControls({ state, today }: { state: CalendarState; today: DayKey }) {
+  const prev = stepAnchor(state.view, state.anchor, -1);
+  const next = stepAnchor(state.view, state.anchor, 1);
+  return (
+    <div className="calendar-date-controls">
+      <div className="row calendar-nav-step">
+        <Link className="button ghost" href={calendarHref(state, { anchor: today })} scroll={false}>
+          Today
+        </Link>
+        <Link className="button ghost calendar-nav-chevron" href={calendarHref(state, { anchor: prev })} scroll={false} aria-label="Previous">
+          ←
+        </Link>
+        <Link className="button ghost calendar-nav-chevron" href={calendarHref(state, { anchor: next })} scroll={false} aria-label="Next">
+          →
+        </Link>
       </div>
     </div>
   );

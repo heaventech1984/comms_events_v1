@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CATEGORIES, type Category, type MemberAttendeeView } from "@/lib/constants";
+import { CATEGORIES, type Category } from "@/lib/constants";
 import { MEETUP_BIRMINGHAM_FIND_URL, STARTER_PRIORITY_URL } from "@/lib/scraper/allowlist";
 import {
   droppedPriorityUrlMessage,
@@ -21,7 +21,6 @@ import { StatusBanner } from "./StatusBanner";
 type Settings = {
   locationLabel: string;
   scrapeRadiusMiles: number;
-  memberAttendeeView: MemberAttendeeView;
   enabled: Record<Category, boolean>;
   colours: Record<string, string>;
   priorityUrls: string[];
@@ -73,7 +72,6 @@ export function ScraperForm({
     return {
       locationLabel: form.get("locationLabel"),
       scrapeRadiusMiles: form.get("scrapeRadiusMiles"),
-      memberAttendeeView: form.get("memberAttendeeView"),
       enabled: Object.fromEntries(CATEGORIES.map((c) => [c, form.get(`enabled-${c}`) === "on"])),
       colours: Object.fromEntries(CATEGORIES.map((c) => [c, form.get(`colour-${c}`)])),
       priorityUrls: priorityText
@@ -301,15 +299,6 @@ export function ScraperForm({
             The city named on the event page is measured from the city centre. 10 miles is the starting point.
             A town further out, such as Wolverhampton, is left out until this number is raised.
           </span>
-        </label>
-        <label>
-          What members see for attendees
-          <select name="memberAttendeeView" defaultValue={settings.memberAttendeeView}>
-            <option value="COUNT">Count only</option>
-            <option value="COUNT_AND_INITIALS">Count and initials</option>
-            <option value="COUNT_AND_NAME_CELL">Count and Name + Cell</option>
-          </select>
-          <span className="muted">Name + cell shows every member the name and cell number of everyone booked.</span>
         </label>
         <fieldset className="stack">
           <legend>Event types</legend>

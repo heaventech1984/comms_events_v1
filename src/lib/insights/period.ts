@@ -5,6 +5,15 @@ import type { InsightsFilters, InsightsFormat, PeriodPreset } from "./types";
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
+/** Rolling view of today and the next six London calendar days, starting from now. */
+export function nextSevenDaysWindow(now = new Date()): { from: Date; to: Date } {
+  const end = addDaysKey(dayKeyOf(now), 7);
+  return {
+    from: now,
+    to: londonDate(end.year, end.month, end.day, 0, 0)
+  };
+}
+
 export function parseInsightsParams(
   params: Record<string, string | undefined>,
   now = new Date()

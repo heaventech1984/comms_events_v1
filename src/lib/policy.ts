@@ -12,9 +12,9 @@ export type Decision = { ok: true } | { ok: false; status: 403; reason: string }
 const allow: Decision = { ok: true };
 const deny = (reason: string): Decision => ({ ok: false, status: 403, reason });
 
-/** Show the F04 “book people in your cell” panel. Booking itself still goes through canBookFor. */
+/** Show the delegate booking panel to admins and cell leaders. Booking still goes through canBookFor. */
 export function canDelegateBooking(actor: Actor): boolean {
-  return actor.role === "cell leader";
+  return actor.role === "admin" || actor.role === "cell leader";
 }
 
 /** Members book themselves; cell leaders book members of their own cell; admins book anyone. */
@@ -25,7 +25,7 @@ export function canBookFor(actor: Actor, target: { id: string; cellId: string | 
   return allow;
 }
 
-/** Anyone may cancel their own place at any time; leaders cancel within their cell at any time. */
+/** Members cancel their own place; admins and cell leaders may remove any booking. */
 export function canCancelBooking(
   actor: Actor,
   booking: { userId: string; userCellId: string | null },
@@ -36,10 +36,7 @@ export function canCancelBooking(
     if (actor.id !== booking.userId) return deny("You can only cancel your own booking.");
     return allow;
   }
-  if (!actor.cellId || booking.userCellId !== actor.cellId) {
-    return deny("You can only cancel bookings for your own cell.");
-  }
-  return allow;
+  return actor.role === "cell leader" ? allow : deny("You cannot cancel this booking.");
 }
 
 /** Attendee exports: admin sees everyone, a cell leader sees their own cell, members cannot export. */

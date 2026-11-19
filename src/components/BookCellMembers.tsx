@@ -12,14 +12,16 @@ export function BookCellMembers({
   members,
   bookedMemberIds,
   hasCell,
-  full
+  full,
+  scope
 }: {
   eventId: string;
   actorId: string;
-  members: { id: string; name: string }[];
+  members: { id: string; name: string; cellNumber: string; cellName: string }[];
   bookedMemberIds: string[];
   hasCell: boolean;
   full: boolean;
+  scope: "cell" | "all";
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -37,7 +39,8 @@ export function BookCellMembers({
     hasCell,
     memberCount: members.length,
     bookableCount: bookableCellMembers({ members, bookedIds: bookedMemberIds, actorId }).length,
-    full
+    full,
+    scope
   });
   const showSearch = others.length > 6 && !emptyReason;
 
@@ -60,8 +63,8 @@ export function BookCellMembers({
   return (
     <section className="card stack book-cell-panel" data-testid="book-cell-members">
       <div>
-        <h2>Book people in your cell</h2>
-        <p className="lede">Pick someone. They will show as Going.</p>
+        <h2>{scope === "all" ? "Book an attendee" : "Book people in your cell"}</h2>
+        <p className="lede">{scope === "all" ? "Choose a member from any cell." : "Pick someone from your cell."} They will show as Going.</p>
       </div>
       <StatusBanner message={message} kind={kind} />
       {emptyReason ? (
@@ -90,7 +93,7 @@ export function BookCellMembers({
             <ul className="book-cell-list">
               {bookable.map((member) => (
                 <li key={member.id} className="book-cell-row" data-testid="book-cell-row">
-                  <span>{member.name}</span>
+                  <span>{member.name} <span className="muted">· {member.cellNumber}{member.cellName ? ` · ${member.cellName}` : ""}</span></span>
                   <button
                     className={`secondary${flashId === member.id ? " book-flash" : ""}`}
                     type="button"

@@ -11,7 +11,7 @@ import { CalendarMapSection } from "@/components/calendar/CalendarMapSection";
 import { CalendarFilterMemory } from "@/components/calendar/CalendarFilterMemory";
 import { CalendarScrollMemory } from "@/components/calendar/CalendarScrollMemory";
 import { FilterBar } from "@/components/calendar/FilterBar";
-import { RangeNav } from "@/components/calendar/RangeNav";
+import { CalendarDateControls, RangeNav } from "@/components/calendar/RangeNav";
 import { MonthGrid } from "@/components/calendar/MonthGrid";
 import { MonthDayAgenda } from "@/components/calendar/MonthDayAgenda";
 import { WeekTimeGrid } from "@/components/calendar/WeekTimeGrid";
@@ -107,8 +107,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         <Suspense fallback={null}>
           <CalendarFilterMemory />
         </Suspense>
-        <RangeNav state={state} today={today} />
+        <RangeNav state={state} />
         <CalendarTimeBand state={state} />
+        <CalendarDateControls state={state} today={today} />
 
         {state.view === "month" ? (
           <div className="calendar-month-layout">

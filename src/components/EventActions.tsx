@@ -173,6 +173,7 @@ export function RemoveAttendeeButton({
   const router = useRouter();
   const [dialog, confirm] = useConfirm();
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function remove() {
     const ok = await confirm({
@@ -183,8 +184,12 @@ export function RemoveAttendeeButton({
     });
     if (!ok) return;
     setBusy(true);
-    await requestJson("/api/bookings", { method: "DELETE", body: { eventId, userId } });
+    const result = await requestJson("/api/bookings", { method: "DELETE", body: { eventId, userId } });
     setBusy(false);
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
     router.refresh();
   }
 
@@ -193,6 +198,7 @@ export function RemoveAttendeeButton({
       <button className="ghost" type="button" onClick={remove} disabled={busy} data-testid="remove-attendee">
         Remove
       </button>
+      <StatusBanner message={message} kind="error" />
       {dialog}
     </>
   );

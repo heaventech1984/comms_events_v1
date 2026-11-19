@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aggregateInsights, pctLabel } from "@/lib/insights/aggregate";
-import { parseInsightsParams, previousWindow } from "@/lib/insights/period";
+import { nextSevenDaysWindow, parseInsightsParams, previousWindow } from "@/lib/insights/period";
 import { summaryLines, tablesFor } from "@/lib/insights/format";
 import { shareSummary, shareTargets } from "@/lib/insights/share";
 import type { RawInsights } from "@/lib/insights/types";
@@ -152,6 +152,18 @@ describe("period and share", () => {
     const parsed = parseInsightsParams({}, nowDate);
     expect(parsed.preset).toBe("30");
     expect(parsed.to.getTime() - parsed.from.getTime()).toBe(30 * 24 * 60 * 60 * 1000);
+  });
+
+  it("covers the rest of today and the next six London dates", () => {
+    const nowDate = new Date("2026-11-18T12:00:00Z");
+    const window = nextSevenDaysWindow(nowDate);
+    expect(window.from).toEqual(nowDate);
+    expect(window.to.toISOString()).toBe("2026-11-25T00:00:00.000Z");
+  });
+
+  it("ends at London midnight across the spring clock change", () => {
+    const window = nextSevenDaysWindow(new Date("2026-03-27T12:00:00Z"));
+    expect(window.to.toISOString()).toBe("2026-04-02T23:00:00.000Z");
   });
 
   it("builds a previous window of the same length", () => {
