@@ -233,6 +233,17 @@ function failedFeedCount(raw?: string): number {
   }
 }
 
+/** Reach, Showing up, and Room & sharing for a recent day count. Charts keep their own window. */
+export function kpisForRecentDays(raw: RawInsights, filters: InsightsFilters, days: number, now = new Date()) {
+  const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const publishedAll = raw.events.filter((e) => e.status === "PUBLISHED" && eventMatches(e, filters));
+  const published = publishedAll.filter((e) => inWindow(e.startsAt, from, now));
+  const publishedIds = new Set(published.map((e) => e.id));
+  const bookings = raw.bookings.filter((b) => publishedIds.has(b.eventId));
+  const stars = raw.stars.filter((s) => publishedIds.has(s.eventId)).length;
+  return kpisFor(published, bookings, raw.members, stars, now);
+}
+
 export function pctLabel(value: number | null): string {
   if (value === null) return "—";
   return `${Math.round(value * 100)}%`;

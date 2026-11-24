@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { writeAudit } from "./audit";
+import { eventStillBookable } from "./event-window";
 import { canBookFor, canCancelBooking } from "./policy";
 import type { SessionUser } from "./session";
 
@@ -29,6 +30,9 @@ export async function attendEvent(opts: {
       const event = await tx.event.findUnique({ where: { id: opts.eventId } });
       if (!event || event.status !== "PUBLISHED") {
         throw new BookingError("That event is not on the calendar.");
+      }
+      if (!eventStillBookable(event.endsAt, new Date())) {
+        throw new BookingError("This event has finished.");
       }
       const target = await tx.user.findUnique({ where: { id: opts.userId } });
       if (!target || !target.active) {

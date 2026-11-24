@@ -131,7 +131,7 @@ export function EventActions({
         {canConfirmOwn ? (
           <>
             <button type="button" onClick={() => markOwn("ATTENDED")} disabled={busy}>
-              I went
+              I attended
             </button>
             <button className="secondary" type="button" onClick={() => markOwn("ABSENT")} disabled={busy}>
               I didn’t

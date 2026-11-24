@@ -11,7 +11,6 @@ import { StatusBanner } from "./StatusBanner";
 import { LocationPicker } from "./LocationPicker";
 import { useConfirm } from "./ConfirmDialog";
 import type { GeocodeHit } from "@/lib/geocode";
-import { eventFromCalendarHref } from "@/lib/calendar";
 import { toDatetimeLocalValue } from "@/lib/time";
 
 type Org = { id: string; name: string };
@@ -113,7 +112,7 @@ export function EventForm({
       return;
     }
     if (pending) leave("/pending");
-    else leave(result.data.id ? eventFromCalendarHref(result.data.id, backHref || "/calendar") : backHref || "/calendar");
+    else leave(backHref || "/calendar");
   }
 
   async function findOnMap() {
@@ -171,7 +170,7 @@ export function EventForm({
       setMessage(result.error);
       return;
     }
-    leave("/calendar");
+    leave(backHref || "/calendar");
   }
 
   return (

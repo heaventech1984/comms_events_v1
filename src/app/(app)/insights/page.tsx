@@ -3,9 +3,9 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { insightsScope } from "@/lib/policy";
-import { nextSevenDaysWindow, parseInsightsParams, insightsHref } from "@/lib/insights/period";
+import { parseInsightsParams, parseRecentDays, insightsHref } from "@/lib/insights/period";
 import { loadRawInsights } from "@/lib/insights/load";
-import { aggregateInsights, pctLabel } from "@/lib/insights/aggregate";
+import { aggregateInsights, kpisForRecentDays, pctLabel } from "@/lib/insights/aggregate";
 import { shareSummary } from "@/lib/insights/share";
 import {
   FEEDBACK_RATING_LABELS,
@@ -25,7 +25,7 @@ import {
 } from "@/components/insights/Charts";
 import { ExportShare } from "@/components/insights/ExportShare";
 import { formatDate, formatDateTimeRange } from "@/lib/time";
-import { dayKeyOf, formatDayKey } from "@/lib/calendar";
+import { dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
 
 export default async function InsightsPage({
   searchParams
@@ -50,15 +50,22 @@ export default async function InsightsPage({
   const filters = { ...requested, cellId: scope.kind === "cell" ? scope.cellId : requested.cellId };
   const feedbackExtra = parseFeedbackQuery(params);
   const now = new Date();
-  const upcomingWindow = nextSevenDaysWindow(now);
-  const [raw, settings, upcomingEvents, feedback] = await Promise.all([
+  const attendedDays = parseRecentDays(params.attended, 7);
+  const kpiDays = parseRecentDays(params.kpi, 30);
+  const attendedFrom = new Date(now.getTime() - attendedDays * 24 * 60 * 60 * 1000);
+  const [raw, settings, attendedEvents, feedback] = await Promise.all([
     loadRawInsights(scope, filters),
     getSettings(),
     prisma.event.findMany({
       where: {
         status: "PUBLISHED",
-        startsAt: { gte: upcomingWindow.from, lt: upcomingWindow.to },
-        bookings: { some: {} }
+        startsAt: { gte: attendedFrom, lte: now },
+        bookings: {
+          some: {
+            attendance: "ATTENDED",
+            ...(scope.kind === "cell" ? { user: { cellId: scope.cellId } } : {})
+          }
+        }
       },
       select: {
         id: true,
@@ -66,11 +73,15 @@ export default async function InsightsPage({
         startsAt: true,
         endsAt: true,
         bookings: {
+          where: {
+            attendance: "ATTENDED",
+            ...(scope.kind === "cell" ? { user: { cellId: scope.cellId } } : {})
+          },
           select: { id: true, user: { select: { name: true, cellNumber: true } } },
-          orderBy: { bookedAt: "asc" }
+          orderBy: { user: { name: "asc" } }
         }
       },
-      orderBy: { startsAt: "asc" }
+      orderBy: { startsAt: "desc" }
     }),
     loadFeedbackRows(
       scope,
@@ -81,6 +92,15 @@ export default async function InsightsPage({
     )
   ]);
   const data = aggregateInsights(raw, filters, scope);
+  const kpiNumbers = kpisForRecentDays(raw, filters, kpiDays, now);
+  const attendedGroups = new Map<string, { label: string; events: typeof attendedEvents }>();
+  for (const event of attendedEvents) {
+    const key = formatDayKey(dayKeyOf(event.startsAt));
+    const group = attendedGroups.get(key) ?? { label: formatDayLabel(dayKeyOf(event.startsAt)), events: [] };
+    group.events.push(event);
+    attendedGroups.set(key, group);
+  }
+  const attendedByDay = [...attendedGroups.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
   const origin = process.env.APP_ORIGIN ?? "http://localhost:3000";
   const text = shareSummary(data, origin, filters);
   const firstName = user.name.trim().split(/\s+/)[0] || "Hello";
@@ -105,30 +125,67 @@ export default async function InsightsPage({
         </p>
       </div>
 
-      <section className="card stack insights-upcoming" aria-label="Events with attendees in the next seven days">
-        <h2>Events with attendees in the next 7 days</h2>
-        {upcomingEvents.length ? (
-          <ul className="insights-upcoming-list">
-            {upcomingEvents.map((event) => (
-              <li key={event.id}>
-                <h3><Link href={`/events/${event.id}`}>{event.title}</Link></h3>
-                <p className="muted">{formatDateTimeRange(event.startsAt, event.endsAt)}</p>
-                <ul className="attendee-list">
-                  {event.bookings.map((booking) => (
-                    <li key={booking.id}>
-                      {booking.user.name} <span className="muted">· {booking.user.cellNumber}</span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+      <section className="card stack insights-upcoming" aria-label="People who attended">
+        <form className="row" method="get">
+          <input type="hidden" name="period" value={filters.preset} />
+          <input type="hidden" name="kpi" value={String(kpiDays)} />
+          {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
+          {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
+          {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
+          <h2>People who attended</h2>
+          <label>
+            Show
+            <select name="attended" defaultValue={String(attendedDays)}>
+              <option value="7">Past 7 days</option>
+              <option value="30">Past 30 days</option>
+              <option value="90">Past 90 days</option>
+            </select>
+          </label>
+          <button type="submit">Show</button>
+        </form>
+        {attendedByDay.length ? (
+          attendedByDay.map(([key, group]) => (
+            <div key={key}>
+              <h3>{group.label}</h3>
+              <ul className="insights-upcoming-list">
+                {group.events.map((event) => (
+                  <li key={event.id}>
+                    <p><Link href={`/events/${event.id}`}>{event.title}</Link></p>
+                    <p className="muted">{formatDateTimeRange(event.startsAt, event.endsAt)}</p>
+                    <ul className="attendee-list">
+                      {event.bookings.map((booking) => (
+                        <li key={booking.id}>
+                          {booking.user.name} <span className="muted">· {booking.user.cellNumber}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
         ) : (
-          <p className="muted">No upcoming events with attendees in the next 7 days.</p>
+          <p className="muted">Nobody is marked as attended in the past {attendedDays} days.</p>
         )}
       </section>
 
-      <KpiStrip {...data.kpis} />
+      <form className="row" method="get">
+        <input type="hidden" name="period" value={filters.preset} />
+        <input type="hidden" name="attended" value={String(attendedDays)} />
+        {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
+        {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
+        {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
+        <label>
+          Reach, showing up, and room
+          <select name="kpi" defaultValue={String(kpiDays)}>
+            <option value="7">Past 7 days</option>
+            <option value="30">Past 30 days</option>
+            <option value="90">Past 90 days</option>
+          </select>
+        </label>
+        <button type="submit">Show</button>
+      </form>
+      <KpiStrip {...kpiNumbers} />
 
       <h2 className="insights-section-title">Activity</h2>
       <ChartCard

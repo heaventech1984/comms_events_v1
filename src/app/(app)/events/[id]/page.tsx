@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { attendanceChipClass, attendanceLabel } from "@/lib/attendance-label";
 import { calendarBackHref } from "@/lib/calendar";
+import { eventStillBookable, onAttendanceDay } from "@/lib/event-window";
 import { formatWhereLine, tidyOrgName } from "@/lib/place";
 import { formatDateTimeRange } from "@/lib/time";
 
@@ -30,13 +31,14 @@ export default async function EventPage({
   const settings = await getSettings();
   const event = await prisma.event.findUnique({
     where: { id },
-    include: { bookings: { include: { user: { include: { cell: true } }, bookedBy: true } } }
+    include: { bookings: { include: { user: true, bookedBy: true } } }
   });
   if (!event) notFound();
   if (event.status !== "PUBLISHED" && !canReview(user)) notFound();
 
   const now = new Date();
-  const past = event.startsAt <= now;
+  const finished = !eventStillBookable(event.endsAt, now);
+  const attendanceDay = onAttendanceDay(event.startsAt, event.endsAt, now);
   const myBooking = event.bookings.find((b) => b.userId === user.id);
   const count = event.bookings.length;
   const full = event.capacity !== null && count >= event.capacity;
@@ -55,21 +57,21 @@ export default async function EventPage({
 
   const canRemoveAttendees = user.role === "admin" || user.role === "cell leader";
   const canCancel = !!myBooking; // policy: own cancel anytime
-  const canConfirmOwn = !!myBooking && past && myBooking.attendance === "UNCONFIRMED";
+  const canConfirmOwn = !!myBooking && attendanceDay && myBooking.attendance === "UNCONFIRMED";
   const existingFeedback =
     myBooking?.attendance === "ATTENDED"
       ? await prisma.eventFeedback.findUnique({
           where: { userId_eventId: { userId: user.id, eventId: event.id } }
         })
       : null;
-  const showFeedback = past && myBooking?.attendance === "ATTENDED" && !existingFeedback;
+  const showFeedback = attendanceDay && myBooking?.attendance === "ATTENDED" && !existingFeedback;
   const orgLabel = tidyOrgName(event.organisationName);
   const whereLine = formatWhereLine(event.online, event.placeName);
 
   return (
     <main className="stack">
       <p>
-        <Link href={backHref}>Back to calendar</Link>
+        <Link className="button" href={backHref}>Back to calendar</Link>
       </p>
       <div
         className="page-head event-hero card"
@@ -107,9 +109,8 @@ export default async function EventPage({
                   <tr>
                     <th>Name</th>
                     <th>Cell number</th>
-                    <th>Cell</th>
                     <th>Attendance</th>
-                    {canRemoveAttendees ? <th>Actions</th> : null}
+                    {canRemoveAttendees ? <th>Action</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -117,14 +118,13 @@ export default async function EventPage({
                     <tr key={b.id}>
                       <td data-label="Name">{b.user.name}</td>
                       <td data-label="Cell number">{b.user.cellNumber}</td>
-                      <td data-label="Cell">{b.user.cell?.name ?? ""}</td>
                       <td data-label="Attendance">
                         <span className={attendanceChipClass(b.attendance)}>
-                          {attendanceLabel(b.attendance, { past })}
+                          {attendanceLabel(b.attendance, { past: finished })}
                         </span>
                       </td>
                       {canRemoveAttendees ? (
-                        <td data-label="Actions">
+                        <td data-label="Action">
                           <RemoveAttendeeButton eventId={event.id} userId={b.userId} name={b.user.name} />
                         </td>
                       ) : null}
@@ -150,7 +150,7 @@ export default async function EventPage({
           myAttendance={myBooking?.attendance}
           myBookingId={myBooking?.id}
           canConfirmOwn={canConfirmOwn}
-          past={past}
+          past={finished}
         />
         {event.externalUrl ? (
           <p>

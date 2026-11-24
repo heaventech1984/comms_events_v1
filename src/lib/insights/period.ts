@@ -49,6 +49,11 @@ export function parseInsightsParams(
   return { from, to, preset, category, format, cellId };
 }
 
+export function parseRecentDays(value: string | undefined, fallback: 7 | 30 | 90): 7 | 30 | 90 {
+  if (value === "7" || value === "30" || value === "90") return Number(value) as 7 | 30 | 90;
+  return fallback;
+}
+
 export function previousWindow(from: Date, to: Date): { from: Date; to: Date } {
   const span = Math.max(to.getTime() - from.getTime(), MS_DAY);
   return { from: new Date(from.getTime() - span), to: from };

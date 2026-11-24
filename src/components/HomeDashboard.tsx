@@ -3,6 +3,7 @@ import { EventFeedbackBox } from "@/components/EventFeedbackBox";
 import { GatherMark } from "@/components/GatherMark";
 import { KindChooser } from "@/components/KindChooser";
 import { addDaysKey, dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
+import { onAttendanceDay } from "@/lib/event-window";
 import { eventsNeedingFeedback } from "@/lib/feedback";
 import { prisma } from "@/lib/db";
 import { formatWhereLine } from "@/lib/place";
@@ -77,12 +78,15 @@ export async function HomeDashboard({ userId }: { userId: string }) {
     where: {
       userId,
       attendance: "UNCONFIRMED",
-      event: { status: "PUBLISHED", endsAt: { lt: now } }
+      event: { status: "PUBLISHED", endsAt: { lte: now } }
     },
     include: { event: true },
     orderBy: { event: { startsAt: "desc" } },
     take: 10
   });
+  const confirmToday = toConfirm.filter((booking) =>
+    onAttendanceDay(booking.event.startsAt, booking.event.endsAt, now)
+  );
   const [picks, needingFeedback] = await Promise.all([
     loadRecommendations(userId, now),
     eventsNeedingFeedback(userId, now)
@@ -103,7 +107,7 @@ export async function HomeDashboard({ userId }: { userId: string }) {
 
   const showUpcoming = rest.length > 0;
   const showForYou = picks.length > 0;
-  const showConfirm = toConfirm.length > 0 || needingFeedback.length > 0;
+  const showConfirm = confirmToday.length > 0 || needingFeedback.length > 0;
   const showNew = Boolean(since) && newEvents.length > 0;
 
   return (
@@ -135,7 +139,7 @@ export async function HomeDashboard({ userId }: { userId: string }) {
           </Link>
           {showConfirm ? (
             <a className="button ghost home-cta-secondary" href="#home-confirm">
-              Confirm {toConfirm.length + needingFeedback.length === 1 ? "1 event" : `${toConfirm.length + needingFeedback.length} events`}
+              Confirm {confirmToday.length + needingFeedback.length === 1 ? "1 event" : `${confirmToday.length + needingFeedback.length} events`}
             </a>
           ) : null}
         </div>
@@ -217,9 +221,9 @@ export async function HomeDashboard({ userId }: { userId: string }) {
           <h2 id="home-confirm-heading" className="home-band-title">
             Confirm attendance
           </h2>
-          {toConfirm.length ? (
+          {confirmToday.length ? (
             <ul className="home-simple-list">
-              {toConfirm.map((b) => (
+              {confirmToday.map((b) => (
                 <li key={b.id}>
                   <Link href={`/events/${b.event.id}`}>
                     <span className="home-simple-title">{b.event.title}</span>

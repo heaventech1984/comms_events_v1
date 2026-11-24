@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Show attendees and booking controls consistently* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Attend until the finish, then mark the day* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,12 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-24 — Attend until the finish, then mark the day
+
+- Attend stays open until the event finishes. After it finishes, on the calendar day it occupies, a booked person can press I attended or I didn’t. I attended then asks how it felt. The next London day, those buttons and the ask are gone.
+- Insights lists people marked attended, grouped by the London day the event started. Its own menu is the past 7, 30, or 90 days. Reach, Showing up, and Room & sharing share a second menu for those same three windows. The activity charts keep the period they already had.
+- Saving or deleting a published event returns to the calendar view you came from. Back to calendar on an event is a button. The attendee table is Name, Cell number, Attendance, and Action.
 
 ## 2026-11-19 — Show attendees and booking controls consistently
 
