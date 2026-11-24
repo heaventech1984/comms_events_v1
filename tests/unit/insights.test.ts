@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aggregateInsights, pctLabel } from "@/lib/insights/aggregate";
-import { nextSevenDaysWindow, parseInsightsParams, previousWindow } from "@/lib/insights/period";
+import { nextSevenDaysWindow, parseAttendanceSpan, parseInsightsParams, pastSevenDaysWindow, previousWindow } from "@/lib/insights/period";
 import { summaryLines, tablesFor } from "@/lib/insights/format";
 import { shareSummary, shareTargets } from "@/lib/insights/share";
 import type { RawInsights } from "@/lib/insights/types";
@@ -164,6 +164,19 @@ describe("period and share", () => {
   it("ends at London midnight across the spring clock change", () => {
     const window = nextSevenDaysWindow(new Date("2026-03-27T12:00:00Z"));
     expect(window.to.toISOString()).toBe("2026-04-02T23:00:00.000Z");
+  });
+
+  it("defaults people attendance to the next 7 days", () => {
+    expect(parseAttendanceSpan(undefined)).toBe("next");
+    expect(parseAttendanceSpan("7")).toBe("next");
+    expect(parseAttendanceSpan("past")).toBe("past");
+  });
+
+  it("starts the past 7 days at London midnight a week ago", () => {
+    const nowDate = new Date("2026-11-18T12:00:00Z");
+    const window = pastSevenDaysWindow(nowDate);
+    expect(window.from.toISOString()).toBe("2026-11-11T00:00:00.000Z");
+    expect(window.to).toEqual(nowDate);
   });
 
   it("builds a previous window of the same length", () => {

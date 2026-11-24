@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { insightsScope } from "@/lib/policy";
-import { parseInsightsParams, parseRecentDays, insightsHref } from "@/lib/insights/period";
+import { parseInsightsParams, parseRecentDays, parseAttendanceSpan, nextSevenDaysWindow, pastSevenDaysWindow, insightsHref } from "@/lib/insights/period";
 import { loadRawInsights } from "@/lib/insights/load";
 import { aggregateInsights, kpisForRecentDays, pctLabel } from "@/lib/insights/aggregate";
 import { shareSummary } from "@/lib/insights/share";
@@ -50,19 +50,22 @@ export default async function InsightsPage({
   const filters = { ...requested, cellId: scope.kind === "cell" ? scope.cellId : requested.cellId };
   const feedbackExtra = parseFeedbackQuery(params);
   const now = new Date();
-  const attendedDays = parseRecentDays(params.attended, 7);
+  const attendanceSpan = parseAttendanceSpan(params.attended);
   const kpiDays = parseRecentDays(params.kpi, 30);
-  const attendedFrom = new Date(now.getTime() - attendedDays * 24 * 60 * 60 * 1000);
+  const attendanceWindow = attendanceSpan === "past" ? pastSevenDaysWindow(now) : nextSevenDaysWindow(now);
   const [raw, settings, attendedEvents, feedback] = await Promise.all([
     loadRawInsights(scope, filters),
     getSettings(),
     prisma.event.findMany({
       where: {
         status: "PUBLISHED",
-        startsAt: { gte: attendedFrom, lte: now },
+        startsAt:
+          attendanceSpan === "past"
+            ? { gte: attendanceWindow.from, lte: attendanceWindow.to }
+            : { gte: attendanceWindow.from, lt: attendanceWindow.to },
         bookings: {
           some: {
-            attendance: "ATTENDED",
+            ...(attendanceSpan === "past" ? { attendance: "ATTENDED" as const } : {}),
             ...(scope.kind === "cell" ? { user: { cellId: scope.cellId } } : {})
           }
         }
@@ -74,14 +77,14 @@ export default async function InsightsPage({
         endsAt: true,
         bookings: {
           where: {
-            attendance: "ATTENDED",
+            ...(attendanceSpan === "past" ? { attendance: "ATTENDED" as const } : {}),
             ...(scope.kind === "cell" ? { user: { cellId: scope.cellId } } : {})
           },
           select: { id: true, user: { select: { name: true, cellNumber: true } } },
           orderBy: { user: { name: "asc" } }
         }
       },
-      orderBy: { startsAt: "desc" }
+      orderBy: { startsAt: attendanceSpan === "past" ? "desc" : "asc" }
     }),
     loadFeedbackRows(
       scope,
@@ -100,7 +103,9 @@ export default async function InsightsPage({
     group.events.push(event);
     attendedGroups.set(key, group);
   }
-  const attendedByDay = [...attendedGroups.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  const attendedByDay = [...attendedGroups.entries()].sort((a, b) =>
+    attendanceSpan === "past" ? (a[0] < b[0] ? 1 : -1) : a[0] < b[0] ? -1 : 1
+  );
   const origin = process.env.APP_ORIGIN ?? "http://localhost:3000";
   const text = shareSummary(data, origin, filters);
   const firstName = user.name.trim().split(/\s+/)[0] || "Hello";
@@ -125,28 +130,27 @@ export default async function InsightsPage({
         </p>
       </div>
 
-      <section className="card stack insights-upcoming" aria-label="People who attended">
-        <form className="row" method="get">
+      <section className="card stack insights-upcoming" id="people-attendance" aria-label="People attendance">
+        <form className="row" method="get" action="#people-attendance">
           <input type="hidden" name="period" value={filters.preset} />
           <input type="hidden" name="kpi" value={String(kpiDays)} />
           {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
           {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
           {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
-          <h2>People who attended</h2>
+          <h2>People attendance</h2>
           <label>
             Show
-            <select name="attended" defaultValue={String(attendedDays)}>
-              <option value="7">Past 7 days</option>
-              <option value="30">Past 30 days</option>
-              <option value="90">Past 90 days</option>
+            <select name="attended" defaultValue={attendanceSpan}>
+              <option value="next">Next 7 days</option>
+              <option value="past">Past 7 days</option>
             </select>
           </label>
           <button type="submit">Show</button>
         </form>
         {attendedByDay.length ? (
           attendedByDay.map(([key, group]) => (
-            <div key={key}>
-              <h3>{group.label}</h3>
+            <section key={key} className="attendance-day">
+              <h3 className="attendance-day-heading">{group.label}</h3>
               <ul className="insights-upcoming-list">
                 {group.events.map((event) => (
                   <li key={event.id}>
@@ -162,16 +166,20 @@ export default async function InsightsPage({
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           ))
         ) : (
-          <p className="muted">Nobody is marked as attended in the past {attendedDays} days.</p>
+          <p className="muted">
+            {attendanceSpan === "past"
+              ? "Nobody is marked as having gone in the past 7 days."
+              : "Nobody has clicked Attend in the next 7 days."}
+          </p>
         )}
       </section>
 
-      <form className="row" method="get">
+      <form className="row" id="insights-reach" method="get" action="#insights-reach">
         <input type="hidden" name="period" value={filters.preset} />
-        <input type="hidden" name="attended" value={String(attendedDays)} />
+        <input type="hidden" name="attended" value={attendanceSpan} />
         {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
         {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
         {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
@@ -315,6 +323,8 @@ export default async function InsightsPage({
         </p>
         <form className="insights-feedback-filters" method="get">
           <input type="hidden" name="period" value={filters.preset} />
+          <input type="hidden" name="attended" value={attendanceSpan} />
+          <input type="hidden" name="kpi" value={String(kpiDays)} />
           {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
           {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
           {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}

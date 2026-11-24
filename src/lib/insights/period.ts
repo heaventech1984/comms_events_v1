@@ -49,6 +49,22 @@ export function parseInsightsParams(
   return { from, to, preset, category, format, cellId };
 }
 
+export type AttendanceSpan = "next" | "past";
+
+/** People attendance list. Anything other than "past" means the next 7 days. */
+export function parseAttendanceSpan(value: string | undefined): AttendanceSpan {
+  return value === "past" ? "past" : "next";
+}
+
+/** From the start of the London day seven days ago, up to now. */
+export function pastSevenDaysWindow(now = new Date()): { from: Date; to: Date } {
+  const start = addDaysKey(dayKeyOf(now), -7);
+  return {
+    from: londonDate(start.year, start.month, start.day, 0, 0),
+    to: now
+  };
+}
+
 export function parseRecentDays(value: string | undefined, fallback: 7 | 30 | 90): 7 | 30 | 90 {
   if (value === "7" || value === "30" || value === "90") return Number(value) as 7 | 30 | 90;
   return fallback;

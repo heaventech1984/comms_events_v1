@@ -2199,6 +2199,25 @@ button.linkish {
   padding-top: var(--space-3);
   border-top: 1px solid var(--line);
 }
+.attendance-day {
+  background: var(--paper-2);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  padding: var(--space-3) var(--space-4);
+}
+.attendance-day-heading {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+  color: var(--accent);
+}
+.attendance-day .insights-upcoming-list {
+  margin-left: var(--space-4);
+}
+.attendance-day .attendee-list {
+  margin-left: var(--space-3);
+}
 .insights-upcoming-list h3 { margin: 0; }
 .insights-upcoming-list p { margin: var(--space-1) 0; }
 .insights-feedback-filters {

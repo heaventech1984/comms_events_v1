@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Say I went until the end of the day* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *People attendance, next or past 7 days* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,11 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-24 — People attendance, next or past 7 days
+
+- Insights calls the list People attendance. It opens on the next 7 days, the people who clicked Attend, soonest day first. Past 7 days lists people marked as having gone, latest day first. Each day is a blush band with a berry edge, and the events and names sit indented under the day.
+- Show on Reach, Showing up, and Room reloads beside those tiles. Show on People attendance stays on that card.
 
 ## 2026-11-24 — Say I went until the end of the day
 
