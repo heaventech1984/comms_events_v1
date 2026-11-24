@@ -20,7 +20,8 @@ export function EventActions({
   canEdit,
   myAttendance,
   myBookingId,
-  canConfirmOwn,
+  canSayWent,
+  canSayMissed,
   past
 }: {
   eventId: string;
@@ -34,7 +35,8 @@ export function EventActions({
   canEdit: boolean;
   myAttendance?: string | null;
   myBookingId?: string | null;
-  canConfirmOwn?: boolean;
+  canSayWent?: boolean;
+  canSayMissed?: boolean;
   past?: boolean;
 }) {
   const router = useRouter();
@@ -81,6 +83,18 @@ export function EventActions({
     router.refresh();
   }
 
+  async function sayWent() {
+    setBusy(true);
+    const result = await requestJson("/api/attendance", {
+      method: "POST",
+      body: myBookingId ? { bookingId: myBookingId, attendance: "ATTENDED" } : { eventId, attendance: "ATTENDED" }
+    });
+    setBusy(false);
+    if (!result.ok) return show(result.error, "error");
+    show("Marked as attended.", "info");
+    router.refresh();
+  }
+
   async function markOwn(attendance: "ATTENDED" | "ABSENT") {
     if (!myBookingId) return;
     setBusy(true);
@@ -116,7 +130,7 @@ export function EventActions({
           <span className="chip" aria-current="true">
             You’re going
           </span>
-        ) : full && !booked ? (
+        ) : full && !booked && !past ? (
           <span className="chip">This event is full</span>
         ) : past ? null : (
           <button type="button" onClick={() => attend()} disabled={busy}>
@@ -128,15 +142,15 @@ export function EventActions({
             Cancel booking
           </button>
         ) : null}
-        {canConfirmOwn ? (
-          <>
-            <button type="button" onClick={() => markOwn("ATTENDED")} disabled={busy}>
-              I attended
-            </button>
-            <button className="secondary" type="button" onClick={() => markOwn("ABSENT")} disabled={busy}>
-              I didn’t
-            </button>
-          </>
+        {canSayWent ? (
+          <button type="button" onClick={() => sayWent()} disabled={busy}>
+            I went
+          </button>
+        ) : null}
+        {canSayMissed ? (
+          <button className="secondary" type="button" onClick={() => markOwn("ABSENT")} disabled={busy}>
+            I didn’t
+          </button>
         ) : null}
         <button className="ghost" type="button" onClick={toggleStar} aria-pressed={star}>
           {star ? "Starred" : "Star"}

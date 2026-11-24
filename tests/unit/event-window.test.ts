@@ -11,14 +11,14 @@ describe("event window", () => {
     expect(eventStillBookable(end, end)).toBe(false);
   });
 
-  it("offers I attended after the finish on that calendar day only", () => {
+  it("offers I went after the finish on that calendar day only", () => {
     expect(onAttendanceDay(start, end, londonDate(2026, 11, 24, 19, 0))).toBe(false);
     expect(onAttendanceDay(start, end, londonDate(2026, 11, 24, 20, 0))).toBe(true);
     expect(onAttendanceDay(start, end, londonDate(2026, 11, 24, 23, 30))).toBe(true);
     expect(onAttendanceDay(start, end, londonDate(2026, 11, 25, 9, 0))).toBe(false);
   });
 
-  it("offers I attended on the morning an overnight event finishes", () => {
+  it("offers I went on the morning an overnight event finishes", () => {
     const overnightEnd = londonDate(2026, 11, 25, 1, 0);
     expect(onAttendanceDay(start, overnightEnd, londonDate(2026, 11, 24, 23, 0))).toBe(false);
     expect(onAttendanceDay(start, overnightEnd, londonDate(2026, 11, 25, 1, 0))).toBe(true);

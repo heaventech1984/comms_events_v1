@@ -57,7 +57,8 @@ export default async function EventPage({
 
   const canRemoveAttendees = user.role === "admin" || user.role === "cell leader";
   const canCancel = !!myBooking; // policy: own cancel anytime
-  const canConfirmOwn = !!myBooking && attendanceDay && myBooking.attendance === "UNCONFIRMED";
+  const canSayWent = attendanceDay && (!myBooking || myBooking.attendance === "UNCONFIRMED");
+  const canSayMissed = !!myBooking && attendanceDay && myBooking.attendance === "UNCONFIRMED";
   const existingFeedback =
     myBooking?.attendance === "ATTENDED"
       ? await prisma.eventFeedback.findUnique({
@@ -149,7 +150,8 @@ export default async function EventPage({
           canEdit={canReview(user)}
           myAttendance={myBooking?.attendance}
           myBookingId={myBooking?.id}
-          canConfirmOwn={canConfirmOwn}
+          canSayWent={canSayWent}
+          canSayMissed={canSayMissed}
           past={finished}
         />
         {event.externalUrl ? (

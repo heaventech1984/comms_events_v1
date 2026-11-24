@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { originAllowed, rejectOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
+import { BookingError, recordOwnWent } from "@/lib/booking";
 import { onAttendanceDay } from "@/lib/event-window";
 
 export async function POST(request: NextRequest) {
@@ -14,6 +15,20 @@ export async function POST(request: NextRequest) {
   const attendance = String(body?.attendance ?? "");
   if (attendance !== "ATTENDED" && attendance !== "ABSENT") {
     return NextResponse.json({ error: "Choose Attended or Didn’t attend." }, { status: 400 });
+  }
+  if (!bookingId && attendance === "ATTENDED") {
+    try {
+      const booking = await recordOwnWent({ eventId: String(body?.eventId ?? ""), actor: user });
+      return NextResponse.json({ ok: true, bookingId: booking.id });
+    } catch (error) {
+      if (error instanceof BookingError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
+    }
+  }
+  if (!bookingId) {
+    return NextResponse.json({ error: "You can only say you didn’t go if you had booked." }, { status: 400 });
   }
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },

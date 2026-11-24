@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { writeAudit } from "./audit";
-import { eventStillBookable } from "./event-window";
+import { eventStillBookable, onAttendanceDay } from "./event-window";
 import { canBookFor, canCancelBooking } from "./policy";
 import type { SessionUser } from "./session";
 
@@ -79,6 +79,68 @@ export async function attendEvent(opts: {
       summary: `${opts.actor.name} booked ${result.targetName} onto ${result.title}`
     });
   }
+  return result.booking;
+}
+
+/** After the finish, on that calendar day, record that you went even with no earlier Attend click. */
+export async function recordOwnWent(opts: { eventId: string; actor: SessionUser }) {
+  const now = new Date();
+  const result = await prisma
+    .$transaction(async (tx) => {
+      const locked = await tx.$executeRaw`
+        UPDATE "Event" SET "title" = "title" WHERE id = ${opts.eventId}
+      `;
+      if (locked === 0) throw new BookingError("That event is not on the calendar.");
+      const event = await tx.event.findUnique({ where: { id: opts.eventId } });
+      if (!event || event.status !== "PUBLISHED") {
+        throw new BookingError("That event is not on the calendar.");
+      }
+      if (!onAttendanceDay(event.startsAt, event.endsAt, now)) {
+        throw new BookingError("You can say you went after the event finishes, on the day it is on the calendar.");
+      }
+      const existing = await tx.booking.findUnique({
+        where: { eventId_userId: { eventId: opts.eventId, userId: opts.actor.id } }
+      });
+      if (existing?.attendance === "ATTENDED") {
+        return { booking: existing, created: false, title: event.title };
+      }
+      if (existing?.attendance === "ABSENT") {
+        throw new BookingError("You already said you didn’t go.");
+      }
+      if (existing) {
+        const booking = await tx.booking.update({
+          where: { id: existing.id },
+          data: { attendance: "ATTENDED" }
+        });
+        return { booking, created: false, title: event.title };
+      }
+      const booking = await tx.booking.create({
+        data: {
+          eventId: opts.eventId,
+          userId: opts.actor.id,
+          bookedById: opts.actor.id,
+          attendance: "ATTENDED"
+        }
+      });
+      return { booking, created: true, title: event.title };
+    })
+    .catch(async (error) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const booking = await prisma.booking.findUniqueOrThrow({
+          where: { eventId_userId: { eventId: opts.eventId, userId: opts.actor.id } }
+        });
+        const event = await prisma.event.findUnique({ where: { id: opts.eventId } });
+        return { booking, created: false, title: event?.title ?? "" };
+      }
+      throw error;
+    });
+  await writeAudit({
+    actorId: opts.actor.id,
+    action: result.created ? "booking.create" : "attendance.mark",
+    entityType: "Booking",
+    entityId: result.booking.id,
+    summary: `${opts.actor.name} said they went to ${result.title}`
+  });
   return result.booking;
 }
 
