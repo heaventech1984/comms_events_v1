@@ -347,7 +347,7 @@ export function EventForm({
             </Link>
           </>
         ) : (
-          <Link className="button ghost" href={backHref || "/calendar"}>
+          <Link className="button" href={backHref || "/calendar"}>
             Back to calendar
           </Link>
         )}

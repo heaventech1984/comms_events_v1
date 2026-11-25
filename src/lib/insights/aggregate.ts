@@ -1,6 +1,6 @@
 import { CATEGORIES } from "@/lib/constants";
-import { dayKeyOf, formatDayKey, mondayOf } from "@/lib/calendar";
-import { londonParts, londonWeekday } from "@/lib/time";
+import { addDaysKey, dayKeyOf, formatDayKey, mondayOf, type DayKey } from "@/lib/calendar";
+import { londonDate, londonParts, londonWeekday } from "@/lib/time";
 import type { InsightsScope } from "@/lib/policy";
 import type {
   Funnel,
@@ -242,6 +242,109 @@ export function kpisForRecentDays(raw: RawInsights, filters: InsightsFilters, da
   const bookings = raw.bookings.filter((b) => publishedIds.has(b.eventId));
   const stars = raw.stars.filter((s) => publishedIds.has(s.eventId)).length;
   return kpisFor(published, bookings, raw.members, stars, now);
+}
+
+export type CellAttendanceColumn = { key: string; label: string };
+export type CellAttendanceRow = {
+  key: string;
+  label: string;
+  counts: number[];
+  total: number;
+  suppressed: boolean;
+};
+
+const dayLabel = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
+
+function utcLabelDate(key: DayKey): Date {
+  return new Date(Date.UTC(key.year, key.month - 1, key.day, 12));
+}
+
+function attendanceBucket(days: 7 | 30 | 90, key: DayKey): CellAttendanceColumn {
+  if (days === 7) return { key: formatDayKey(key), label: dayLabel.format(utcLabelDate(key)) };
+  if (days === 30) {
+    const monday = mondayOf(key);
+    return { key: formatDayKey(monday), label: dayLabel.format(utcLabelDate(monday)) };
+  }
+  return {
+    key: `${key.year}-${String(key.month).padStart(2, "0")}`,
+    label: monthLabel.format(utcLabelDate(key))
+  };
+}
+
+/**
+ * Events each cell went to. Past 7 days is one column per London day, past 30 one per Monday week,
+ * past 90 one per calendar month. Four people at the same event count once.
+ * A cell with fewer than three active people is listed without numbers.
+ */
+export function cellAttendanceTable(
+  raw: RawInsights,
+  filters: InsightsFilters,
+  days: 7 | 30 | 90,
+  cellList: { id: string; name: string }[],
+  now = new Date()
+): { columns: CellAttendanceColumn[]; rows: CellAttendanceRow[]; max: number } {
+  const today = dayKeyOf(now);
+  const start = addDaysKey(today, -(days - 1));
+  const from = londonDate(start.year, start.month, start.day, 0, 0);
+  const after = addDaysKey(today, 1);
+  const to = londonDate(after.year, after.month, after.day, 0, 0);
+
+  const columns: CellAttendanceColumn[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < days; i += 1) {
+    const bucket = attendanceBucket(days, addDaysKey(start, i));
+    if (seen.has(bucket.key)) continue;
+    seen.add(bucket.key);
+    columns.push(bucket);
+  }
+  const columnIndex = new Map(columns.map((column, index) => [column.key, index]));
+
+  const eventsById = new Map(raw.events.map((event) => [event.id, event]));
+  const names = new Map(cellList.map((cell) => [cell.id, cell.name]));
+  const attended = new Map<string, Set<string>[]>();
+  for (const booking of raw.bookings) {
+    if (booking.attendance !== "ATTENDED") continue;
+    const event = eventsById.get(booking.eventId);
+    if (!event || event.status !== "PUBLISHED" || !eventMatches(event, filters)) continue;
+    if (!inWindow(event.startsAt, from, to)) continue;
+    const cellId = booking.userCellId ?? "none";
+    if (!names.has(cellId)) names.set(cellId, booking.cellName || "Unassigned");
+    const index = columnIndex.get(attendanceBucket(days, dayKeyOf(event.startsAt)).key);
+    if (index === undefined) continue;
+    const sets = attended.get(cellId) ?? columns.map(() => new Set<string>());
+    sets[index].add(event.id);
+    attended.set(cellId, sets);
+  }
+
+  const people = new Map<string, number>();
+  for (const member of raw.members) {
+    if (!member.active) continue;
+    const cellId = member.cellId ?? "none";
+    people.set(cellId, (people.get(cellId) ?? 0) + 1);
+  }
+  if (!names.has("none")) names.set("none", "Unassigned");
+
+  const ids = new Set<string>([...people.keys(), ...attended.keys()]);
+  const rows: CellAttendanceRow[] = [...ids].map((cellId) => {
+    const sets = attended.get(cellId) ?? columns.map(() => new Set<string>());
+    const counts = sets.map((set) => set.size);
+    const headcount = people.get(cellId) ?? 0;
+    const suppressed = headcount < MIN_GROUP;
+    return {
+      key: cellId,
+      label: names.get(cellId) || "Unassigned",
+      counts: suppressed ? counts.map(() => 0) : counts,
+      total: suppressed ? 0 : counts.reduce((sum, count) => sum + count, 0),
+      suppressed
+    };
+  });
+  rows.sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
+  const max = rows.reduce((highest, row) => {
+    if (row.suppressed) return highest;
+    return Math.max(highest, ...row.counts);
+  }, 0);
+  return { columns, rows, max };
 }
 
 export function pctLabel(value: number | null): string {

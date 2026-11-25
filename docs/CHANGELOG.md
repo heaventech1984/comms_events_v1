@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Import can update a matching person* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Insights tabs, cell attendance, hour handles* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,13 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-25 — Insights tabs, cell attendance, hour handles
+
+- The calendar hour bar is pale outside the chosen hours and berry between the handles. Each handle moves on its own.
+- Back to calendar is the same solid button on an event, when adding or editing one, on Import, and when Insights is closed to you.
+- Insights is split into tabs: People, Reach, Activity, Who and where, Pipeline, and Feedback. The open tab stays in the address.
+- Under Attendance outcomes, Events attended by cell has its own past 7, 30, or 90 day menu. Seven days is a column per day, 30 a column per week, and 90 a column per month. A deeper berry means more events. A cell with fewer than three people is shown without numbers.
 
 ## 2026-11-25 — Import can update a matching person
 

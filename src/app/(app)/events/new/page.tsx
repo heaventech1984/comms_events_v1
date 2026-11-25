@@ -38,8 +38,8 @@ export default async function NewEventPage({
   return (
     <main>
       <p className="row" style={{ marginBottom: "0.75rem" }}>
-        <Link className="button ghost" href={backHref}>
-          ← Back to calendar
+        <Link className="button" href={backHref}>
+          Back to calendar
         </Link>
       </p>
       <h1>Add event</h1>

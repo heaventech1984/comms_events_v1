@@ -12,7 +12,7 @@ export default async function ImportPage() {
           <p className="lede">Only an admin can import people. Ask them if someone new needs an account.</p>
         </div>
         <p>
-          <Link href="/calendar">Back to calendar</Link>
+          <Link className="button" href="/calendar">Back to calendar</Link>
         </p>
       </main>
     );

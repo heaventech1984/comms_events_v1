@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateInsights, pctLabel } from "@/lib/insights/aggregate";
+import { aggregateInsights, cellAttendanceTable, pctLabel } from "@/lib/insights/aggregate";
 import { nextSevenDaysWindow, parseAttendanceSpan, parseInsightsParams, pastSevenDaysWindow, previousWindow } from "@/lib/insights/period";
 import { summaryLines, tablesFor } from "@/lib/insights/format";
 import { shareSummary, shareTargets } from "@/lib/insights/share";
@@ -213,5 +213,104 @@ describe("pctLabel", () => {
   it("renders a dash when there is no denominator", () => {
     expect(pctLabel(null)).toBe("—");
     expect(pctLabel(0.5)).toBe("50%");
+  });
+});
+
+describe("cellAttendanceTable", () => {
+  const cellNow = new Date("2026-11-25T12:00:00Z");
+  const cellRaw: RawInsights = {
+    events: [
+      {
+        id: "same",
+        title: "Together",
+        category: "Faith",
+        online: false,
+        startsAt: new Date("2026-11-25T10:00:00Z"),
+        endsAt: new Date("2026-11-25T11:00:00Z"),
+        capacity: null,
+        status: "PUBLISHED",
+        createdAt: cellNow,
+        sourceKey: null
+      },
+      {
+        id: "earlier",
+        title: "Earlier",
+        category: "Faith",
+        online: false,
+        startsAt: new Date("2026-11-20T10:00:00Z"),
+        endsAt: new Date("2026-11-20T11:00:00Z"),
+        capacity: null,
+        status: "PUBLISHED",
+        createdAt: cellNow,
+        sourceKey: null
+      },
+      {
+        id: "too-old",
+        title: "Old",
+        category: "Faith",
+        online: false,
+        startsAt: new Date("2026-11-18T10:00:00Z"),
+        endsAt: new Date("2026-11-18T11:00:00Z"),
+        capacity: null,
+        status: "PUBLISHED",
+        createdAt: cellNow,
+        sourceKey: null
+      }
+    ],
+    bookings: [
+      { eventId: "same", userId: "a", bookedById: "a", bookedAt: cellNow, attendance: "ATTENDED", userCellId: "north", cellName: "North" },
+      { eventId: "same", userId: "b", bookedById: "b", bookedAt: cellNow, attendance: "ATTENDED", userCellId: "north", cellName: "North" },
+      { eventId: "same", userId: "c", bookedById: "c", bookedAt: cellNow, attendance: "ATTENDED", userCellId: "north", cellName: "North" },
+      { eventId: "earlier", userId: "a", bookedById: "a", bookedAt: cellNow, attendance: "ATTENDED", userCellId: "north", cellName: "North" },
+      { eventId: "too-old", userId: "a", bookedById: "a", bookedAt: cellNow, attendance: "ATTENDED", userCellId: "north", cellName: "North" },
+      { eventId: "earlier", userId: "s", bookedById: "s", bookedAt: cellNow, attendance: "ATTENDED", userCellId: "south", cellName: "South" },
+      { eventId: "same", userId: "z", bookedById: "z", bookedAt: cellNow, attendance: "ABSENT", userCellId: "north", cellName: "North" }
+    ],
+    stars: [],
+    runs: [],
+    members: [
+      { id: "a", active: true, cellId: "north" },
+      { id: "b", active: true, cellId: "north" },
+      { id: "c", active: true, cellId: "north" },
+      { id: "s", active: true, cellId: "south" }
+    ]
+  };
+  const cellFilters = {
+    from: new Date("2026-01-01T00:00:00Z"),
+    to: new Date("2026-12-01T00:00:00Z"),
+    preset: "30" as const,
+    category: "" as const,
+    format: "" as const,
+    cellId: null
+  };
+
+  it("counts a shared event once, one column per day, and hides a small cell", () => {
+    const table = cellAttendanceTable(cellRaw, cellFilters, 7, [
+      { id: "north", name: "North" },
+      { id: "south", name: "South" }
+    ], cellNow);
+    expect(table.columns).toHaveLength(7);
+    expect(table.columns[0].key).toBe("2026-11-19");
+    expect(table.columns[6].key).toBe("2026-11-25");
+    const north = table.rows.find((row) => row.key === "north");
+    const south = table.rows.find((row) => row.key === "south");
+    expect(north?.counts[6]).toBe(1);
+    expect(north?.counts[1]).toBe(1);
+    expect(north?.total).toBe(2);
+    expect(south?.suppressed).toBe(true);
+    expect(south?.counts.every((count) => count === 0)).toBe(true);
+    expect(table.max).toBe(1);
+    expect(table.rows[0].key).toBe("north");
+  });
+
+  it("groups past 30 days into Monday weeks and past 90 into months", () => {
+    const weeks = cellAttendanceTable(cellRaw, cellFilters, 30, [{ id: "north", name: "North" }], cellNow);
+    expect(weeks.columns.map((column) => column.key)).toContain("2026-11-23");
+    expect(weeks.columns.length).toBeGreaterThan(4);
+    const months = cellAttendanceTable(cellRaw, cellFilters, 90, [{ id: "north", name: "North" }], cellNow);
+    expect(months.columns.map((column) => column.key)).toContain("2026-11");
+    expect(months.columns.length).toBeGreaterThanOrEqual(3);
+    const north = months.rows.find((row) => row.key === "north");
+    expect(north?.total).toBe(3);
   });
 });

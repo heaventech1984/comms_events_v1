@@ -5,7 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { insightsScope } from "@/lib/policy";
 import { parseInsightsParams, parseRecentDays, parseAttendanceSpan, nextSevenDaysWindow, pastSevenDaysWindow, insightsHref } from "@/lib/insights/period";
 import { loadRawInsights } from "@/lib/insights/load";
-import { aggregateInsights, kpisForRecentDays, pctLabel } from "@/lib/insights/aggregate";
+import { aggregateInsights, cellAttendanceTable, kpisForRecentDays, pctLabel } from "@/lib/insights/aggregate";
 import { shareSummary } from "@/lib/insights/share";
 import {
   FEEDBACK_RATING_LABELS,
@@ -42,7 +42,7 @@ export default async function InsightsPage({
         <h1>Insights</h1>
         <p>Insights is for admins and cell leaders.</p>
         <p>
-          <Link href="/calendar">Back to calendar</Link>
+          <Link className="button" href="/calendar">Back to calendar</Link>
         </p>
       </main>
     );
@@ -52,8 +52,10 @@ export default async function InsightsPage({
   const now = new Date();
   const attendanceSpan = parseAttendanceSpan(params.attended);
   const kpiDays = parseRecentDays(params.kpi, 30);
+  const cellDays = parseRecentDays(params.cells, 30);
+  const tab = parseInsightsTab(params.tab);
   const attendanceWindow = attendanceSpan === "past" ? pastSevenDaysWindow(now) : nextSevenDaysWindow(now);
-  const [raw, settings, attendedEvents, feedback] = await Promise.all([
+  const [raw, settings, attendedEvents, feedback, cellList] = await Promise.all([
     loadRawInsights(scope, filters),
     getSettings(),
     prisma.event.findMany({
@@ -92,8 +94,14 @@ export default async function InsightsPage({
         { from: filters.from, to: filters.to, category: filters.category, cellId: filters.cellId },
         feedbackExtra
       )
-    )
+    ),
+    prisma.cell.findMany({
+      where: scope.kind === "cell" ? { id: scope.cellId } : undefined,
+      select: { id: true, name: true },
+      orderBy: { name: "asc" }
+    })
   ]);
+  const cellAttendance = cellAttendanceTable(raw, filters, cellDays, cellList, now);
   const data = aggregateInsights(raw, filters, scope);
   const kpiNumbers = kpisForRecentDays(raw, filters, kpiDays, now);
   const attendedGroups = new Map<string, { label: string; events: typeof attendedEvents }>();
@@ -117,6 +125,26 @@ export default async function InsightsPage({
     rating: feedbackExtra.rating,
     q: feedbackExtra.q
   };
+  const kept = (omit: Array<"attended" | "kpi" | "cells" | "rating" | "q"> = []) => (
+    <>
+      <input type="hidden" name="period" value={filters.preset} />
+      <input type="hidden" name="tab" value={tab} />
+      {omit.includes("attended") ? null : <input type="hidden" name="attended" value={attendanceSpan} />}
+      {omit.includes("kpi") ? null : <input type="hidden" name="kpi" value={String(kpiDays)} />}
+      {omit.includes("cells") ? null : <input type="hidden" name="cells" value={String(cellDays)} />}
+      {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
+      {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
+      {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
+      {omit.includes("rating") || !feedbackExtra.rating ? null : <input type="hidden" name="rating" value={feedbackExtra.rating} />}
+      {omit.includes("q") || !feedbackExtra.q ? null : <input type="hidden" name="q" value={feedbackExtra.q} />}
+      {filters.preset === "custom" ? (
+        <>
+          <input type="hidden" name="from" value={formatDayKey(dayKeyOf(filters.from))} />
+          <input type="hidden" name="to" value={formatDayKey(dayKeyOf(new Date(filters.to.getTime() - 1)))} />
+        </>
+      ) : null}
+    </>
+  );
 
   return (
     <main className="stack">
@@ -125,18 +153,35 @@ export default async function InsightsPage({
         <p className="lede">
           {firstName} — {scope.kind === "region" ? `${settings.locationLabel} region` : feedback.scopeLabel} ·{" "}
           {formatDate(filters.from)} to {formatDate(new Date(filters.to.getTime() - 1))}. Charts are totals. Groups of
-          fewer than three people are hidden. Member feedback below shows ratings only — private notes stay with the
+          fewer than three people are hidden. Member feedback shows ratings only — private notes stay with the
           person who wrote them.
         </p>
       </div>
+      <div className="view-tabs" role="tablist" aria-label="Insights sections">
+        {INSIGHT_TABS.map((item) => (
+          <Link
+            key={item.id}
+            role="tab"
+            aria-selected={tab === item.id}
+            className="view-tab"
+            href={insightsHref(filters, {
+              tab: item.id,
+              attended: attendanceSpan,
+              kpi: String(kpiDays),
+              cells: String(cellDays),
+              rating: feedbackExtra.rating,
+              q: feedbackExtra.q
+            })}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
 
+      {tab === "people" ? (
       <section className="card stack insights-upcoming" id="people-attendance" aria-label="People attendance">
         <form className="row" method="get" action="#people-attendance">
-          <input type="hidden" name="period" value={filters.preset} />
-          <input type="hidden" name="kpi" value={String(kpiDays)} />
-          {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
-          {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
-          {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
+          {kept(["attended"])}
           <h2>People attendance</h2>
           <label>
             Show
@@ -176,13 +221,12 @@ export default async function InsightsPage({
           </p>
         )}
       </section>
+      ) : null}
 
+      {tab === "reach" ? (
+      <>
       <form className="row" id="insights-reach" method="get" action="#insights-reach">
-        <input type="hidden" name="period" value={filters.preset} />
-        <input type="hidden" name="attended" value={attendanceSpan} />
-        {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
-        {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
-        {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
+        {kept(["kpi"])}
         <label>
           Reach, showing up, and room
           <select name="kpi" defaultValue={String(kpiDays)}>
@@ -194,8 +238,11 @@ export default async function InsightsPage({
         <button type="submit">Show</button>
       </form>
       <KpiStrip {...kpiNumbers} />
+      </>
+      ) : null}
 
-      <h2 className="insights-section-title">Activity</h2>
+      {tab === "activity" ? (
+      <>
       <ChartCard
         title="Attend clicks each week"
         summary="Attend clicks (people tapping Attend). Solid berry = this period; dashed grey = the same length before it."
@@ -211,8 +258,30 @@ export default async function InsightsPage({
       >
         <Stacked weeks={data.weeks} />
       </ChartCard>
+      <section className="card stack" id="cell-attendance" aria-label="Events attended by cell">
+        <form className="row" method="get" action="#cell-attendance">
+          {kept(["cells"])}
+          <h2>Events attended by cell</h2>
+          <label>
+            Show
+            <select name="cells" defaultValue={String(cellDays)}>
+              <option value="7">Past 7 days</option>
+              <option value="30">Past 30 days</option>
+              <option value="90">Past 90 days</option>
+            </select>
+          </label>
+          <button type="submit">Show</button>
+        </form>
+        <p className="muted">
+          Each number is events that cell went to. Past 7 days is one column per day, past 30 per week, and past 90 per month.
+        </p>
+        <CellHeatTable table={cellAttendance} />
+      </section>
+      </>
+      ) : null}
 
-      <h2 className="insights-section-title">Who and where</h2>
+      {tab === "where" ? (
+      <>
       <ChartCard
         title="By event type"
         summary="Attend clicks in this period, coloured as on the calendar."
@@ -246,8 +315,11 @@ export default async function InsightsPage({
       >
         <Heatmap cells={data.heatmap} />
       </ChartCard>
+      </>
+      ) : null}
 
-      <h2 className="insights-section-title">Pipeline and capacity</h2>
+      {tab === "pipeline" ? (
+      <>
       <ChartCard
         title="Review pipeline"
         summary="Scraped events created in this period, and where they ended up. Failed feeds on a run are listed below."
@@ -314,26 +386,18 @@ export default async function InsightsPage({
           </div>
         )}
       </section>
+      </>
+      ) : null}
 
-      <section className="card feedback-hub" data-testid="insights-feedback">
+      {tab === "feedback" ? (
+      <section className="card feedback-hub" id="insights-feedback" data-testid="insights-feedback">
         <h2>Member feedback</h2>
         <p className="muted">
           {feedback.scopeLabel}. After-event moods from people in your scope. Free-text notes are never shown here.
           Export “Member feedback” below for a spreadsheet.
         </p>
-        <form className="insights-feedback-filters" method="get">
-          <input type="hidden" name="period" value={filters.preset} />
-          <input type="hidden" name="attended" value={attendanceSpan} />
-          <input type="hidden" name="kpi" value={String(kpiDays)} />
-          {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
-          {filters.format ? <input type="hidden" name="format" value={filters.format} /> : null}
-          {filters.cellId ? <input type="hidden" name="cell" value={filters.cellId} /> : null}
-          {filters.preset === "custom" ? (
-            <>
-              <input type="hidden" name="from" value={formatDayKey(dayKeyOf(filters.from))} />
-              <input type="hidden" name="to" value={formatDayKey(dayKeyOf(new Date(filters.to.getTime() - 1)))} />
-            </>
-          ) : null}
+        <form className="insights-feedback-filters" method="get" action="#insights-feedback">
+          {kept(["rating", "q"])}
           <label>
             Feedback rating
             <select name="rating" defaultValue={feedbackExtra.rating}>
@@ -398,10 +462,19 @@ export default async function InsightsPage({
           </div>
         )}
       </section>
+      ) : null}
 
       <ExportShare data={data} text={text} query={query} />
       <p className="muted">
-        Bookmark this view: <Link href={insightsHref(filters)}>current filters</Link>.
+        Bookmark this view:{" "}
+        <Link href={insightsHref(filters, {
+          tab,
+          attended: attendanceSpan,
+          kpi: String(kpiDays),
+          cells: String(cellDays),
+          rating: feedbackExtra.rating,
+          q: feedbackExtra.q
+        })}>current filters</Link>.
       </p>
     </main>
   );
@@ -495,5 +568,66 @@ function HeatTable({ cells }: { cells: { weekday: number; hourBucket: number; co
         </tbody>
       </table>
     </div>
+  );
+}
+
+const INSIGHT_TABS = [
+  { id: "people", label: "People" },
+  { id: "reach", label: "Reach" },
+  { id: "activity", label: "Activity" },
+  { id: "where", label: "Who and where" },
+  { id: "pipeline", label: "Pipeline" },
+  { id: "feedback", label: "Feedback" }
+] as const;
+
+function parseInsightsTab(value: string | undefined): (typeof INSIGHT_TABS)[number]["id"] {
+  if (INSIGHT_TABS.some((item) => item.id === value)) return value as (typeof INSIGHT_TABS)[number]["id"];
+  return "people";
+}
+
+function CellHeatTable({ table }: { table: ReturnType<typeof cellAttendanceTable> }) {
+  if (!table.rows.length) return <p className="muted">No cells to show.</p>;
+  return (
+    <>
+      <div className="table-wrap">
+        <table className="cell-attendance">
+          <thead>
+            <tr>
+              <th>Cell</th>
+              {table.columns.map((column) => (
+                <th key={column.key}>{column.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.map((row) => (
+              <tr key={row.key}>
+                <th scope="row">{row.suppressed ? `${row.label} (fewer than 3 people)` : row.label}</th>
+                {row.suppressed ? (
+                  <td className="muted" colSpan={table.columns.length}>fewer than 3</td>
+                ) : (
+                  row.counts.map((count, index) => {
+                    const strength = table.max > 0 ? count / table.max : 0;
+                    return (
+                      <td
+                        key={table.columns[index].key}
+                        className="cell-heat"
+                        style={{
+                          background: `rgba(168, 67, 77, ${0.08 + strength * 0.8})`,
+                          color: strength >= 0.55 ? "#fff" : undefined
+                        }}
+                      >
+                        {count}
+                      </td>
+                    );
+                  })
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="muted">Pale means fewer. Berry means more. The fullest square is {table.max}.</p>
+    </>
   );
 }

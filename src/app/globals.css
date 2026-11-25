@@ -411,45 +411,29 @@ h3 { font-size: 1.15rem; margin: 0 0 var(--space-2); }
   background-position: center;
   background-repeat: no-repeat;
 }
-.calendar-time-band-track input[type="range"] {
+button.calendar-time-band-thumb {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 2rem;
-  margin: 0;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  appearance: none;
-  background: transparent;
-  pointer-events: none;
-}
-.calendar-time-band-track input[type="range"]::-webkit-slider-runnable-track { height: 0.3rem; background: transparent; }
-.calendar-time-band-track input[type="range"]::-moz-range-track { height: 0.3rem; background: transparent; }
-.calendar-time-band-track input[type="range"]::-webkit-slider-thumb {
+  top: 50%;
   width: 1.1rem;
   height: 1.1rem;
-  margin-top: -0.4rem;
-  appearance: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, -50%);
   border: 2px solid white;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 1px 5px var(--accent-glow);
-  pointer-events: auto;
+  touch-action: none;
   cursor: grab;
 }
-.calendar-time-band-track input[type="range"]::-moz-range-thumb {
-  width: 0.85rem;
-  height: 0.85rem;
-  border: 2px solid white;
-  border-radius: 50%;
+button.calendar-time-band-thumb:hover,
+button.calendar-time-band-thumb:active {
+  filter: none;
+  transform: translate(-50%, -50%);
   background: var(--accent);
-  box-shadow: 0 1px 5px var(--accent-glow);
-  pointer-events: auto;
-  cursor: grab;
 }
-.calendar-time-band-track input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+button.calendar-time-band-thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .calendar-time-band-labels { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
 .calendar-stage .range-heading {
   font-size: 1.15rem;
@@ -2296,6 +2280,10 @@ button.linkish {
 }
 .heat-h, .heat-d { font-size: 0.7rem; color: var(--ink-soft); }
 .heat-cell { min-height: 22px; border-radius: 4px; display: block; }
+.cell-attendance { width: 100%; border-collapse: separate; border-spacing: 4px; }
+.cell-attendance th { font-size: 0.75rem; font-weight: 600; color: var(--ink-soft); text-align: left; }
+.cell-attendance th[scope="row"] { font-size: 0.9rem; color: var(--ink); white-space: nowrap; }
+.cell-heat { text-align: center; border-radius: 6px; font-variant-numeric: tabular-nums; min-width: 2.6rem; padding: 0.35rem 0.25rem; }
 
 .sr-only {
   position: absolute;
