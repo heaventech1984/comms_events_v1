@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *People attendance, next or past 7 days* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Import can update a matching person* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,11 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-25 — Import can update a matching person
+
+- An import row whose name and password match one existing person updates that person's cell, cell number, and permission. Their bookings stay. A different password still adds a new person. If any row fails, nobody is created or changed.
+- After a successful file, Added and Edited stay closed until you click them. They list the name, cell, cell number, and permission. Passwords are not shown. The audit line records the two counts.
 
 ## 2026-11-24 — People attendance, next or past 7 days
 

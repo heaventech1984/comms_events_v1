@@ -11,6 +11,19 @@ import type { SessionUser } from "./session";
 export const IMPORT_TEMPLATE_CSV =
   "Name,Cell number,Cell,Password,Permission\r\nExample Person,07000000999,Sparkbrook,ChangeMe1!,member\r\n";
 
+export type ImportPersonLine = {
+  name: string;
+  cell: string;
+  cellNumber: string;
+  permission: string;
+};
+
+export type ImportEditLine = {
+  name: string;
+  from: { cell: string; cellNumber: string; permission: string };
+  to: { cell: string; cellNumber: string; permission: string };
+};
+
 type Row = {
   name: string;
   cellNumber: string;
@@ -181,7 +194,7 @@ export async function importUsers(opts: {
   }
 
   const seenPasswordsByCell = new Map<string, Set<string>>();
-  const prepared: Array<Row & { role: Role; cellNumber: string }> = [];
+  const prepared: Array<Row & { role: Role; cellNumber: string; rowNumber: number }> = [];
 
   rows.forEach((row, i) => {
     const rowNumber = i + 2;
@@ -210,41 +223,84 @@ export async function importUsers(opts: {
     }
     const role = parseRole(row.permission);
     if (!role) errors.push({ row: rowNumber, reason: "Permission must be admin, cell leader, or member." });
-    if (role && cellNumber) prepared.push({ ...row, role, cellNumber });
+    if (role && cellNumber) prepared.push({ ...row, role, cellNumber, rowNumber });
   });
 
-  if (prepared.length) {
-    const cellNumbers = [...new Set(prepared.map((r) => r.cellNumber))];
-    const existing = await prisma.user.findMany({
-      where: { cellNumber: { in: cellNumbers } },
-      select: { cellNumber: true, passwordHash: true }
-    });
-    for (let i = 0; i < prepared.length; i++) {
-      const row = prepared[i];
-      for (const user of existing) {
-        if (user.cellNumber !== row.cellNumber) continue;
-        if (await verifyPassword(row.password, user.passwordHash)) {
-          errors.push({
-            row: i + 2,
-            reason:
-              "Password is already used by someone with this cell number. Each person on the same cell number needs a unique password."
-          });
-          break;
+  const people = prepared.length
+    ? await prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          cellNumber: true,
+          passwordHash: true,
+          role: true,
+          cell: { select: { name: true } }
         }
+      })
+    : [];
+
+  type Planned =
+    | { kind: "create"; row: (typeof prepared)[number] }
+    | {
+        kind: "update";
+        row: (typeof prepared)[number];
+        person: (typeof people)[number];
+      };
+  const planned: Planned[] = [];
+  const claimed = new Set<string>();
+
+  for (const row of prepared) {
+    const named = people.filter((person) => person.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+    const matches = [];
+    for (const person of named) {
+      if (await verifyPassword(row.password, person.passwordHash)) matches.push(person);
+    }
+    if (matches.length > 1) {
+      errors.push({ row: row.rowNumber, reason: "This name and password match more than one person." });
+      continue;
+    }
+    if (matches.length === 1) {
+      const person = matches[0];
+      if (claimed.has(person.id)) {
+        errors.push({ row: row.rowNumber, reason: "This person is listed more than once in the file." });
+        continue;
+      }
+      claimed.add(person.id);
+      planned.push({ kind: "update", row, person });
+      continue;
+    }
+    planned.push({ kind: "create", row });
+  }
+
+  for (const item of planned) {
+    for (const person of people) {
+      if (item.kind === "update" && person.id === item.person.id) continue;
+      const move = planned.find((entry) => entry.kind === "update" && entry.person.id === person.id);
+      const occupiedNumber = move && move.kind === "update" ? move.row.cellNumber : person.cellNumber;
+      if (occupiedNumber !== item.row.cellNumber) continue;
+      if (await verifyPassword(item.row.password, person.passwordHash)) {
+        errors.push({
+          row: item.row.rowNumber,
+          reason:
+            "Password is already used by someone with this cell number. Each person on the same cell number needs a unique password."
+        });
+        break;
       }
     }
   }
 
   if (errors.length) {
-    return { ok: false as const, created: 0, errors };
+    return { ok: false as const, created: 0, updated: 0, added: [], edited: [], errors };
   }
 
-  const hashed: Array<(typeof prepared)[number] & { passwordHash: string }> = [];
-  for (const row of prepared) {
-    hashed.push({ ...row, passwordHash: await hashPassword(row.password) });
+  const hashed = new Map<string, string>();
+  for (const item of planned) {
+    if (item.kind === "create") hashed.set(String(item.row.rowNumber), await hashPassword(item.row.password));
   }
 
-  const created = await prisma.$transaction(async (tx) => {
+  const added: ImportPersonLine[] = [];
+  const edited: ImportEditLine[] = [];
+  await prisma.$transaction(async (tx) => {
     const cellByName = new Map<string, string>();
     const existingCells = await tx.cell.findMany();
     existingCells.forEach((c) => cellByName.set(c.name.toLowerCase(), c.id));
@@ -262,8 +318,8 @@ export async function importUsers(opts: {
         cellByName.set(key, cell.id);
       }
     }
-    let count = 0;
-    for (const row of hashed) {
+    for (const item of planned) {
+      const row = item.row;
       const key = row.cell.toLowerCase();
       let cellId = cellByName.get(key);
       if (!cellId) {
@@ -279,19 +335,40 @@ export async function importUsers(opts: {
         cellByName.set(key, cellId);
       }
       const needsCell = row.role !== "admin";
+      const nextCellId = needsCell ? cellId : row.cell ? cellId : null;
+      if (item.kind === "update") {
+        const from = {
+          cell: item.person.cell?.name ?? "",
+          cellNumber: item.person.cellNumber,
+          permission: item.person.role
+        };
+        const to = { cell: row.cell, cellNumber: row.cellNumber, permission: row.role };
+        const same =
+          from.cell.trim().toLowerCase() === to.cell.trim().toLowerCase() &&
+          from.cellNumber === to.cellNumber &&
+          from.permission === to.permission;
+        if (same) continue;
+        await tx.user.update({
+          where: { id: item.person.id },
+          data: { cellNumber: row.cellNumber, role: row.role, cellId: nextCellId }
+        });
+        edited.push({ name: item.person.name, from, to });
+        continue;
+      }
+      const passwordHash = hashed.get(String(row.rowNumber));
+      if (!passwordHash) throw new Error("Missing password hash for a new person.");
       await tx.user.create({
         data: {
           name: row.name,
           cellNumber: row.cellNumber,
-          passwordHash: row.passwordHash,
+          passwordHash,
           role: row.role,
-          cellId: needsCell ? cellId : row.cell ? cellId : null,
+          cellId: nextCellId,
           active: true
         }
       });
-      count += 1;
+      added.push({ name: row.name, cell: row.cell, cellNumber: row.cellNumber, permission: row.role });
     }
-    return count;
   });
 
   try {
@@ -299,10 +376,10 @@ export async function importUsers(opts: {
       actorId: opts.actor.id,
       action: "users.import",
       entityType: "User",
-      summary: `${opts.actor.name} imported ${created} users from ${opts.filename}`
+      summary: `${opts.actor.name} imported ${added.length} new people and updated ${edited.length} from ${opts.filename}`
     });
   } catch (error) {
     console.error("users.import audit failed", error);
   }
-  return { ok: true as const, created, errors: [] };
+  return { ok: true as const, created: added.length, updated: edited.length, added, edited, errors: [] };
 }

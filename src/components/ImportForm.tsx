@@ -3,10 +3,16 @@
 import { FormEvent, useState } from "react";
 import { StatusBanner } from "@/components/StatusBanner";
 
+type PersonLine = { name: string; cell: string; cellNumber: string; permission: string };
+type PlaceLine = { cell: string; cellNumber: string; permission: string };
+type EditLine = { name: string; from: PlaceLine; to: PlaceLine };
+
 export function ImportForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [kind, setKind] = useState<"info" | "error">("info");
   const [errors, setErrors] = useState<{ row: number; reason: string }[]>([]);
+  const [added, setAdded] = useState<PersonLine[]>([]);
+  const [edited, setEdited] = useState<EditLine[]>([]);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -23,7 +29,17 @@ export function ImportForm() {
     setBusy(true);
     setMessage(null);
     setErrors([]);
-    let json: { ok?: boolean; created?: number; error?: string; errors?: { row: number; reason: string }[] };
+    setAdded([]);
+    setEdited([]);
+    let json: {
+      ok?: boolean;
+      created?: number;
+      updated?: number;
+      added?: PersonLine[];
+      edited?: EditLine[];
+      error?: string;
+      errors?: { row: number; reason: string }[];
+    };
     try {
       const response = await fetch("/api/import", { method: "POST", body: data });
       json = await response.json().catch(() => ({ ok: false, error: "Import failed." }));
@@ -39,12 +55,20 @@ export function ImportForm() {
     setBusy(false);
     if (!json.ok) {
       setKind("error");
-      setMessage("Nothing was imported. Fix the rows below and try again.");
+      setMessage("Nothing was changed. Fix the rows below and try again.");
       setErrors(json.errors ?? [{ row: 0, reason: json.error ?? "Import failed." }]);
       return;
     }
     setKind("info");
-    setMessage(`Imported ${json.created} people.`);
+    const created = json.created ?? 0;
+    const updated = json.updated ?? 0;
+    setAdded(json.added ?? []);
+    setEdited(json.edited ?? []);
+    setMessage(
+      created === 0 && updated === 0
+        ? "No changes. Those people already match the file."
+        : `Added ${created} people. Updated ${updated} people.`
+    );
     setErrors([]);
     form.reset();
   }
@@ -54,8 +78,9 @@ export function ImportForm() {
       <div className="page-head">
         <h1>Import people</h1>
         <p className="lede">
-          CSV, Excel, or JSON. If any row fails, nobody is created. Cell numbers may be shared; passwords must be
-          unique for people who share a cell number. Use this column order:
+          CSV, Excel, or JSON. If the name and password match someone already here, their cell, cell number, and
+          permission are updated and their bookings stay. If any row fails, nobody is created or changed. Cell numbers
+          may be shared; passwords must be unique for people who share a cell number. Use this column order:
         </p>
       </div>
       <div className="table-wrap" style={{ marginBottom: "var(--space-5)" }}>
@@ -115,6 +140,66 @@ export function ImportForm() {
             </tbody>
           </table>
         </div>
+      ) : null}
+      {added.length ? (
+        <details className="card" style={{ marginTop: "var(--space-4)" }}>
+          <summary>Added {added.length}</summary>
+          <div className="table-wrap">
+            <table className="data stack-sm">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Cell number</th>
+                  <th>Cell</th>
+                  <th>Permission</th>
+                </tr>
+              </thead>
+              <tbody>
+                {added.map((person) => (
+                  <tr key={`${person.name}-${person.cellNumber}-${person.permission}`}>
+                    <td data-label="Name">{person.name}</td>
+                    <td data-label="Cell number">{person.cellNumber}</td>
+                    <td data-label="Cell">{person.cell}</td>
+                    <td data-label="Permission">{person.permission}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      ) : null}
+      {edited.length ? (
+        <details className="card" style={{ marginTop: "var(--space-4)" }}>
+          <summary>Edited {edited.length}</summary>
+          <div className="table-wrap">
+            <table className="data stack-sm">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Cell number</th>
+                  <th>Cell</th>
+                  <th>Permission</th>
+                </tr>
+              </thead>
+              <tbody>
+                {edited.map((person) => (
+                  <tr key={`${person.name}-${person.from.cellNumber}`}>
+                    <td data-label="Name">{person.name}</td>
+                    <td data-label="Cell number">
+                      {person.from.cellNumber} → {person.to.cellNumber}
+                    </td>
+                    <td data-label="Cell">
+                      {person.from.cell || "—"} → {person.to.cell}
+                    </td>
+                    <td data-label="Permission">
+                      {person.from.permission} → {person.to.permission}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
       ) : null}
     </main>
   );
