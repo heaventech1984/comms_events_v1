@@ -1,5 +1,5 @@
 import { parseFeedbackRating, type FeedbackRating } from "./constants";
-import { onAttendanceDay } from "./event-window";
+import { attendanceAvailable } from "./event-window";
 import { prisma } from "./db";
 import { LIMITS } from "./security";
 
@@ -37,8 +37,8 @@ export async function saveEventFeedback(opts: {
   if (!event || event.status !== "PUBLISHED") {
     throw new FeedbackError("That event is not on the calendar.", 404);
   }
-  if (!onAttendanceDay(event.startsAt, event.endsAt, new Date())) {
-    throw new FeedbackError("You can leave a note after the event has finished, on the day it is on the calendar.");
+  if (!attendanceAvailable(event.endsAt, new Date())) {
+    throw new FeedbackError("You can leave feedback after the event has finished.");
   }
   const booking = await prisma.booking.findUnique({
     where: { eventId_userId: { eventId: opts.eventId, userId: opts.userId } }
@@ -81,7 +81,5 @@ export async function eventsNeedingFeedback(userId: string, now = new Date()) {
     })
   ]);
   const done = new Set(existing.map((row) => row.eventId));
-  return bookings.filter(
-    (booking) => !done.has(booking.eventId) && onAttendanceDay(booking.event.startsAt, booking.event.endsAt, now)
-  );
+  return bookings.filter((booking) => !done.has(booking.eventId));
 }

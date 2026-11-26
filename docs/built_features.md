@@ -6,6 +6,7 @@ When something ships: copy from [`desirables.md`](desirables.md) Open (keeping t
 
 | Id | Date done | Area | Wish (one sentence) | Proof | Visual (optional) |
 | --- | --- | --- | --- | --- | --- |
+| D-R13 | 2026-11-26 | Attendance / Feedback | Let people confirm attendance and submit optional event feedback any time after the event finishes. | [CHANGELOG — Confirm attendance after an event ends](CHANGELOG.md#2026-11-26--confirm-attendance-after-an-event-ends) | — |
 | D-R12 | 2026-11-19 | Insights / Attendance / Calendar | Show upcoming attendees and cell numbers, apply the agreed role rules for viewing, adding and removing attendees, and place date controls below the calendar time setting. | [CHANGELOG — Show attendees and booking controls consistently](CHANGELOG.md#2026-11-19--show-attendees-and-booking-controls-consistently) | — |
 | D-029 | 2026-11-18 | Scraper / Pending | Configure Brave Eventbrite search timing, pages and query inputs with a formed-query preview and dedicated manual search; filter Pending by source platform. | [CHANGELOG — Configure Eventbrite discovery and filter Pending by platform](CHANGELOG.md#2026-11-18--configure-eventbrite-discovery-and-filter-pending-by-platform) | — |
 | D-027 | 2026-11-17 | Calendar | Show a live current-time line in the Day and Week calendar grids when today is visible. | [CHANGELOG — Paste event details and show current time](CHANGELOG.md#2026-11-17--paste-event-details-and-show-current-time) | — |

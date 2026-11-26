@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventStillBookable, onAttendanceDay } from "@/lib/event-window";
+import { attendanceAvailable, eventStillBookable } from "@/lib/event-window";
 import { londonDate } from "@/lib/time";
 
 describe("event window", () => {
@@ -11,17 +11,18 @@ describe("event window", () => {
     expect(eventStillBookable(end, end)).toBe(false);
   });
 
-  it("offers I went after the finish on that calendar day only", () => {
-    expect(onAttendanceDay(start, end, londonDate(2026, 11, 24, 19, 0))).toBe(false);
-    expect(onAttendanceDay(start, end, londonDate(2026, 11, 24, 20, 0))).toBe(true);
-    expect(onAttendanceDay(start, end, londonDate(2026, 11, 24, 23, 30))).toBe(true);
-    expect(onAttendanceDay(start, end, londonDate(2026, 11, 25, 9, 0))).toBe(false);
+  it("allows attendance as soon as an event finishes and on later dates", () => {
+    expect(attendanceAvailable(end, londonDate(2026, 11, 24, 19, 59))).toBe(false);
+    expect(attendanceAvailable(end, end)).toBe(true);
+    expect(attendanceAvailable(end, londonDate(2026, 11, 24, 23, 30))).toBe(true);
+    expect(attendanceAvailable(end, londonDate(2026, 11, 25, 9, 0))).toBe(true);
+    expect(attendanceAvailable(end, londonDate(2026, 12, 24, 9, 0))).toBe(true);
   });
 
-  it("offers I went on the morning an overnight event finishes", () => {
+  it("does not allow attendance before an overnight event finishes", () => {
     const overnightEnd = londonDate(2026, 11, 25, 1, 0);
-    expect(onAttendanceDay(start, overnightEnd, londonDate(2026, 11, 24, 23, 0))).toBe(false);
-    expect(onAttendanceDay(start, overnightEnd, londonDate(2026, 11, 25, 1, 0))).toBe(true);
-    expect(onAttendanceDay(start, overnightEnd, londonDate(2026, 11, 26, 9, 0))).toBe(false);
+    expect(attendanceAvailable(overnightEnd, londonDate(2026, 11, 24, 23, 0))).toBe(false);
+    expect(attendanceAvailable(overnightEnd, overnightEnd)).toBe(true);
+    expect(attendanceAvailable(overnightEnd, londonDate(2026, 11, 26, 9, 0))).toBe(true);
   });
 });

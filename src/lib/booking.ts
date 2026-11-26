@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { writeAudit } from "./audit";
-import { eventStillBookable, onAttendanceDay } from "./event-window";
+import { attendanceAvailable, eventStillBookable } from "./event-window";
 import { canBookFor, canCancelBooking } from "./policy";
 import type { SessionUser } from "./session";
 
@@ -95,8 +95,8 @@ export async function recordOwnWent(opts: { eventId: string; actor: SessionUser 
       if (!event || event.status !== "PUBLISHED") {
         throw new BookingError("That event is not on the calendar.");
       }
-      if (!onAttendanceDay(event.startsAt, event.endsAt, now)) {
-        throw new BookingError("You can say you went after the event finishes, on the day it is on the calendar.");
+      if (!attendanceAvailable(event.endsAt, now)) {
+        throw new BookingError("You can say you went after the event finishes.");
       }
       const existing = await tx.booking.findUnique({
         where: { eventId_userId: { eventId: opts.eventId, userId: opts.actor.id } }

@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Insights tabs, cell attendance, hour handles* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Confirm attendance after an event ends* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,11 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-26 — Confirm attendance after an event ends
+
+- Members can mark an event Attended or Didn’t attend at any time after its end, including on later days. The prompt now waits until the event has finished, and older unconfirmed bookings remain available to confirm. Existing own-booking and cell leader authorization checks remain in place.
+- The optional event rating can also be submitted after the event ends, so confirming an older event does not lead into a feedback form that rejects the response.
 
 ## 2026-11-25 — Insights tabs, cell attendance, hour handles
 

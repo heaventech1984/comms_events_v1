@@ -10,7 +10,7 @@ export async function GET() {
     where: {
       userId: user.id,
       attendance: "UNCONFIRMED",
-      event: { startsAt: { lt: new Date() } }
+      event: { endsAt: { lte: new Date() } }
     },
     include: { event: true },
     orderBy: { event: { startsAt: "desc" } }

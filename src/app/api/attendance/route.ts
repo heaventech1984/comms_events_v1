@@ -4,7 +4,7 @@ import { originAllowed, rejectOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { BookingError, recordOwnWent } from "@/lib/booking";
-import { onAttendanceDay } from "@/lib/event-window";
+import { attendanceAvailable } from "@/lib/event-window";
 
 export async function POST(request: NextRequest) {
   if (!originAllowed(request)) return rejectOrigin();
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
   if (user.role === "cell leader" && booking.user.cellId !== user.cellId) {
     return NextResponse.json({ error: "You can only mark attendance for your own cell." }, { status: 403 });
   }
-  if (!onAttendanceDay(booking.event.startsAt, booking.event.endsAt, new Date())) {
-    return NextResponse.json({ error: "You can mark attendance after the event finishes, on the day it is on the calendar." }, { status: 400 });
+  if (!attendanceAvailable(booking.event.endsAt, new Date())) {
+    return NextResponse.json({ error: "You can mark attendance after the event finishes." }, { status: 400 });
   }
   await prisma.booking.update({ where: { id: bookingId }, data: { attendance } });
   await writeAudit({

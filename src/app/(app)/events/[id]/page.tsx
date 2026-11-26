@@ -13,7 +13,7 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { attendanceChipClass, attendanceLabel } from "@/lib/attendance-label";
 import { calendarBackHref } from "@/lib/calendar";
-import { eventStillBookable, onAttendanceDay } from "@/lib/event-window";
+import { eventStillBookable } from "@/lib/event-window";
 import { formatWhereLine, tidyOrgName } from "@/lib/place";
 import { formatDateTimeRange } from "@/lib/time";
 
@@ -38,7 +38,6 @@ export default async function EventPage({
 
   const now = new Date();
   const finished = !eventStillBookable(event.endsAt, now);
-  const attendanceDay = onAttendanceDay(event.startsAt, event.endsAt, now);
   const myBooking = event.bookings.find((b) => b.userId === user.id);
   const count = event.bookings.length;
   const full = event.capacity !== null && count >= event.capacity;
@@ -57,15 +56,15 @@ export default async function EventPage({
 
   const canRemoveAttendees = user.role === "admin" || user.role === "cell leader";
   const canCancel = !!myBooking; // policy: own cancel anytime
-  const canSayWent = attendanceDay && (!myBooking || myBooking.attendance === "UNCONFIRMED");
-  const canSayMissed = !!myBooking && attendanceDay && myBooking.attendance === "UNCONFIRMED";
+  const canSayWent = finished && (!myBooking || myBooking.attendance === "UNCONFIRMED");
+  const canSayMissed = !!myBooking && finished && myBooking.attendance === "UNCONFIRMED";
   const existingFeedback =
     myBooking?.attendance === "ATTENDED"
       ? await prisma.eventFeedback.findUnique({
           where: { userId_eventId: { userId: user.id, eventId: event.id } }
         })
       : null;
-  const showFeedback = attendanceDay && myBooking?.attendance === "ATTENDED" && !existingFeedback;
+  const showFeedback = finished && myBooking?.attendance === "ATTENDED" && !existingFeedback;
   const orgLabel = tidyOrgName(event.organisationName);
   const whereLine = formatWhereLine(event.online, event.placeName);
 

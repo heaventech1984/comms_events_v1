@@ -86,17 +86,19 @@ describe.skipIf(!prisma)("booking integrity", () => {
     await expect(attendEvent({ eventId, userId: userB, actor })).rejects.toBeInstanceOf(BookingError);
   });
 
-  it("records I went after the finish when there was no Attend click", async () => {
+  it("records attendance after the finish even when the event was weeks ago", async () => {
     const { recordOwnWent, attendEvent, BookingError } = await import("@/lib/booking");
     const a = await db.user.findUniqueOrThrow({ where: { id: userA } });
     const actor = { id: userA, name: "A", cellNumber: a.cellNumber, role: "member" as const, cellId: a.cellId };
+    const oldStart = new Date(Date.now() - 10 * 86400000 - 2 * 60 * 60 * 1000);
+    const oldEnd = new Date(Date.now() - 10 * 86400000 - 60 * 60 * 1000);
     const finished = await db.event.create({
       data: {
-        title: "Already finished",
+        title: "Finished weeks ago",
         organisationName: "Test",
         category: "Meetup",
-        startsAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        endsAt: new Date(Date.now() - 60 * 1000),
+        startsAt: oldStart,
+        endsAt: oldEnd,
         status: "PUBLISHED"
       }
     });
@@ -104,6 +106,22 @@ describe.skipIf(!prisma)("booking integrity", () => {
     expect(booking.attendance).toBe("ATTENDED");
     expect(booking.userId).toBe(userA);
     await expect(attendEvent({ eventId: finished.id, userId: userA, actor })).rejects.toBeInstanceOf(BookingError);
+    const alreadyBooked = await db.event.create({
+      data: {
+        title: "Booked, finished weeks ago",
+        organisationName: "Test",
+        category: "Meetup",
+        startsAt: oldStart,
+        endsAt: oldEnd,
+        status: "PUBLISHED"
+      }
+    });
+    const goingBooking = await db.booking.create({
+      data: { eventId: alreadyBooked.id, userId: userA, bookedById: userA, attendance: "UNCONFIRMED" }
+    });
+    const confirmed = await recordOwnWent({ eventId: alreadyBooked.id, actor });
+    expect(confirmed.id).toBe(goingBooking.id);
+    expect(confirmed.attendance).toBe("ATTENDED");
     const stillOpen = await db.event.create({
       data: {
         title: "Still open",
@@ -115,8 +133,8 @@ describe.skipIf(!prisma)("booking integrity", () => {
       }
     });
     await expect(recordOwnWent({ eventId: stillOpen.id, actor })).rejects.toBeInstanceOf(BookingError);
-    await db.booking.deleteMany({ where: { eventId: { in: [finished.id, stillOpen.id] } } });
-    await db.event.deleteMany({ where: { id: { in: [finished.id, stillOpen.id] } } });
+    await db.booking.deleteMany({ where: { eventId: { in: [finished.id, alreadyBooked.id, stillOpen.id] } } });
+    await db.event.deleteMany({ where: { id: { in: [finished.id, alreadyBooked.id, stillOpen.id] } } });
   });
 
   it("stops a cell leader booking another cell", async () => {
