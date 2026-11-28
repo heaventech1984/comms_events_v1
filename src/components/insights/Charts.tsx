@@ -245,19 +245,22 @@ export function FunnelList({
   );
 }
 
-export function KpiStrip(
-  kpis: {
+export function KpiStrip({
+  details,
+  ...kpis
+}: {
     eventsPublished: number;
     attendClicks: number;
     activeMembers: number;
+    totalMembers: number;
+    activeMemberPercent: number | null;
     attendanceRate: number | null;
     confirmationRate: number | null;
     noShowRate: number | null;
     fillRate: number | null;
     delegateShare: number | null;
     stars: number;
-  }
-) {
+  } & { details: Record<string, { cells: { label: string; value: string }[]; members: { label: string; cell: string; value: string }[] }> }) {
   const groups: {
     title: string;
     hint: string;
@@ -269,7 +272,8 @@ export function KpiStrip(
       items: [
         ["Published events", String(kpis.eventsPublished)],
         ["Attend clicks", String(kpis.attendClicks)],
-        ["Active members", String(kpis.activeMembers)],
+        ["Members logged in", `${kpis.activeMembers} / ${kpis.totalMembers}`],
+        ["Members logged in %", pctLabel(kpis.activeMemberPercent)],
         ["Stars", String(kpis.stars)]
       ]
     },
@@ -305,6 +309,13 @@ export function KpiStrip(
               <li key={label} className="kpi-tile">
                 <p className="kpi-label">{label}</p>
                 <p className="kpi-value">{value}</p>
+                {details[label] ? <details className="kpi-details">
+                  <summary>Cell and member details</summary>
+                  <h3>By cell</h3>
+                  {details[label].cells.length ? <ul>{details[label].cells.map((row) => <li key={row.label}>{row.label}: {row.value}</li>)}</ul> : <p className="muted">No cell detail.</p>}
+                  <h3>By member</h3>
+                  {details[label].members.length ? <ul>{details[label].members.map((row) => <li key={`${row.label}-${row.cell}`}>{row.label} <span className="muted">· {row.cell}</span>: {row.value}</li>)}</ul> : <p className="muted">No member detail.</p>}
+                </details> : null}
                 {label === "Average fill" ? (
                   <p className="muted kpi-tile-hint">
                     Bookings ÷ capacity, averaged over events with a cap.

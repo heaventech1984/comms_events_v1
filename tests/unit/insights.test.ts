@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateInsights, cellAttendanceTable, pctLabel } from "@/lib/insights/aggregate";
+import { aggregateInsights, cellAttendanceTable, kpisForRecentDays, pctLabel } from "@/lib/insights/aggregate";
 import { nextSevenDaysWindow, parseAttendanceSpan, parseInsightsParams, pastSevenDaysWindow, previousWindow } from "@/lib/insights/period";
 import { summaryLines, tablesFor } from "@/lib/insights/format";
 import { shareSummary, shareTargets } from "@/lib/insights/share";
@@ -146,6 +146,24 @@ describe("aggregateInsights", () => {
   });
 });
 
+describe("recent member reach", () => {
+  it("counts active member accounts with a login in the selected window", () => {
+    const members = raw.members.map((member, index) => ({
+      ...member,
+      role: index === 3 ? "admin" : "member",
+      lastLoginAt: index === 0
+        ? new Date("2026-10-19T10:00:00Z")
+        : index === 1
+          ? new Date("2026-09-01T10:00:00Z")
+          : new Date("2026-10-18T10:00:00Z")
+    }));
+    const kpis = kpisForRecentDays({ ...raw, members }, filters, 30, now);
+    expect(kpis.activeMembers).toBe(2);
+    expect(kpis.totalMembers).toBe(3);
+    expect(kpis.activeMemberPercent).toBe(0.667);
+  });
+});
+
 describe("period and share", () => {
   it("defaults to the last 30 days", () => {
     const nowDate = new Date("2026-10-17T12:00:00Z");
@@ -194,6 +212,13 @@ describe("period and share", () => {
     expect(shareTargets(text).map((t) => t.id)).toEqual(["whatsapp", "email", "teams", "telegram", "copy", "device"]);
   });
 
+  it("share text reports the selected tab and the login ratio", () => {
+    const data = aggregateInsights(raw, filters, { kind: "region" }, now);
+    const text = shareSummary(data, "https://example.com", filters, "reach", { loggedIn: 2, memberTotal: 3, memberPercent: 0.667 });
+    expect(text).toContain("Reach");
+    expect(text).toContain("2 / 3 members logged in (67%)");
+  });
+
   it("export tables include the summary measures", () => {
     const data = aggregateInsights(raw, filters, { kind: "region" }, now);
     const tables = tablesFor(data, "summary");
@@ -201,6 +226,7 @@ describe("period and share", () => {
     expect(summaryLines(data)[0]).toMatch(/^Generated /);
     expect(tablesFor(data, "weekly")[0].name).toBe("Weekly trend");
     expect(tablesFor(data, "byType")[0].name).toBe("By event type");
+    expect(tablesFor(data, "byFormat")[0].name).toBe("By format");
     expect(tablesFor(data, "byCell")[0].name).toBe("By cell");
     expect(tablesFor(data, "perEvent")[0].name).toBe("Per-event attendance");
     expect(tablesFor(data, "attendees")[0].name).toBe("Attendee list");

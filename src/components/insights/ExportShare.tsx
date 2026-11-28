@@ -7,9 +7,11 @@ import { DATASETS, EXPORT_FORMATS, type Dataset, type ExportFormat, type Insight
 import { shareTargets } from "@/lib/insights/share";
 
 const DATASET_LABEL: Record<Dataset, string> = {
+  currentTab: "Current tab",
   summary: "Summary",
   weekly: "Weekly trend",
   byType: "By event type",
+  byFormat: "Online and in person",
   byCell: "By cell",
   perEvent: "Per-event attendance",
   attendees: "Attendee list (names, your scope)",
@@ -19,15 +21,17 @@ const DATASET_LABEL: Record<Dataset, string> = {
 
 export function ExportShare({
   text,
-  query
+  query,
+  tab
 }: {
   data: InsightsData;
   text: string;
   query: Record<string, string>;
+  tab: string;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [kind, setKind] = useState<"info" | "error">("info");
-  const [dataset, setDataset] = useState<Dataset>("summary");
+  const [dataset, setDataset] = useState<Dataset>("currentTab");
   const [format, setFormat] = useState<ExportFormat>("csv");
   const targets = shareTargets(text);
 
@@ -39,7 +43,7 @@ export function ExportShare({
     setMessage(null);
     const result = await requestJson<{ filename?: string; body?: string; type?: string }>(
       "/api/insights/export",
-      { method: "POST", body: { dataset, format, ...query } }
+      { method: "POST", body: { dataset, format, tab, ...query } }
     );
     if (!result.ok) {
       setKind("error");

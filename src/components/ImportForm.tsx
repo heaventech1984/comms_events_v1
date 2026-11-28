@@ -2,12 +2,15 @@
 
 import { FormEvent, useState } from "react";
 import { StatusBanner } from "@/components/StatusBanner";
+import { useRouter } from "next/navigation";
 
 type PersonLine = { name: string; cell: string; cellNumber: string; permission: string };
 type PlaceLine = { cell: string; cellNumber: string; permission: string };
 type EditLine = { name: string; from: PlaceLine; to: PlaceLine };
+type HistoryRun = { id: string; at: string; actor: string; filename: string; added: PersonLine[]; edited: EditLine[] };
 
-export function ImportForm() {
+export function ImportForm({ history }: { history: HistoryRun[] }) {
+  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [kind, setKind] = useState<"info" | "error">("info");
   const [errors, setErrors] = useState<{ row: number; reason: string }[]>([]);
@@ -71,6 +74,7 @@ export function ImportForm() {
     );
     setErrors([]);
     form.reset();
+    router.refresh();
   }
 
   return (
@@ -201,6 +205,23 @@ export function ImportForm() {
           </div>
         </details>
       ) : null}
+      <section className="card stack" style={{ marginTop: "var(--space-5)" }}>
+        <h2>Import history</h2>
+        {history.length ? history.map((run) => (
+          <details key={run.id}>
+            <summary>{run.at} · {run.filename} · Added {run.added.length}, edited {run.edited.length} · {run.actor}</summary>
+            {run.added.length ? <details>
+              <summary>Added {run.added.length}</summary>
+              <div className="table-wrap"><table className="data stack-sm"><thead><tr><th>Name</th><th>Cell number</th><th>Cell</th><th>Permission</th></tr></thead><tbody>{run.added.map((person, i) => <tr key={`${run.id}-a-${i}`}><td>{person.name}</td><td>{person.cellNumber}</td><td>{person.cell}</td><td>{person.permission}</td></tr>)}</tbody></table></div>
+            </details> : null}
+            {run.edited.length ? <details>
+              <summary>Edited {run.edited.length}</summary>
+              <div className="table-wrap"><table className="data stack-sm"><thead><tr><th>Name</th><th>Cell number</th><th>Cell</th><th>Permission</th></tr></thead><tbody>{run.edited.map((person, i) => <tr key={`${run.id}-e-${i}`}><td>{person.name}</td><td>{person.from.cellNumber} → {person.to.cellNumber}</td><td>{person.from.cell || "—"} → {person.to.cell}</td><td>{person.from.permission} → {person.to.permission}</td></tr>)}</tbody></table></div>
+            </details> : null}
+            {!run.added.length && !run.edited.length ? <p className="muted">This earlier audit entry has no stored row details.</p> : null}
+          </details>
+        )) : <p className="muted">No imports have been recorded yet.</p>}
+      </section>
     </main>
   );
 }

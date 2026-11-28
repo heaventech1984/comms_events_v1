@@ -87,6 +87,13 @@ describe.skipIf(!prisma)("import people", () => {
     expect(saved.role).toBe("cell leader");
     expect(saved.passwordHash).toBe(hash);
     expect(await db.booking.count({ where: { userId: user.id, eventId: event.id } })).toBe(1);
+    const audit = await db.auditLog.findFirst({ where: { actorId: actor.id, action: "users.import" }, orderBy: { at: "desc" } });
+    expect(audit).not.toBeNull();
+    const history = JSON.parse(audit!.summary) as { version: number; edited: { name: string; from: { cell: string } }[] };
+    expect(history.version).toBe(1);
+    expect(history.edited[0]?.name).toBe("Ada Lovelace");
+    expect(history.edited[0]?.from.cell).toBe("Import Spark");
+    expect(audit!.summary).not.toContain("SecretPass1");
   });
 
   it("creates a person when the password is different", async () => {

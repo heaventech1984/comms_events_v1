@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -24,8 +25,8 @@ import {
   Stacked
 } from "@/components/insights/Charts";
 import { ExportShare } from "@/components/insights/ExportShare";
-import { formatDate, formatDateTimeRange } from "@/lib/time";
-import { dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
+import { formatDate, formatDateTimeRange, londonDate } from "@/lib/time";
+import { addDaysKey, dayKeyOf, formatDayKey, formatDayLabel } from "@/lib/calendar";
 
 export default async function InsightsPage({
   searchParams
@@ -102,8 +103,90 @@ export default async function InsightsPage({
     })
   ]);
   const cellAttendance = cellAttendanceTable(raw, filters, cellDays, cellList, now);
+  const cellStartKey = addDaysKey(dayKeyOf(now), -(cellDays - 1));
+  const cellEndKey = addDaysKey(dayKeyOf(now), 1);
+  const cellFrom = londonDate(cellStartKey.year, cellStartKey.month, cellStartKey.day, 0, 0);
+  const cellTo = londonDate(cellEndKey.year, cellEndKey.month, cellEndKey.day, 0, 0);
+  const eventById = new Map(raw.events.map((event) => [event.id, event]));
+  const cellAttendanceDetails = new Map<string, { title: string; startsAt: Date; people: { name: string; cell: string }[] }[]>();
+  for (const booking of raw.bookings) {
+    if (booking.attendance !== "ATTENDED") continue;
+    const event = eventById.get(booking.eventId);
+    if (
+      !event ||
+      event.status !== "PUBLISHED" ||
+      event.startsAt < cellFrom ||
+      event.startsAt >= cellTo ||
+      (filters.category && event.category !== filters.category) ||
+      (filters.format === "online" && !event.online) ||
+      (filters.format === "inperson" && event.online)
+    ) continue;
+    const rows = cellAttendanceDetails.get(booking.userCellId ?? "none") ?? [];
+    let item = rows.find((row) => row.title === event.title && row.startsAt.getTime() === event.startsAt.getTime());
+    if (!item) {
+      item = { title: event.title, startsAt: event.startsAt, people: [] };
+      rows.push(item);
+    }
+    item.people.push({ name: booking.userName ?? booking.userId, cell: booking.cellName });
+    cellAttendanceDetails.set(booking.userCellId ?? "none", rows);
+  }
+  for (const rows of cellAttendanceDetails.values()) rows.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
   const data = aggregateInsights(raw, filters, scope);
   const kpiNumbers = kpisForRecentDays(raw, filters, kpiDays, now);
+  type KpiBreakdown = { cells: { label: string; value: string }[]; members: { label: string; cell: string; value: string }[] };
+  const kpiDetails: Record<string, KpiBreakdown> = {};
+  const detailFromBookings = (rows: typeof raw.bookings, uniqueEvents = false): KpiBreakdown => {
+    const cellCounts = new Map<string, number>();
+    const memberCounts = new Map<string, { cell: string; count: number }>();
+    const seen = new Set<string>();
+    for (const booking of rows) {
+      const uniqueKey = `${booking.userId}:${booking.eventId}`;
+      if (uniqueEvents && seen.has(uniqueKey)) continue;
+      seen.add(uniqueKey);
+      cellCounts.set(booking.cellName, (cellCounts.get(booking.cellName) ?? 0) + 1);
+      const current = memberCounts.get(booking.userId) ?? { cell: booking.cellName, count: 0 };
+      current.count += 1;
+      memberCounts.set(booking.userId, current);
+    }
+    return {
+      cells: [...cellCounts].map(([label, count]) => ({ label, value: String(count) })).sort((a, b) => a.label.localeCompare(b.label)),
+      members: [...memberCounts].map(([id, value]) => ({ label: rows.find((b) => b.userId === id)?.userName ?? id, cell: value.cell, value: String(value.count) })).sort((a, b) => a.label.localeCompare(b.label))
+    };
+  };
+  const kpiFrom = new Date(now.getTime() - kpiDays * 24 * 60 * 60 * 1000);
+  const kpiEvents = raw.events.filter((event) => event.status === "PUBLISHED" && event.startsAt >= kpiFrom && event.startsAt <= now && (!filters.category || event.category === filters.category) && (!filters.format || (filters.format === "online" ? event.online : !event.online)));
+  const kpiEventIds = new Set(kpiEvents.map((event) => event.id));
+  const kpiBookings = raw.bookings.filter((booking) => kpiEventIds.has(booking.eventId));
+  const byEvent = new Map(kpiEvents.map((event) => [event.id, event]));
+  const pastBookings = kpiBookings.filter((booking) => (byEvent.get(booking.eventId)?.endsAt ?? now) < now);
+  const attendeeRows = (rows: typeof raw.bookings) => detailFromBookings(rows);
+  kpiDetails["Published events"] = detailFromBookings(kpiBookings, true);
+  kpiDetails["Attend clicks"] = attendeeRows(kpiBookings);
+  const loggedInMembers = raw.members.filter((member) => member.active && (member.role ?? "member") === "member" && member.lastLoginAt && member.lastLoginAt >= kpiFrom && member.lastLoginAt <= now);
+  const loginBreakdown = (members: typeof loggedInMembers): KpiBreakdown => {
+    const cells = new Map<string, number>();
+    for (const member of members) {
+      const cellName = member.cellName ?? "Unassigned";
+      cells.set(cellName, (cells.get(cellName) ?? 0) + 1);
+    }
+    return {
+      cells: [...cells].map(([label, count]) => ({ label, value: String(count) })).sort((a, b) => a.label.localeCompare(b.label)),
+      members: members.map((member) => ({ label: member.name ?? member.id, cell: member.cellName ?? "Unassigned", value: `last login ${member.lastLoginAt?.toLocaleDateString("en-GB", { timeZone: "Europe/London" }) ?? ""}` })).sort((a, b) => a.label.localeCompare(b.label))
+    };
+  };
+  kpiDetails["Members logged in"] = loginBreakdown(loggedInMembers);
+  kpiDetails["Members logged in %"] = loginBreakdown(loggedInMembers);
+  const starRows = raw.stars.filter((star) => kpiEventIds.has(star.eventId));
+  kpiDetails.Stars = {
+    cells: [...starRows.reduce((map, star) => { const name = star.cellName ?? "Unassigned"; return map.set(name, (map.get(name) ?? 0) + 1); }, new Map<string, number>())].map(([label, count]) => ({ label, value: String(count) })).sort((a, b) => a.label.localeCompare(b.label)),
+    members: starRows.map((star) => ({ label: star.userName ?? star.userId ?? "Member", cell: star.cellName ?? "Unassigned", value: "1 star" })).sort((a, b) => a.label.localeCompare(b.label))
+  };
+  const confirmedBookings = pastBookings.filter((booking) => booking.attendance === "ATTENDED" || booking.attendance === "ABSENT");
+  kpiDetails.Attendance = attendeeRows(pastBookings.filter((booking) => booking.attendance === "ATTENDED"));
+  kpiDetails.Confirmed = attendeeRows(confirmedBookings);
+  kpiDetails["No-shows"] = attendeeRows(pastBookings.filter((booking) => booking.attendance === "ABSENT"));
+  kpiDetails["Average fill"] = attendeeRows(kpiBookings.filter((booking) => (byEvent.get(booking.eventId)?.capacity ?? 0) > 0));
+  kpiDetails["Booked for others"] = attendeeRows(kpiBookings.filter((booking) => booking.bookedById !== booking.userId));
   const attendedGroups = new Map<string, { label: string; events: typeof attendedEvents }>();
   for (const event of attendedEvents) {
     const key = formatDayKey(dayKeyOf(event.startsAt));
@@ -115,7 +198,18 @@ export default async function InsightsPage({
     attendanceSpan === "past" ? (a[0] < b[0] ? 1 : -1) : a[0] < b[0] ? -1 : 1
   );
   const origin = process.env.APP_ORIGIN ?? "http://localhost:3000";
-  const text = shareSummary(data, origin, filters);
+  const peopleAttendees = attendedEvents.reduce((total, event) => total + event.bookings.length, 0);
+  const text = shareSummary(data, origin, filters, tab, {
+    loggedIn: kpiNumbers.activeMembers,
+    memberTotal: kpiNumbers.totalMembers,
+    memberPercent: kpiNumbers.activeMemberPercent,
+    eventsPublished: kpiNumbers.eventsPublished,
+    attendClicks: kpiNumbers.attendClicks,
+    peopleEvents: attendedEvents.length,
+    peopleAttendees,
+    cells: cellAttendance.rows.filter((row) => !row.suppressed && row.total > 0).length,
+    feedbackTotal: feedback.summary.total
+  });
   const firstName = user.name.trim().split(/\s+/)[0] || "Hello";
   const query: Record<string, string> = {
     period: filters.preset,
@@ -123,7 +217,11 @@ export default async function InsightsPage({
     format: filters.format,
     cell: filters.cellId ?? "",
     rating: feedbackExtra.rating,
-    q: feedbackExtra.q
+    q: feedbackExtra.q,
+    tab,
+    kpi: String(kpiDays),
+    cells: String(cellDays),
+    attended: attendanceSpan
   };
   const kept = (omit: Array<"attended" | "kpi" | "cells" | "rating" | "q"> = []) => (
     <>
@@ -237,27 +335,12 @@ export default async function InsightsPage({
         </label>
         <button type="submit">Show</button>
       </form>
-      <KpiStrip {...kpiNumbers} />
+      <KpiStrip {...kpiNumbers} details={kpiDetails} />
       </>
       ) : null}
 
       {tab === "activity" ? (
       <>
-      <ChartCard
-        title="Attend clicks each week"
-        summary="Attend clicks (people tapping Attend). Solid berry = this period; dashed grey = the same length before it."
-        table={<WeekTable weeks={data.weeks} />}
-      >
-        <LineBars weeks={data.weeks} previous={data.previousWeeks} />
-      </ChartCard>
-
-      <ChartCard
-        title="Attendance outcomes"
-        summary="People counted once per booking: Attended, Didn’t, or still Unconfirmed — by the week the event started."
-        table={<WeekTable weeks={data.weeks} outcomes />}
-      >
-        <Stacked weeks={data.weeks} />
-      </ChartCard>
       <section className="card stack" id="cell-attendance" aria-label="Events attended by cell">
         <form className="row" method="get" action="#cell-attendance">
           {kept(["cells"])}
@@ -275,8 +358,23 @@ export default async function InsightsPage({
         <p className="muted">
           Each number is events that cell went to. Past 7 days is one column per day, past 30 per week, and past 90 per month.
         </p>
-        <CellHeatTable table={cellAttendance} />
+        <CellHeatTable table={cellAttendance} details={cellAttendanceDetails} />
       </section>
+      <ChartCard
+        title="Attend clicks each week"
+        summary="Attend clicks (people tapping Attend). Solid berry = this period; dashed grey = the same length before it."
+        table={<WeekTable weeks={data.weeks} />}
+      >
+        <LineBars weeks={data.weeks} previous={data.previousWeeks} />
+      </ChartCard>
+
+      <ChartCard
+        title="Attendance outcomes"
+        summary="People counted once per booking: Attended, Didn’t, or still Unconfirmed — by the week the event started."
+        table={<WeekTable weeks={data.weeks} outcomes />}
+      >
+        <Stacked weeks={data.weeks} />
+      </ChartCard>
       </>
       ) : null}
 
@@ -464,7 +562,7 @@ export default async function InsightsPage({
       </section>
       ) : null}
 
-      <ExportShare data={data} text={text} query={query} />
+      <ExportShare data={data} text={text} query={query} tab={tab} />
       <p className="muted">
         Bookmark this view:{" "}
         <Link href={insightsHref(filters, {
@@ -585,7 +683,13 @@ function parseInsightsTab(value: string | undefined): (typeof INSIGHT_TABS)[numb
   return "people";
 }
 
-function CellHeatTable({ table }: { table: ReturnType<typeof cellAttendanceTable> }) {
+function CellHeatTable({
+  table,
+  details
+}: {
+  table: ReturnType<typeof cellAttendanceTable>;
+  details: Map<string, { title: string; startsAt: Date; people: { name: string; cell: string }[] }[]>;
+}) {
   if (!table.rows.length) return <p className="muted">No cells to show.</p>;
   return (
     <>
@@ -600,30 +704,30 @@ function CellHeatTable({ table }: { table: ReturnType<typeof cellAttendanceTable
             </tr>
           </thead>
           <tbody>
-            {table.rows.map((row) => (
-              <tr key={row.key}>
-                <th scope="row">{row.suppressed ? `${row.label} (fewer than 3 people)` : row.label}</th>
-                {row.suppressed ? (
-                  <td className="muted" colSpan={table.columns.length}>fewer than 3</td>
-                ) : (
-                  row.counts.map((count, index) => {
-                    const strength = table.max > 0 ? count / table.max : 0;
-                    return (
-                      <td
-                        key={table.columns[index].key}
-                        className="cell-heat"
-                        style={{
-                          background: `rgba(168, 67, 77, ${0.08 + strength * 0.8})`,
-                          color: strength >= 0.55 ? "#fff" : undefined
-                        }}
-                      >
-                        {count}
-                      </td>
-                    );
-                  })
-                )}
-              </tr>
-            ))}
+            {table.rows.map((row) => {
+              const events = details.get(row.key) ?? [];
+              return <Fragment key={row.key}>
+                <tr>
+                  <th scope="row">{row.suppressed ? `${row.label} (fewer than 3 people)` : row.label}</th>
+                  {row.suppressed ? (
+                    <td className="muted" colSpan={table.columns.length}>fewer than 3</td>
+                  ) : (
+                    row.counts.map((count, index) => {
+                      const strength = table.max > 0 ? count / table.max : 0;
+                      return <td key={table.columns[index].key} className="cell-heat" style={{ background: `rgba(168, 67, 77, ${0.08 + strength * 0.8})`, color: strength >= 0.55 ? "#fff" : undefined }}>{count}</td>;
+                    })
+                  )}
+                </tr>
+                {!row.suppressed && events.length ? <tr><td colSpan={table.columns.length + 1}>
+                  <details><summary>Show attended events and members ({events.length})</summary>
+                    <ul>{events.map((event) => <li key={`${event.title}-${event.startsAt.toISOString()}`}>
+                      <strong>{event.title}</strong> <span className="muted">· {formatDate(event.startsAt)}</span>
+                      <ul>{[...new Map(event.people.map((person) => [person.name, person])).values()].sort((a, b) => a.name.localeCompare(b.name)).map((person) => <li key={person.name}>{person.name}</li>)}</ul>
+                    </li>)}</ul>
+                  </details>
+                </td></tr> : null}
+              </Fragment>;
+            })}
           </tbody>
         </table>
       </div>

@@ -10,11 +10,11 @@ export async function loadRawInsights(scope: InsightsScope, filters: InsightsFil
     }),
     prisma.booking.findMany({
       where: cellFilter ? { user: { cellId: cellFilter } } : undefined,
-      include: { user: { include: { cell: true } } }
+      include: { user: { include: { cell: true } }, bookedBy: true }
     }),
     prisma.star.findMany({
       where: cellFilter ? { user: { cellId: cellFilter } } : undefined,
-      select: { eventId: true }
+      include: { user: { include: { cell: true } } }
     }),
     prisma.scraperRun.findMany({
       where: { startedAt: { gte: filters.from, lt: filters.to } },
@@ -23,7 +23,10 @@ export async function loadRawInsights(scope: InsightsScope, filters: InsightsFil
     }),
     prisma.user.findMany({
       where: cellFilter ? { cellId: cellFilter } : undefined,
-      select: { id: true, active: true, cellId: true }
+      select: {
+        id: true, name: true, cellNumber: true, active: true, role: true, cellId: true,
+        lastLoginAt: true, cell: { select: { name: true } }
+      }
     })
   ]);
 
@@ -47,9 +50,15 @@ export async function loadRawInsights(scope: InsightsScope, filters: InsightsFil
       bookedAt: b.bookedAt,
       attendance: b.attendance,
       userCellId: b.user.cellId,
-      cellName: b.user.cell?.name ?? "Unassigned"
+      cellName: b.user.cell?.name ?? "Unassigned",
+      userName: b.user.name,
+      cellNumber: b.user.cellNumber,
+      bookedByName: b.bookedBy.name
     })),
-    stars: stars.map((s) => ({ eventId: s.eventId })),
+    stars: stars.map((s) => ({
+      eventId: s.eventId, userId: s.userId, userName: s.user.name,
+      userCellId: s.user.cellId, cellName: s.user.cell?.name ?? "Unassigned"
+    })),
     runs: runs.map((r) => ({
       startedAt: r.startedAt,
       trigger: r.trigger,
@@ -60,7 +69,7 @@ export async function loadRawInsights(scope: InsightsScope, filters: InsightsFil
       status: r.status,
       sourceResults: r.sourceResults
     })),
-    members
+    members: members.map((m) => ({ ...m, cellName: m.cell?.name ?? "Unassigned" }))
   };
 }
 

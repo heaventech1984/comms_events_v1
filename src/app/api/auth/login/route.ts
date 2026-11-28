@@ -5,6 +5,7 @@ import { verifyPassword } from "@/lib/password";
 import { writeSession } from "@/lib/session";
 import { originAllowed, rejectOrigin } from "@/lib/origin";
 import { GENERIC_LOGIN_ERROR, type Role } from "@/lib/constants";
+import { writeAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   if (!originAllowed(request)) return rejectOrigin();
@@ -61,5 +62,17 @@ export async function POST(request: NextRequest) {
     cellId: matched.cellId,
     sv: matched.sessionVersion
   });
+  try {
+    await writeAudit({
+      actorId: matched.id,
+      entityId: matched.id,
+      action: "auth.login",
+      entityType: "User",
+      summary: "Successful sign-in"
+    });
+  } catch (error) {
+    // Login history is useful for reporting, but an audit write must not prevent sign-in.
+    console.error("auth.login audit failed", error);
+  }
   return NextResponse.json({ ok: true });
 }

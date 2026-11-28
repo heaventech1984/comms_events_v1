@@ -34,9 +34,12 @@ export type RawBooking = {
   attendance: string;
   userCellId: string | null;
   cellName: string;
+  userName?: string;
+  cellNumber?: string;
+  bookedByName?: string;
 };
 
-export type RawStar = { eventId: string };
+export type RawStar = { eventId: string; userId?: string; userName?: string; userCellId?: string | null; cellName?: string };
 export type RawRun = {
   startedAt: Date;
   trigger: string;
@@ -47,7 +50,16 @@ export type RawRun = {
   status: string;
   sourceResults?: string;
 };
-export type RawMember = { id: string; active: boolean; cellId: string | null };
+export type RawMember = {
+  id: string;
+  name?: string;
+  cellNumber?: string;
+  active: boolean;
+  role?: string;
+  cellId: string | null;
+  cellName?: string;
+  lastLoginAt?: Date | null;
+};
 
 export type RawInsights = {
   events: RawEvent[];
@@ -61,6 +73,8 @@ export type Kpis = {
   eventsPublished: number;
   attendClicks: number;
   activeMembers: number;
+  totalMembers: number;
+  activeMemberPercent: number | null;
   attendanceRate: number | null;
   confirmationRate: number | null;
   noShowRate: number | null;
@@ -129,10 +143,12 @@ export const DATASETS = [
   "summary",
   "weekly",
   "byType",
+  "byFormat",
   "byCell",
   "perEvent",
   "attendees",
   "feedback",
+  "currentTab",
   "everything"
 ] as const;
 export type Dataset = (typeof DATASETS)[number];

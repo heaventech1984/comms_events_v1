@@ -6,7 +6,7 @@ A **changelog** is a dated notebook of “what we put on the noticeboard,” not
 
 | Where | What people open | Code |
 | --- | --- | --- |
-| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Confirm attendance after an event ends* |
+| Oracle (runs `experiment`) | https://132.145.68.166.sslip.io | Newest app change in this file: *Insights drilldowns, login history and import history* |
 | Railway (announced demo, auto-deploy paused) | https://commseventsv1-production.up.railway.app | Last Postgres build. It does not include the 28 Oct notes. |
 
 `package.json` stays `1.0.0` until a numbered church release.
@@ -16,6 +16,13 @@ Git history is the source of truth. Smoke checklists live in [`REVIEW.md`](REVIE
 Style later: [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## 2026-11-28 — Insights drilldowns, login history and import history
+
+- Reach shows distinct active member accounts that logged in during the selected 7, 30, or 90 days, the total active member accounts, and the percentage. KPI tiles expand to show the cells and members behind their figures. Successful sign-ins are recorded going forward; earlier login history cannot be reconstructed.
+- Activity puts Events attended by cell first, sorts cells alphabetically, and expands non-suppressed cells to show attended events and attendees. Groups with fewer than three members remain suppressed.
+- Take this with you defaults to the selected Insights tab. Downloads include that tab’s relevant tables; shared text summarizes that tab without member names or cell numbers.
+- Admins can open past import summaries after leaving or refreshing Import. New records store the existing Added and Edited details in the audit log, never uploaded files or passwords. Older audit entries have counts only, so their lost row details cannot be recovered.
 
 ## 2026-11-26 — Confirm attendance after an event ends
 

@@ -68,6 +68,8 @@ function kpisFor(published: RawEvent[], bookings: RawBooking[], members: RawInsi
     eventsPublished: published.length,
     attendClicks: bookings.length,
     activeMembers: members.filter((m) => m.active).length,
+    totalMembers: members.filter((m) => m.active && (m.role ?? "member") === "member").length,
+    activeMemberPercent: null,
     attendanceRate: rate(attended, confirmed),
     confirmationRate: rate(confirmed, pastBookings.length),
     noShowRate: rate(absent, confirmed),
@@ -241,7 +243,17 @@ export function kpisForRecentDays(raw: RawInsights, filters: InsightsFilters, da
   const publishedIds = new Set(published.map((e) => e.id));
   const bookings = raw.bookings.filter((b) => publishedIds.has(b.eventId));
   const stars = raw.stars.filter((s) => publishedIds.has(s.eventId)).length;
-  return kpisFor(published, bookings, raw.members, stars, now);
+  const kpis = kpisFor(published, bookings, raw.members, stars, now);
+  const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const members = raw.members.filter((m) => m.active && (m.role ?? "member") === "member");
+  const loggedIn = members.filter((m) => m.lastLoginAt && m.lastLoginAt >= since && m.lastLoginAt <= now);
+  const memberTotal = members.length;
+  return {
+    ...kpis,
+    activeMembers: loggedIn.length,
+    totalMembers: memberTotal,
+    activeMemberPercent: memberTotal ? Math.round((loggedIn.length / memberTotal) * 1000) / 1000 : null
+  };
 }
 
 export type CellAttendanceColumn = { key: string; label: string };
@@ -339,7 +351,7 @@ export function cellAttendanceTable(
       suppressed
     };
   });
-  rows.sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
+  rows.sort((a, b) => a.label.localeCompare(b.label));
   const max = rows.reduce((highest, row) => {
     if (row.suppressed) return highest;
     return Math.max(highest, ...row.counts);

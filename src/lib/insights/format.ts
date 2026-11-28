@@ -51,6 +51,11 @@ export function tablesFor(
     columns: ["Type", "Attend clicks"],
     rows: data.byCategory.map((r) => [r.label, r.count])
   };
+  const byFormat: Table = {
+    name: "By format",
+    columns: ["Format", "Attend clicks"],
+    rows: data.byFormat.map((r) => [r.label, r.count])
+  };
   const byCell: Table = {
     name: "By cell",
     columns: ["Cell", "Attend clicks"],
@@ -87,10 +92,11 @@ export function tablesFor(
     ],
     rows: []
   };
-  const all = { summary, weekly, byType, byCell, perEvent, attendees, feedback };
+  const all = { summary, weekly, byType, byFormat, byCell, perEvent, attendees, feedback };
   if (dataset === "everything") return Object.values(all);
   if (dataset === "weekly") return [weekly];
   if (dataset === "byType") return [byType];
+  if (dataset === "byFormat") return [byFormat];
   if (dataset === "byCell") return [byCell];
   if (dataset === "perEvent") return [perEvent];
   if (dataset === "attendees") return [attendees];

@@ -372,11 +372,17 @@ export async function importUsers(opts: {
   });
 
   try {
+    const history = JSON.stringify({
+      version: 1,
+      filename: opts.filename,
+      created: added,
+      edited
+    });
     await writeAudit({
       actorId: opts.actor.id,
       action: "users.import",
       entityType: "User",
-      summary: `${opts.actor.name} imported ${added.length} new people and updated ${edited.length} from ${opts.filename}`
+      summary: history
     });
   } catch (error) {
     console.error("users.import audit failed", error);
